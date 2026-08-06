@@ -25,6 +25,9 @@ public actor LibraryScanner {
         "flac", "m4a", "wav", "aiff", "aif", "dsf", "dff",
         "opus", "ogg", "mp3", "aac", "wv", "ape",
     ]
+    static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "webp"]
+    /// Имена файлов обложки в порядке убывания важности: front.jpg побеждает back.jpg.
+    static let artFilters = ["front", "cover", "folder", "album"]
     static let batchSize = 500
 
     private let db: any DatabaseAccess
@@ -34,6 +37,8 @@ public actor LibraryScanner {
     /// Кэши разрешённых артистов/альбомов на время одного скана.
     private var artistCache: [String: Int64] = [:]
     private var albumCache: [String: Int64] = [:]
+    /// Обложки из папок на время скана: путь директории → байты картинки.
+    private var folderArtCache: [String: Data?] = [:]
 
     public init(db: any DatabaseAccess, covers: CoverCache, logURL: URL? = nil) {
         self.db = db
@@ -77,6 +82,7 @@ public actor LibraryScanner {
 
         artistCache.removeAll()
         albumCache.removeAll()
+        folderArtCache.removeAll()
         var summary = ScanSummary()
 
         // 1. Обход дерева
@@ -238,7 +244,12 @@ public actor LibraryScanner {
         let albumsSnapshot = albumCache
         let coverCache = covers
         let batchValues = batch.map { item in
-            (item.relative, item.existingID, item.meta, onDiskValues(for: item, source: source))
+            (
+                item.relative, item.existingID, item.meta,
+                onDiskValues(for: item, source: source),
+                item.meta.embeddedCover == nil
+                    ? folderArt(for: item.relative, source: source) : nil
+            )
         }
 
         let result: (added: Int, updated: Int, artists: [String: Int64], albums: [String: Int64]) =
@@ -247,10 +258,12 @@ public actor LibraryScanner {
                 var albums = albumsSnapshot
                 var added = 0
                 var updated = 0
-                for (relative, existingID, meta, diskValues) in batchValues {
+                for (relative, existingID, meta, diskValues, folderCover) in batchValues {
                     let item = (relative: relative, existingID: existingID, meta: meta)
                     let values = diskValues
                     let meta = item.meta
+                    // Тег важнее файла в папке (SPEC §5.4).
+                    let cover = meta.embeddedCover ?? folderCover
 
                     // Артист трека
                     let trackArtistID = try Self.resolveArtist(
@@ -284,13 +297,17 @@ public actor LibraryScanner {
                                     artistId: albumArtistID,
                                     albumArtist: albumArtistName, year: meta.year, date: meta.date,
                                     discCount: nil, isCompilation: meta.isCompilationTagged)
-                                if let cover = meta.embeddedCover,
-                                    let hash = try? coverCache.store(cover)
-                                {
+                                if let cover, let hash = try? coverCache.store(cover) {
                                     new.coverHash = hash
                                 }
                                 try new.insert(database)
                                 album = new
+                            } else if album?.coverHash == nil, let cover,
+                                let hash = try? coverCache.store(cover)
+                            {
+                                // Альбом уже был без обложки — досыпаем найденную.
+                                album?.coverHash = hash
+                                try album?.update(database)
                             }
                             albumID = album?.id
                             if let id = album?.id { albums[key] = id }
@@ -330,6 +347,47 @@ public actor LibraryScanner {
         albumCache = result.albums
         summary.added += result.added
         summary.updated += result.updated
+    }
+
+    /// Обложка из папки трека, кэш на директорию (тег важнее, зовётся только
+    /// когда встроенной картинки нет).
+    private func folderArt(for relative: String, source: Source) -> Data? {
+        guard let bookmark = source.bookmark,
+            let root = try? Self.resolveBookmark(bookmark)
+        else { return nil }
+        let directory = root.appendingPathComponent(relative).deletingLastPathComponent()
+        if let cached = folderArtCache[directory.path] { return cached }
+        let data = Self.folderArt(in: directory)
+        folderArtCache[directory.path] = data
+        return data
+    }
+
+    /// Выбор картинки в директории: фильтры имён по важности, среди совпавших —
+    /// самый большой файл. Совпадений нет — самая большая из всех.
+    static func folderArt(in directory: URL) -> Data? {
+        guard
+            let entries = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.fileSizeKey],
+                options: [.skipsHiddenFiles])
+        else { return nil }
+        let images = entries.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        guard !images.isEmpty else { return nil }
+
+        var candidates: [URL] = []
+        for filter in artFilters {
+            candidates = images.filter {
+                $0.deletingPathExtension().lastPathComponent.lowercased().contains(filter)
+            }
+            if !candidates.isEmpty { break }
+        }
+        if candidates.isEmpty { candidates = images }
+
+        let biggest = candidates.max { left, right in
+            let leftSize = (try? left.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            let rightSize = (try? right.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            return leftSize < rightSize
+        }
+        return biggest.flatMap { try? Data(contentsOf: $0) }
     }
 
     /// mtime/size для записи в БД — повторный stat дешевле таскания через TaskGroup.

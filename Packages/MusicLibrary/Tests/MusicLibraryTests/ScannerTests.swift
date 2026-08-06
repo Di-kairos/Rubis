@@ -113,3 +113,39 @@ struct ScannerTests {
         #expect(finished?.added == 2)
     }
 }
+
+/// Выбор обложки в папке альбома (файлы, а не встроенный тег).
+struct FolderArtTests {
+    /// Кладёт картинки заданного размера в свежую временную папку.
+    private func makeDirectory(_ files: [(name: String, bytes: Int)]) throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("folder-art-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        for file in files {
+            try Data(repeating: 0x41, count: file.bytes)
+                .write(to: root.appendingPathComponent(file.name))
+        }
+        return root
+    }
+
+    @Test func filterOrderBeatsFileSize() throws {
+        let root = try makeDirectory([
+            ("back.jpg", 4000), ("front.jpg", 100), ("cover.png", 8000), ("scan.png", 9000),
+        ])
+        defer { try? FileManager.default.removeItem(at: root) }
+        // front важнее cover, и важнее размера: 100 байт побеждают 8000.
+        #expect(LibraryScanner.folderArt(in: root)?.count == 100)
+    }
+
+    @Test func withoutFilterMatchPicksBiggestImage() throws {
+        let root = try makeDirectory([("scan1.jpg", 300), ("scan2.jpg", 700), ("notes.txt", 5000)])
+        defer { try? FileManager.default.removeItem(at: root) }
+        #expect(LibraryScanner.folderArt(in: root)?.count == 700)
+    }
+
+    @Test func noImagesGivesNil() throws {
+        let root = try makeDirectory([("notes.txt", 10)])
+        defer { try? FileManager.default.removeItem(at: root) }
+        #expect(LibraryScanner.folderArt(in: root) == nil)
+    }
+}
