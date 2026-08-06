@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "18f336e"
+head: "2752813"
 tests: 11/11 (swift test, 5 packages)
 last_session: 1
 last_reviewed: 2026-08-06
@@ -29,7 +29,7 @@ next_actions:
 
 Session 1 (2026-08-06): проект связан (git + X10 + память), принят пакет ТЗ Escapement —
 bit-perfect macOS-плеер. SPEC/DESIGN/TASKS в корне. Кода нет, фаза 0 не начата.
-HEAD: `18f336e` — feat(design-system): tokens, eight primitives, WCAG contrast test, debug gallery (ветка phase/01-design-system).
+HEAD: `2752813` — fix(app): gallery shortcut cmd-shift-D (ветка phase/01-design-system).
 
 ## Фазы (из TASKS.md)
 
