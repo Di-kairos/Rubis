@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6186081353886B17DD038F1F /* AlbumsGrid.swift */; };
 		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
+		221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */; };
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
 		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
@@ -16,6 +17,7 @@
 		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
 		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
+		803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB66BEAD427530E18C9938 /* Playlists.swift */; };
 		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
 		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
@@ -35,6 +37,7 @@
 		5771AB6CC12B8F72156A2016 /* DesignSystem */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DesignSystem; path = Packages/DesignSystem; sourceTree = SOURCE_ROOT; };
 		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
 		6186081353886B17DD038F1F /* AlbumsGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumsGrid.swift; sourceTree = "<group>"; };
+		66FB66BEAD427530E18C9938 /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
 		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
 		90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,6 +45,7 @@
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
+		EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRowSupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,9 +119,11 @@
 				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
 				470192454F34299CE626000F /* ArtistsList.swift */,
 				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
+				66FB66BEAD427530E18C9938 /* Playlists.swift */,
 				2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */,
 				1F5775751BCC167A604DDAF2 /* SettingsScene.swift */,
 				4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */,
+				EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */,
 				CA25FCB47B384004AAD3364F /* TransportBar.swift */,
 			);
 			path = Scenes;
@@ -132,6 +138,7 @@
 			buildPhases = (
 				85FBAC58AA6FED180C27B66F /* Sources */,
 				A094D214FB3AA2EC3AE15CBD /* Frameworks */,
+				2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */,
 			);
 			buildRules = (
 			);
@@ -189,6 +196,28 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign embedded frameworks ad-hoc";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n[ -d \"$frameworks\" ] || exit 0\nfor framework in \"$frameworks\"/*.framework; do\n  [ -e \"$framework\" ] || continue\n  codesign --force --sign - --options runtime \"$framework\"\ndone\ncodesign --force --sign - --options runtime \\\n  --entitlements \"$SRCROOT/$CODE_SIGN_ENTITLEMENTS\" \\\n  \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		85FBAC58AA6FED180C27B66F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -200,9 +229,11 @@
 				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
 				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
+				803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */,
 				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,
 				1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */,
 				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
+				221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */,
 				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

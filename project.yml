@@ -38,3 +38,21 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    postBuildScripts:
+      # Бинарные фреймворки декодеров приезжают из SPM уже подписанными чужим
+      # Team ID. С ad-hoc подписью приложения и hardened runtime dyld отказывается
+      # их грузить («different Team IDs») и приложение падает на старте.
+      # Переподписываем всё одной идентичностью после сборки.
+      - name: Re-sign embedded frameworks ad-hoc
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          frameworks="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+          [ -d "$frameworks" ] || exit 0
+          for framework in "$frameworks"/*.framework; do
+            [ -e "$framework" ] || continue
+            codesign --force --sign - --options runtime "$framework"
+          done
+          codesign --force --sign - --options runtime \
+            --entitlements "$SRCROOT/$CODE_SIGN_ENTITLEMENTS" \
+            "$TARGET_BUILD_DIR/$WRAPPER_NAME"
