@@ -1,0 +1,40 @@
+# XcodeGen manifest — source of truth for Escapement.xcodeproj.
+# Regenerate after edits: xcodegen generate
+name: Escapement
+options:
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Escapement.xcconfig
+  Release: Config/Escapement.xcconfig
+packages:
+  EscapementCore:
+    path: Packages/EscapementCore
+  PlaybackEngine:
+    path: Packages/PlaybackEngine
+  MusicLibrary:
+    path: Packages/MusicLibrary
+  SubsonicKit:
+    path: Packages/SubsonicKit
+  DesignSystem:
+    path: Packages/DesignSystem
+targets:
+  Escapement:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "*.entitlements"
+    dependencies:
+      - package: EscapementCore
+      - package: PlaybackEngine
+      - package: MusicLibrary
+      - package: SubsonicKit
+      - package: DesignSystem
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES

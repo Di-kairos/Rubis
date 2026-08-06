@@ -11,14 +11,14 @@
 
 **Цель:** пустое окно, которое собирается и запускается.
 
-- [ ] Xcode-проект `Escapement`, target macOS 15.0, arm64, Swift 6 strict concurrency
-      _(блокер: на машине нет Xcode, только CLT — файлы App/ и xcconfig готовы)_
+- [x] Xcode-проект `Escapement`, target macOS 15.0, arm64, Swift 6 strict concurrency
+      _(генерируется XcodeGen из `project.yml` — правки проекта делать там, затем `xcodegen generate`)_
 - [x] `Config/Escapement.xcconfig` со всеми идентификаторами (SPEC §14)
 - [x] Пять локальных SPM-пакетов из SPEC §3.1, пустые, но с тестовыми таргетами
 - [x] Тест, проверяющий правило зависимостей между пакетами (парсит `Package.swift`)
 - [x] `swift-format` конфиг + скрипт `Tools/format.sh` (+ `Tools/test.sh` для CLT)
 - [x] `.gitignore`, `README.md` с командами сборки
-- [x] Entitlements: hardened runtime вкл. (xcconfig), sandbox выкл. — проверить сборкой после установки Xcode
+- [x] Entitlements: hardened runtime вкл. (xcconfig), sandbox выкл. — проверено сборкой
 - [x] `OSLog` категории `audio` / `library` / `network` / `ui`
 
 **Acceptance:** `xcodebuild -scheme Escapement` без warnings; `swift test` зелёный;

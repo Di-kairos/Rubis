@@ -1,0 +1,386 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
+		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
+		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
+		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
+		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
+		FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = D61AF376BFE2E74CC999958E /* DesignSystem */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
+		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
+		5771AB6CC12B8F72156A2016 /* DesignSystem */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DesignSystem; path = Packages/DesignSystem; sourceTree = SOURCE_ROOT; };
+		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
+		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
+		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
+		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A094D214FB3AA2EC3AE15CBD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */,
+				A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */,
+				B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */,
+				293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */,
+				FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2CDE4D07DE91E2F89D56CAD8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		314ABF676BA09340B3BE7837 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BB27EE93F7BB4DE77FF7059C /* Escapement.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5A5AAAA18D323AD33EDA83D9 = {
+			isa = PBXGroup;
+			children = (
+				2CDE4D07DE91E2F89D56CAD8 /* App */,
+				5CFEDDE2813CC9B0FECA4052 /* Config */,
+				6429AB3445D852F6B52909BF /* Packages */,
+				314ABF676BA09340B3BE7837 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5CFEDDE2813CC9B0FECA4052 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				31C5349F10DD785A914D3073 /* Escapement.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		6429AB3445D852F6B52909BF /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				5771AB6CC12B8F72156A2016 /* DesignSystem */,
+				CBC9CBD457E6ED539778D85F /* EscapementCore */,
+				13BF8575E743C49190C7592D /* MusicLibrary */,
+				57D61577A84493D0FE4A11A3 /* PlaybackEngine */,
+				82275FD42280EC8A55A8CD7A /* SubsonicKit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		72131EFA7B59920F47E1BD39 /* Escapement */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0F9F4338EFAC8DCC986D501 /* Build configuration list for PBXNativeTarget "Escapement" */;
+			buildPhases = (
+				85FBAC58AA6FED180C27B66F /* Sources */,
+				A094D214FB3AA2EC3AE15CBD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Escapement;
+			packageProductDependencies = (
+				C870E08BF572A29F2F19AE54 /* EscapementCore */,
+				60F1F9F378E8199089CA8B72 /* PlaybackEngine */,
+				5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */,
+				0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */,
+				D61AF376BFE2E74CC999958E /* DesignSystem */,
+			);
+			productName = Escapement;
+			productReference = BB27EE93F7BB4DE77FF7059C /* Escapement.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3297A4084386CB235E7DD719 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					72131EFA7B59920F47E1BD39 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = C340F500033BBEF9F4D14A02 /* Build configuration list for PBXProject "Escapement" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 5A5AAAA18D323AD33EDA83D9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D05B0AEA0E1BB73DD2AFE242 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */,
+				46D7B220EEDB309B37318427 /* XCLocalSwiftPackageReference "Packages/EscapementCore" */,
+				690753854E7A53AFB12DEC6E /* XCLocalSwiftPackageReference "Packages/MusicLibrary" */,
+				AB6B59228A0CB6FE7C79ABD7 /* XCLocalSwiftPackageReference "Packages/PlaybackEngine" */,
+				C6E0798D8A4E5527E6C650E0 /* XCLocalSwiftPackageReference "Packages/SubsonicKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 314ABF676BA09340B3BE7837 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				72131EFA7B59920F47E1BD39 /* Escapement */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		85FBAC58AA6FED180C27B66F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		04AE8D5C5362F454EDEC17BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 31C5349F10DD785A914D3073 /* Escapement.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		20201DD716B20C9CC2ED10F7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+			};
+			name = Debug;
+		};
+		451954D1DA5797FC775E80EF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+			};
+			name = Release;
+		};
+		C2A9377664F2800CFBD50375 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 31C5349F10DD785A914D3073 /* Escapement.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C340F500033BBEF9F4D14A02 /* Build configuration list for PBXProject "Escapement" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04AE8D5C5362F454EDEC17BB /* Debug */,
+				C2A9377664F2800CFBD50375 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F0F9F4338EFAC8DCC986D501 /* Build configuration list for PBXNativeTarget "Escapement" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				20201DD716B20C9CC2ED10F7 /* Debug */,
+				451954D1DA5797FC775E80EF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		46D7B220EEDB309B37318427 /* XCLocalSwiftPackageReference "Packages/EscapementCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/EscapementCore;
+		};
+		690753854E7A53AFB12DEC6E /* XCLocalSwiftPackageReference "Packages/MusicLibrary" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MusicLibrary;
+		};
+		AB6B59228A0CB6FE7C79ABD7 /* XCLocalSwiftPackageReference "Packages/PlaybackEngine" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PlaybackEngine;
+		};
+		C6E0798D8A4E5527E6C650E0 /* XCLocalSwiftPackageReference "Packages/SubsonicKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SubsonicKit;
+		};
+		D05B0AEA0E1BB73DD2AFE242 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/DesignSystem;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SubsonicKit;
+		};
+		5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MusicLibrary;
+		};
+		60F1F9F378E8199089CA8B72 /* PlaybackEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PlaybackEngine;
+		};
+		C870E08BF572A29F2F19AE54 /* EscapementCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EscapementCore;
+		};
+		D61AF376BFE2E74CC999958E /* DesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DesignSystem;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 3297A4084386CB235E7DD719 /* Project object */;
+}
