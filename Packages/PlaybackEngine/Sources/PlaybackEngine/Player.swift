@@ -38,6 +38,8 @@ public actor Player {
     private var index = 0
     private var currentDeviceID: UInt32?
     private var gaplessArmed = false
+    /// Set by prepareDevice when the current track goes out as DoP packets.
+    private var currentUsesDoP = false
 
     private var stateContinuations: [UUID: AsyncStream<PlaybackState>.Continuation] = [:]
     private var statusContinuations: [UUID: AsyncStream<OutputStatus?>.Continuation] = [:]
@@ -171,7 +173,7 @@ public actor Player {
         outputDeviceLost = false
         do {
             try await prepareDevice(for: item.track)
-            try engine.play(item.url)
+            try engine.play(makeDecoder(for: item))
             state = .playing(item.track)
             armGapless()
         } catch let error as PlaybackError {
@@ -210,37 +212,75 @@ public actor Player {
         }
 
         let available = try await devices.availableSampleRates(deviceID: device.id)
-        let source = Double(track.sampleRate)
-        let decision = SampleRatePolicy.choose(
-            source: source, available: available, fallback: config.rateFallback)
-
-        let targetRate: Double
-        var exactRate = false
-        switch decision {
-        case .exact(let rate):
-            targetRate = rate
-            exactRate = true
-        case .familyMultiple(let rate), .crossFamily(let rate):
-            targetRate = rate
-        case .refuse:
-            throw PlaybackError.deviceUnavailable
-        }
+        let plan = try ratePlan(for: track, available: available)
+        currentUsesDoP = plan.usesDoP
 
         let currentRate = try await devices.nominalSampleRate(deviceID: device.id)
-        if currentRate != targetRate {
-            try await devices.setNominalSampleRate(deviceID: device.id, rate: targetRate)
+        if currentRate != plan.target {
+            try await devices.setNominalSampleRate(deviceID: device.id, rate: plan.target)
             // Silence gap only when the rate really changed (SPEC §4.2.4).
             try await Task.sleep(for: config.sampleRateChangeDelay)
         }
 
         outputStatus = OutputStatus(
             deviceName: device.name,
-            deviceSampleRate: targetRate,
-            sourceSampleRate: source,
+            deviceSampleRate: plan.target,
+            sourceSampleRate: Double(track.sampleRate),
             sourceBitDepth: track.bitDepth ?? 16,
             isExclusive: exclusive,
-            isBitPerfect: exclusive && exactRate,
-            dsdMode: track.codec == "dsf" || track.codec == "dff" ? config.dsdMode : nil)
+            isBitPerfect: exclusive && plan.exact,
+            dsdMode: plan.isDSD ? config.dsdMode : nil)
+    }
+
+    private struct RatePlan {
+        let target: Double
+        /// Signal leaves the app unmodified (exact PCM rate or DoP passthrough).
+        let exact: Bool
+        let isDSD: Bool
+        let usesDoP: Bool
+    }
+
+    /// Device rate plan for a track (SPEC §4.2.3 PCM, §4.2.6 DSD).
+    private func ratePlan(for track: Track, available: [Double]) throws -> RatePlan {
+        let isDSD = track.codec == "dsf" || track.codec == "dff"
+        if isDSD {
+            // DoP carries DSD in PCM frames at dsdRate/16 (DSD64 → 176.4k).
+            let dopRate = Double(track.sampleRate) / 16.0
+            if config.dsdMode == .dopIfAvailable, available.contains(dopRate) {
+                return RatePlan(target: dopRate, exact: true, isDSD: true, usesDoP: true)
+            }
+            // Conversion path: DSD → PCM 24/176.4 (SPEC §4.2.6), never bit-perfect.
+            switch SampleRatePolicy.choose(
+                source: 176400, available: available, fallback: config.rateFallback)
+            {
+            case .exact(let rate), .familyMultiple(let rate), .crossFamily(let rate):
+                return RatePlan(target: rate, exact: false, isDSD: true, usesDoP: false)
+            case .refuse:
+                throw PlaybackError.deviceUnavailable
+            }
+        }
+        switch SampleRatePolicy.choose(
+            source: Double(track.sampleRate), available: available, fallback: config.rateFallback)
+        {
+        case .exact(let rate):
+            return RatePlan(target: rate, exact: true, isDSD: false, usesDoP: false)
+        case .familyMultiple(let rate), .crossFamily(let rate):
+            return RatePlan(target: rate, exact: false, isDSD: false, usesDoP: false)
+        case .refuse:
+            throw PlaybackError.deviceUnavailable
+        }
+    }
+
+    /// Builds the decoder chain: plain PCM, DoP passthrough, or DSD→PCM.
+    private func makeDecoder(for item: PlaybackItem) throws -> any PCMDecoding {
+        let isDSD = item.track.codec == "dsf" || item.track.codec == "dff"
+        guard isDSD else {
+            return try AudioDecoder(url: item.url)
+        }
+        let dsd = try DSDDecoder(url: item.url)
+        return currentUsesDoP
+            ? try DoPDecoder(decoder: dsd) as any PCMDecoding
+            : try DSDPCMDecoder(decoder: dsd) as any PCMDecoding
     }
 
     /// Preloads the next queue item for gapless transition when the sample
@@ -251,8 +291,13 @@ public actor Player {
         guard queue.indices.contains(nextIndex) else { return }
         let current = queue[index]
         let next = queue[nextIndex]
-        guard next.track.sampleRate == current.track.sampleRate else { return }
-        if (try? engine.enqueue(next.url)) != nil {
+        // Gapless only within one PCM format family; DSD transitions restart cleanly.
+        guard next.track.sampleRate == current.track.sampleRate,
+            next.track.codec != "dsf", next.track.codec != "dff",
+            current.track.codec != "dsf", current.track.codec != "dff",
+            let decoder = try? makeDecoder(for: next)
+        else { return }
+        if (try? engine.enqueue(decoder)) != nil {
             gaplessArmed = true
         }
     }

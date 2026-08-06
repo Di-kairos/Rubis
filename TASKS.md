@@ -69,19 +69,21 @@
 
 **Цель:** bit-perfect воспроизведение локального файла. Без UI.
 
-- [ ] Интеграция `SFBAudioEngine` и `CAAudioHardware`
-- [ ] `AudioDeviceController`: перечисление устройств, чтение доступных частот,
-      установка nominal sample rate, hog mode, `SupportsMixing`, наблюдение за отключением
-- [ ] Логика выбора частоты из SPEC §4.2.3, включая политику при отсутствии точной
-- [ ] `Player` (actor): load / play / pause / seek / next / previous, очередь, gapless
-- [ ] `OutputStatus` и честный расчёт `isBitPerfect` (SPEC §4.5)
-- [ ] Пауза при смене частоты (§4.2.4)
-- [ ] DSD: DoP при поддержке устройства, иначе конвертация в PCM с пометкой
-- [ ] Управление громкостью через HAL, скрытие слайдера если устройство не умеет (§4.4)
-- [ ] Обработка потери устройства: пауза, статус, без автовозобновления
-- [ ] `Tools/make-fixtures.sh` — генерация тестовых файлов всех частот и разрядностей
-- [ ] `Tools/audio-verify` — CLI побитового сравнения через loopback-устройство
-- [ ] Тесты логики выбора частоты (без железа)
+- [x] Интеграция `SFBAudioEngine` и `CAAudioHardware`
+- [x] `AudioDeviceController`: перечисление устройств, чтение доступных частот,
+      установка nominal sample rate, hog mode, `SupportsMixing` (raw HAL — обёртки в CAAudioHardware нет),
+      наблюдение за отключением
+- [x] Логика выбора частоты из SPEC §4.2.3, включая политику при отсутствии точной
+- [x] `Player` (actor): load / play / pause / seek / next / previous, очередь, gapless
+- [x] `OutputStatus` и честный расчёт `isBitPerfect` (SPEC §4.5)
+- [x] Пауза при смене частоты (§4.2.4) — только когда частота реально меняется
+- [x] DSD: DoP при поддержке устройства (dsdRate/16 в available rates), иначе DSDPCMDecoder с пометкой
+- [x] Управление громкостью через HAL, `deviceHasVolumeControl` для скрытия слайдера (§4.4)
+- [x] Обработка потери устройства: пауза, статус, без автовозобновления
+- [x] `Tools/make-fixtures.sh` — 26 фикстур (sine+noise, 6 частот × 16/24 бит; DSD64 не генерится —
+      у ffmpeg нет DSF-muxer, DSD проверяется вручную на живых файлах)
+- [x] `Tools/audio-verify` — CLI побитового сравнения через loopback (BlackHole 2ch)
+- [x] Тесты логики выбора частоты (без железа)
 
 **Acceptance:**
 1. `audio-verify` показывает побитовое совпадение для 44.1/48/88.2/96/176.4/192 кГц, 16 и 24 бит.
