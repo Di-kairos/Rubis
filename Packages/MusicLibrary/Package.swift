@@ -8,12 +8,16 @@ let package = Package(
         .library(name: "MusicLibrary", targets: ["MusicLibrary"])
     ],
     dependencies: [
-        .package(path: "../EscapementCore")
+        .package(path: "../EscapementCore"),
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
     ],
     targets: [
         .target(
             name: "MusicLibrary",
-            dependencies: [.product(name: "EscapementCore", package: "EscapementCore")]),
+            dependencies: [
+                .product(name: "EscapementCore", package: "EscapementCore"),
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ]),
         .testTarget(name: "MusicLibraryTests", dependencies: ["MusicLibrary"]),
     ]
 )
