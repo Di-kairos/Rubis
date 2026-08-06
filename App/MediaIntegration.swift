@@ -19,25 +19,26 @@ final class MediaIntegration {
     }
 
     private func installCommands() {
+        // MediaRemote зовёт обработчики на своей очереди — как и у artwork,
+        // MainActor-замыкание там означает SIGTRAP. @Sendable + прыжок в
+        // MainActor через Task.
         let center = MPRemoteCommandCenter.shared()
-        center.playCommand.addTarget { [weak self] _ in
-            self?.env.togglePlayPause()
-            return .success
-        }
-        center.pauseCommand.addTarget { [weak self] _ in
-            self?.env.togglePlayPause()
-            return .success
-        }
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.env.togglePlayPause()
-            return .success
-        }
-        center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.env.next()
-            return .success
-        }
-        center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.env.previous()
+        install(center.playCommand) { $0.togglePlayPause() }
+        install(center.pauseCommand) { $0.togglePlayPause() }
+        install(center.togglePlayPauseCommand) { $0.togglePlayPause() }
+        install(center.nextTrackCommand) { $0.next() }
+        install(center.previousTrackCommand) { $0.previous() }
+    }
+
+    private func install(
+        _ command: MPRemoteCommand,
+        action: @escaping @MainActor (AppEnvironment) -> Void
+    ) {
+        command.addTarget { @Sendable [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                action(self.env)
+            }
             return .success
         }
     }
@@ -73,7 +74,13 @@ final class MediaIntegration {
             let url = env.covers.url(hash: hash, size: 1024),
             let image = NSImage(contentsOf: url)
         {
-            artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            // MediaPlayer зовёт обработчик на СВОЕЙ очереди. Замыкание,
+            // рождённое в @MainActor-классе, наследует изоляцию — рантайм
+            // Swift 6 валит процесс через dispatch_assert_queue (SIGTRAP).
+            // @Sendable снимает изоляцию; NSImage — Sendable, картинка из
+            // файла immutable, читать её off-main безопасно.
+            let cover = image
+            artwork = MPMediaItemArtwork(boundsSize: image.size) { @Sendable _ in cover }
         }
         return artwork
     }
