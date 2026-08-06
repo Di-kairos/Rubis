@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "b9b53a5"
+head: "fd5d40a"
 tests: 30/30 (swift test, 5 packages)
 last_session: 1
 last_reviewed: 2026-08-06
@@ -29,7 +29,7 @@ next_actions:
 
 Session 1 (2026-08-06): проект связан (git + X10 + память), принят пакет ТЗ Escapement —
 bit-perfect macOS-плеер. SPEC/DESIGN/TASKS в корне. Кода нет, фаза 0 не начата.
-HEAD: `b9b53a5` — fix(tools): audio-verify capture path (ветка phase/03-audio). Ожидается mic-permission для acceptance-прогона.
+HEAD: `fd5d40a` — phase 3 CLOSED: audio-verify 24/24 bit-perfect.
 
 ## Фазы (из TASKS.md)
 
