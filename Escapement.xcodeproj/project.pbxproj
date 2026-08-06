@@ -14,6 +14,7 @@
 		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
 		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
+		454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88ACAC7C6CAD73585D762B31 /* Assets.xcassets */; };
 		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
 		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
@@ -39,6 +40,7 @@
 		6186081353886B17DD038F1F /* AlbumsGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumsGrid.swift; sourceTree = "<group>"; };
 		66FB66BEAD427530E18C9938 /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
 		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
+		88ACAC7C6CAD73585D762B31 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA25FCB47B384004AAD3364F /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
@@ -69,9 +71,18 @@
 			children = (
 				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
+				2F2247502F75DD4B505A1583 /* Resources */,
 				E7B4B35890D8DC655121CD10 /* Scenes */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		2F2247502F75DD4B505A1583 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				88ACAC7C6CAD73585D762B31 /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		314ABF676BA09340B3BE7837 /* Products */ = {
@@ -137,6 +148,7 @@
 			buildConfigurationList = F0F9F4338EFAC8DCC986D501 /* Build configuration list for PBXNativeTarget "Escapement" */;
 			buildPhases = (
 				85FBAC58AA6FED180C27B66F /* Sources */,
+				FCF30F936E30D57862EC40D1 /* Resources */,
 				A094D214FB3AA2EC3AE15CBD /* Frameworks */,
 				2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */,
 			);
@@ -195,6 +207,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FCF30F936E30D57862EC40D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */ = {
