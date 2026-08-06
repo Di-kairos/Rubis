@@ -43,7 +43,11 @@ public actor Player {
     public private(set) var shuffleMode: ShuffleMode = .off
     private var random = SystemRandomNumberGenerator()
     private var currentDeviceID: UInt32?
-    private var gaplessArmed = false
+    /// Декодер, который играет сейчас, и декодер, заряженный на gapless.
+    /// nowPlayingChanged сверяется с ними: событие от ручного старта не
+    /// должно двигать индекс — иначе клик по треку «играет следующий».
+    private var currentDecoderID: ObjectIdentifier?
+    private var gaplessDecoderID: ObjectIdentifier?
     /// Set by prepareDevice when the current track goes out as DoP packets.
     private var currentUsesDoP = false
 
@@ -257,7 +261,10 @@ public actor Player {
         outputDeviceLost = false
         do {
             try await prepareDevice(for: item.track)
-            try engine.play(makeDecoder(for: item))
+            let decoder = try makeDecoder(for: item)
+            currentDecoderID = ObjectIdentifier(decoder as AnyObject)
+            gaplessDecoderID = nil
+            try engine.play(decoder)
             state = .playing(item.track)
             armGapless()
         } catch let error as PlaybackError {
@@ -376,7 +383,7 @@ public actor Player {
     /// Preloads the next queue item for gapless transition when the sample
     /// rate matches (SPEC §4.2.5) — SFBAudioEngine handles the seam.
     private func armGapless() {
-        gaplessArmed = false
+        gaplessDecoderID = nil
         guard
             let nextIndex = PlaybackOrder.next(
                 after: index, count: queue.count, repeatMode: repeatMode),
@@ -392,7 +399,7 @@ public actor Player {
             let decoder = try? makeDecoder(for: next)
         else { return }
         if (try? engine.enqueue(decoder)) != nil {
-            gaplessArmed = true
+            gaplessDecoderID = ObjectIdentifier(decoder as AnyObject)
         }
     }
 
@@ -418,7 +425,7 @@ public actor Player {
     // MARK: - Delegate events
 
     private enum EngineEvent: Sendable {
-        case nowPlayingChanged
+        case nowPlayingChanged(ObjectIdentifier)
         case endOfAudio
         case error(String)
     }
@@ -434,14 +441,17 @@ public actor Player {
 
     private func handle(_ event: EngineEvent) async {
         switch event {
-        case .nowPlayingChanged:
-            // The engine moved to a gapless-enqueued decoder: advance bookkeeping.
-            if gaplessArmed, case .playing = state,
+        case .nowPlayingChanged(let decoderID):
+            // Advance bookkeeping ONLY for the decoder we armed for gapless.
+            // A manual start fires the same notification for its own decoder —
+            // reacting to it made a click on a track "play the next one".
+            if decoderID == gaplessDecoderID, case .playing = state,
                 let position = PlaybackOrder.next(
                     after: index, count: queue.count, repeatMode: repeatMode),
                 queue.indices.contains(position)
             {
                 index = position
+                currentDecoderID = decoderID
                 state = .playing(queue[index].track)
                 armGapless()
             }
@@ -476,8 +486,8 @@ public actor Player {
         func audioPlayer(
             _ audioPlayer: AudioPlayer, nowPlayingChanged nowPlaying: (any PCMDecoding)?
         ) {
-            if nowPlaying != nil {
-                onEvent(.nowPlayingChanged)
+            if let nowPlaying {
+                onEvent(.nowPlayingChanged(ObjectIdentifier(nowPlaying as AnyObject)))
             }
         }
 
