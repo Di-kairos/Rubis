@@ -268,7 +268,13 @@ public actor Player {
         }
 
         var exclusive = false
-        if config.exclusiveAccess {
+        // Hog only external/virtual devices. Hogging the built-in output makes
+        // CoreAudio republish the device mid-flight; AVAudioEngine's config-change
+        // notification then sees an invalid output format and SFB's noexcept
+        // handler dies on NSException (IsFormatSampleRateAndChannelCountValid)
+        // → SIGABRT. Bit-perfect through built-in speakers is fiction anyway —
+        // the badge honestly shows Shared.
+        if config.exclusiveAccess, await !devices.isBuiltInDevice(deviceID: device.id) {
             exclusive = await devices.startHogging(deviceID: device.id)
             if exclusive {
                 await devices.disableMixing(deviceID: device.id)

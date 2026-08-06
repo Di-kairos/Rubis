@@ -63,6 +63,16 @@ public actor AudioDeviceController {
 
     /// Attempts exclusive access. Returns true on success; failure is a
     /// degradation, not an error (SPEC §4.2.1 — show status, keep playing).
+    /// True for the machine's built-in output (speakers/headphone jack).
+    /// Unknown transport reads as built-in: hogging is only proven safe on
+    /// external/virtual devices, so doubt errs toward not hogging.
+    public func isBuiltInDevice(deviceID: UInt32) -> Bool {
+        guard let device = try? requireDevice(deviceID),
+            let transport = try? device.transportType
+        else { return true }
+        return transport == .builtIn || transport == .unknown
+    }
+
     public func startHogging(deviceID: UInt32) -> Bool {
         guard let device = try? requireDevice(deviceID) else { return false }
         do {
