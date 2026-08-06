@@ -42,7 +42,7 @@ struct MainWindow: View {
                         max: DS.Metrics.sidebarWidthMax)
             } content: {
                 sectionContent
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 560)
+                    .navigationSplitViewColumnWidth(min: 240, ideal: 420)
             } detail: {
                 if let album = selectedAlbum {
                     AlbumDetail(album: album)

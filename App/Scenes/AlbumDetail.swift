@@ -11,32 +11,35 @@ struct AlbumDetail: View {
     @State private var tracks: [Track] = []
 
     var body: some View {
-        HStack(alignment: .top, spacing: DS.Space.xl) {
-            VStack(alignment: .leading, spacing: DS.Space.md) {
-                DSCoverImage(image: coverImage, size: 280, radius: DS.Radius.card)
-                DSText(album.title, style: .display)
-                DSText(
-                    album.albumArtist ?? "", style: .body, color: DS.Color.textSecondary)
-                DSText(metaLine, style: .caption, color: DS.Color.textTertiary)
-                HStack(spacing: DS.Space.md) {
-                    Button {
-                        env.play(album: album)
-                    } label: {
-                        Label("Play", systemImage: "play.fill")
-                            .font(DS.Font.headline)
+        VStack(alignment: .leading, spacing: DS.Space.xl) {
+            HStack(alignment: .bottom, spacing: DS.Space.xl) {
+                DSCoverImage(image: coverImage, size: 200, radius: DS.Radius.card)
+                VStack(alignment: .leading, spacing: DS.Space.sm) {
+                    DSText(album.title, style: .display)
+                    DSText(
+                        album.albumArtist ?? "", style: .body, color: DS.Color.textSecondary)
+                    DSText(metaLine, style: .caption, color: DS.Color.textTertiary)
+                    HStack(spacing: DS.Space.md) {
+                        Button {
+                            env.play(album: album)
+                        } label: {
+                            Label("Play", systemImage: "play.fill")
+                                .font(DS.Font.headline)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(DS.Color.accent)
+                        Button {
+                            playShuffled()
+                        } label: {
+                            Label("Shuffle", systemImage: "shuffle")
+                                .font(DS.Font.body)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(DS.Color.accent)
-                    Button {
-                        playShuffled()
-                    } label: {
-                        Label("Shuffle", systemImage: "shuffle")
-                            .font(DS.Font.body)
-                    }
-                    .buttonStyle(.bordered)
+                    .padding(.top, DS.Space.sm)
                 }
+                Spacer(minLength: 0)
             }
-            .frame(width: 280)
 
             ScrollView {
                 LazyVStack(spacing: 0) {
