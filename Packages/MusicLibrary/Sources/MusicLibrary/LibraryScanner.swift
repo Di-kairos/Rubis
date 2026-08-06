@@ -51,7 +51,7 @@ public actor LibraryScanner {
             options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
     }
 
-    static func resolveBookmark(_ data: Data) throws -> URL {
+    public static func resolveBookmark(_ data: Data) throws -> URL {
         var stale = false
         let url = try URL(
             resolvingBookmarkData: data, options: [.withSecurityScope],

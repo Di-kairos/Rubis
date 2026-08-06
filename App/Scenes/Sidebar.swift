@@ -1,0 +1,77 @@
+import DesignSystem
+import EscapementCore
+import MusicLibrary
+import SwiftUI
+
+struct Sidebar: View {
+    @Binding var section: LibrarySection
+    @Environment(AppEnvironment.self) private var env
+    @State private var sources: [Source] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DSSectionHeader("Library")
+            ForEach(LibrarySection.allCases) { item in
+                sidebarRow(item)
+            }
+
+            Spacer(minLength: DS.Space.xl)
+
+            DSSectionHeader("Sources")
+            ForEach(sources) { source in
+                HStack(spacing: DS.Space.sm) {
+                    Image(systemName: source.kind == .local ? "folder" : "server.rack")
+                        .font(.system(size: 12))
+                        .foregroundStyle(DS.Color.textTertiary)
+                    DSText(
+                        source.displayName, style: .body,
+                        color: source.enabled ? DS.Color.textSecondary : DS.Color.textDisabled)
+                    Spacer()
+                }
+                .padding(.horizontal, DS.Space.md)
+                .frame(height: DS.Metrics.sidebarRow)
+            }
+
+            if case .reading(let done, let total) = env.scanProgress {
+                // Ненавязчивая полоска прогресса скана (SPEC §5.2)
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    DSText(
+                        "Scanning \(done)/\(total)", style: .caption,
+                        color: DS.Color.textTertiary)
+                    DSProgressBar(progress: total > 0 ? Double(done) / Double(total) : 0)
+                }
+                .padding(DS.Space.md)
+            }
+
+            Spacer(minLength: DS.Space.sm)
+        }
+        .background(DS.Color.bgRaised)
+        .task { reloadSources() }
+        .onChange(of: env.scanProgress == nil) { reloadSources() }
+    }
+
+    private func sidebarRow(_ item: LibrarySection) -> some View {
+        Button {
+            section = item
+        } label: {
+            HStack(spacing: DS.Space.sm) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(section == item ? DS.Color.accent : DS.Color.textTertiary)
+                    .frame(width: 16)
+                DSText(item.rawValue, style: .body)
+                Spacer()
+            }
+            .padding(.horizontal, DS.Space.md)
+            .frame(height: DS.Metrics.sidebarRow)
+            .background(section == item ? DS.Color.bgSelected : .clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.rawValue)
+    }
+
+    private func reloadSources() {
+        sources = (try? env.sourceRepo.all()) ?? []
+    }
+}

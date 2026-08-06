@@ -1,0 +1,120 @@
+import AppKit
+import DesignSystem
+import EscapementCore
+import MusicLibrary
+import SwiftUI
+
+/// Album screen (DESIGN §5.4): cover + metadata left, track list right.
+struct AlbumDetail: View {
+    let album: Album
+    @Environment(AppEnvironment.self) private var env
+    @State private var tracks: [Track] = []
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DS.Space.xl) {
+            VStack(alignment: .leading, spacing: DS.Space.md) {
+                DSCoverImage(image: coverImage, size: 280, radius: DS.Radius.card)
+                DSText(album.title, style: .display)
+                DSText(
+                    album.albumArtist ?? "", style: .body, color: DS.Color.textSecondary)
+                DSText(metaLine, style: .caption, color: DS.Color.textTertiary)
+                HStack(spacing: DS.Space.md) {
+                    Button {
+                        env.play(album: album)
+                    } label: {
+                        Label("Play", systemImage: "play.fill")
+                            .font(DS.Font.headline)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DS.Color.accent)
+                    Button {
+                        playShuffled()
+                    } label: {
+                        Label("Shuffle", systemImage: "shuffle")
+                            .font(DS.Font.body)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .frame(width: 280)
+
+            VStack(spacing: 0) {
+                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
+                    DSListRow(isSelected: isPlaying(track)) {
+                        HStack(spacing: DS.Space.md) {
+                            DSText(
+                                "\(track.trackNo ?? index + 1)", style: .numeric,
+                                color: DS.Color.textTertiary
+                            )
+                            .frame(width: 24, alignment: .trailing)
+                            DSText(
+                                track.title, style: .headline,
+                                color: isPlaying(track) ? DS.Color.accent : DS.Color.textPrimary)
+                            Spacer()
+                            DSText(
+                                Self.format(duration: track.duration), style: .numeric,
+                                color: DS.Color.textTertiary)
+                        }
+                    }
+                    .onTapGesture(count: 2) {
+                        env.play(album: album, startAt: index)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(DS.Space.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(DS.Color.bgBase)
+        .task(id: album.id) {
+            guard let id = album.id else { return }
+            do {
+                for try await list in LibraryObservation.tracks(inAlbum: id, db: env.db) {
+                    tracks = list
+                }
+            } catch {
+                Log.ui.error("track observation failed: \(error, privacy: .public)")
+            }
+        }
+    }
+
+    private var metaLine: String {
+        var parts: [String] = []
+        if let year = album.year { parts.append(String(year)) }
+        parts.append("\(tracks.count) tracks")
+        let total = tracks.reduce(0) { $0 + $1.duration }
+        parts.append(Self.format(duration: total))
+        if let first = tracks.first {
+            parts.append("\(first.codec.uppercased()) \(first.sampleRate / 1000) kHz")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func isPlaying(_ track: Track) -> Bool {
+        if case .playing(let current) = env.playbackState { return current.id == track.id }
+        if case .paused(let current) = env.playbackState { return current.id == track.id }
+        return false
+    }
+
+    private func playShuffled() {
+        guard album.id != nil else { return }
+        env.play(album: album, startAt: Int.random(in: 0..<max(tracks.count, 1)))
+    }
+
+    static func format(duration: Double) -> String {
+        let total = Int(duration.rounded())
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let seconds = total % 60
+        return hours > 0
+            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            : String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private var coverImage: NSImage? {
+        guard let hash = album.coverHash,
+            let url = env.covers.url(hash: hash, size: 1024)
+        else { return nil }
+        return NSImage(contentsOf: url)
+    }
+}

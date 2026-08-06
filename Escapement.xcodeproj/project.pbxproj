@@ -7,8 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6186081353886B17DD038F1F /* AlbumsGrid.swift */; };
+		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
+		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
+		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
+		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
+		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
+		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
 		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
@@ -17,13 +24,20 @@
 
 /* Begin PBXFileReference section */
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
+		1F5775751BCC167A604DDAF2 /* SettingsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScene.swift; sourceTree = "<group>"; };
 		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
+		3381F8269F03E8595BAFB27C /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		5771AB6CC12B8F72156A2016 /* DesignSystem */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DesignSystem; path = Packages/DesignSystem; sourceTree = SOURCE_ROOT; };
 		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
+		6186081353886B17DD038F1F /* AlbumsGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumsGrid.swift; sourceTree = "<group>"; };
 		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
+		90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA25FCB47B384004AAD3364F /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
+		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,7 +59,9 @@
 		2CDE4D07DE91E2F89D56CAD8 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
+				E7B4B35890D8DC655121CD10 /* Scenes */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -86,6 +102,19 @@
 				82275FD42280EC8A55A8CD7A /* SubsonicKit */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		E7B4B35890D8DC655121CD10 /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */,
+				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
+				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
+				1F5775751BCC167A604DDAF2 /* SettingsScene.swift */,
+				4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */,
+				CA25FCB47B384004AAD3364F /* TransportBar.swift */,
+			);
+			path = Scenes;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -159,7 +188,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */,
+				059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */,
+				6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
+				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
+				1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */,
+				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
+				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
