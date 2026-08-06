@@ -49,14 +49,16 @@
 
 **Цель:** схема БД, миграции, домен.
 
-- [ ] Модели в `EscapementCore`: `Track`, `Album`, `Artist`, `Playlist`, `Source`, `PlayHistoryEntry` — все `Sendable`
-- [ ] GRDB `DatabasePool`, WAL, путь по SPEC §5.1
-- [ ] Миграции: `v1_initial` со всеми таблицами, индексами и FTS5
-- [ ] Триггеры синхронизации `track` → `track_fts`
-- [ ] Репозитории: `TrackRepository`, `AlbumRepository`, `PlaylistRepository`, `SourceRepository`
-- [ ] `ValueObservation`-обёртки, отдающие `AsyncStream` на MainActor
-- [ ] Утилиты нормализации: `sortName(for:)`, casefold, снятие диакритики, «The » в конец
-- [ ] Тесты: миграции с нуля, CRUD, FTS-поиск с диакритикой и кириллицей
+- [x] Модели в `EscapementCore`: `Track`, `Album`, `Artist`, `Playlist`, `Source`, `PlayHistoryEntry` — все `Sendable`
+- [x] GRDB `DatabasePool`, WAL, путь по SPEC §5.1
+- [x] Миграции: `v1_initial` со всеми таблицами, индексами и FTS5
+      _(FTS5: добавлен `contentless_delete=1` — contentless-таблица без него не умеет
+      удалять строки из триггеров; семантика схемы SPEC сохранена)_
+- [x] Триггеры синхронизации `track` → `track_fts`
+- [x] Репозитории: `TrackRepository`, `AlbumRepository` (+`ArtistRepository`), `PlaylistRepository`, `SourceRepository`
+- [x] `ValueObservation`-обёртки, отдающие async-последовательности на MainActor
+- [x] Утилиты нормализации: `sortName(for:)`, casefold, снятие диакритики, «The » отбрасывается
+- [x] Тесты: миграции с нуля, CRUD, FTS-поиск с диакритикой и кириллицей
 
 **Acceptance:** тест вставляет 100 000 сгенерированных треков, поиск по FTS5
 укладывается в 50 мс, наблюдение отдаёт обновления.
