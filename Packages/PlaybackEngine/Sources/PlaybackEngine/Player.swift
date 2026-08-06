@@ -107,6 +107,25 @@ public actor Player {
         await startCurrent()
     }
 
+    /// Восстановление очереди при запуске: состав и позиция без старта звука.
+    /// Первый Play играет восстановленный трек с начала.
+    /// ponytail: позиция внутри трека не восстанавливается — добавить seek
+    /// после play, если понадобится точное продолжение.
+    public func restore(items: [PlaybackItem], at position: Int) {
+        installBridgeIfNeeded()
+        sourceQueue = items
+        queue = items
+        index = min(max(position, 0), max(items.count - 1, 0))
+    }
+
+    /// Старт текущего элемента восстановленной очереди (Play из idle).
+    public func playCurrent() async {
+        guard !queue.isEmpty else { return }
+        await startCurrent()
+    }
+
+    public func currentIndex() -> Int { index }
+
     /// Треки сразу после текущего — не трогая остальную очередь.
     public func playNext(items: [PlaybackItem]) {
         guard !items.isEmpty else { return }
@@ -162,10 +181,11 @@ public actor Player {
         state = .playing(track)
     }
 
-    public func togglePlayPause() {
+    public func togglePlayPause() async {
         switch state {
         case .playing: pause()
         case .paused: resume()
+        case .idle: await playCurrent()  // восстановленная очередь: Play её будит
         default: break
         }
     }

@@ -65,12 +65,51 @@ struct TransportBar: View {
             }
             .frame(maxWidth: .infinity)
 
+            volumeControl
+
             badge
         }
         .padding(.horizontal, DS.Space.lg)
         .frame(height: DS.Metrics.transportBar)
         .background(DS.Color.bgRaised)
         .onReceive(tick) { _ in refreshTime() }
+        .task(id: env.outputStatus?.deviceName) { await refreshVolume() }
+    }
+
+    // MARK: - Hardware volume (SPEC §4.4 — только громкость устройства)
+
+    @State private var volume: Float?
+
+    @ViewBuilder
+    private var volumeControl: some View {
+        if let volume {
+            HStack(spacing: DS.Space.xs) {
+                Image(systemName: "speaker.wave.2")
+                    .font(.system(size: 11))
+                    .foregroundStyle(DS.Color.textTertiary)
+                Slider(
+                    value: Binding(
+                        get: { volume },
+                        set: { value in
+                            self.volume = value
+                            Task { await env.player.setDeviceVolume(value) }
+                        })
+                )
+                .controlSize(.mini)
+                .frame(width: 72)
+                .accessibilityLabel("Device volume")
+            }
+        }
+    }
+
+    /// nil — у устройства нет аппаратной ручки (ЦАП с собственным регулятором);
+    /// слайдер честно исчезает, программного гейна не существует (SPEC §4.4).
+    private func refreshVolume() async {
+        guard await env.player.deviceHasVolumeControl() else {
+            volume = nil
+            return
+        }
+        volume = await env.player.deviceVolume()
     }
 
     /// Кнопка режима очереди: включённый режим горит акцентом, состояние —

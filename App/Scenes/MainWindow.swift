@@ -66,6 +66,15 @@ struct MainWindow: View {
         .onChange(of: env.pendingPlaylistId) {
             if env.pendingPlaylistId != nil { section = .playlists }
         }
+        // ⌘L: показать альбом играющего трека (SPEC §7.6).
+        .onChange(of: env.revealCurrentTrigger) {
+            guard let albumId = env.currentTrack?.albumId,
+                let album = try? env.albumRepo.album(id: albumId)
+            else { return }
+            env.searchText = ""
+            section = .albums
+            selectedAlbum = album
+        }
         // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
         .dropDestination(for: URL.self) { urls, _ in
             let folders = urls.filter { url in

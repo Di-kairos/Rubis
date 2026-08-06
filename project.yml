@@ -54,6 +54,12 @@ targets:
             [ -e "$framework" ] || continue
             codesign --force --sign - --options runtime "$framework"
           done
+          # Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —
+          # без подписи он валит codesign всего бандла.
+          for dylib in "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH"/*.dylib; do
+            [ -e "$dylib" ] || continue
+            codesign --force --sign - "$dylib"
+          done
           codesign --force --sign - --options runtime \
             --entitlements "$SRCROOT/$CODE_SIGN_ENTITLEMENTS" \
             "$TARGET_BUILD_DIR/$WRAPPER_NAME"

@@ -13,6 +13,7 @@
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
 		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
+		37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2030066472ADBF7ECD20D373 /* MiniPlayer.swift */; };
 		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
 		454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88ACAC7C6CAD73585D762B31 /* Assets.xcassets */; };
 		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
@@ -22,6 +23,7 @@
 		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
 		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
+		B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4654C15A6867CBA18211295 /* MediaIntegration.swift */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
 		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
 		FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = D61AF376BFE2E74CC999958E /* DesignSystem */; };
@@ -30,6 +32,7 @@
 /* Begin PBXFileReference section */
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
 		1F5775751BCC167A604DDAF2 /* SettingsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScene.swift; sourceTree = "<group>"; };
+		2030066472ADBF7ECD20D373 /* MiniPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayer.swift; sourceTree = "<group>"; };
 		2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResults.swift; sourceTree = "<group>"; };
 		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
 		3381F8269F03E8595BAFB27C /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
@@ -47,6 +50,7 @@
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
+		E4654C15A6867CBA18211295 /* MediaIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIntegration.swift; sourceTree = "<group>"; };
 		EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRowSupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -71,6 +75,7 @@
 			children = (
 				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
+				E4654C15A6867CBA18211295 /* MediaIntegration.swift */,
 				2F2247502F75DD4B505A1583 /* Resources */,
 				E7B4B35890D8DC655121CD10 /* Scenes */,
 			);
@@ -130,6 +135,7 @@
 				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
 				470192454F34299CE626000F /* ArtistsList.swift */,
 				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
+				2030066472ADBF7ECD20D373 /* MiniPlayer.swift */,
 				66FB66BEAD427530E18C9938 /* Playlists.swift */,
 				2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */,
 				1F5775751BCC167A604DDAF2 /* SettingsScene.swift */,
@@ -237,7 +243,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n[ -d \"$frameworks\" ] || exit 0\nfor framework in \"$frameworks\"/*.framework; do\n  [ -e \"$framework\" ] || continue\n  codesign --force --sign - --options runtime \"$framework\"\ndone\ncodesign --force --sign - --options runtime \\\n  --entitlements \"$SRCROOT/$CODE_SIGN_ENTITLEMENTS\" \\\n  \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
+			shellScript = "set -e\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n[ -d \"$frameworks\" ] || exit 0\nfor framework in \"$frameworks\"/*.framework; do\n  [ -e \"$framework\" ] || continue\n  codesign --force --sign - --options runtime \"$framework\"\ndone\n# Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —\n# без подписи он валит codesign всего бандла.\nfor dylib in \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH\"/*.dylib; do\n  [ -e \"$dylib\" ] || continue\n  codesign --force --sign - \"$dylib\"\ndone\ncodesign --force --sign - --options runtime \\\n  --entitlements \"$SRCROOT/$CODE_SIGN_ENTITLEMENTS\" \\\n  \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -252,6 +258,8 @@
 				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
 				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
+				B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */,
+				37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */,
 				803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */,
 				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,
 				1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */,

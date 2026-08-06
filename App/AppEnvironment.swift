@@ -38,6 +38,9 @@ final class AppEnvironment {
     /// PlaylistsView открывает его и сразу даёт переименовать.
     var pendingPlaylistId: Int64?
 
+    /// Инкремент по ⌘L — MainWindow открывает альбом играющего трека.
+    var revealCurrentTrigger = 0
+
     init() throws {
         db = try AppDatabase.standard()
         devices = AudioDeviceController()
@@ -48,8 +51,10 @@ final class AppEnvironment {
         Task { [player] in
             for await state in await player.stateStream() {
                 self.playbackState = state
+                if case .playing = state { await self.saveQueueSnapshot() }
             }
         }
+        Task { await restoreQueue() }
         Task { [player] in
             for await status in await player.statusStream() {
                 self.outputStatus = status
@@ -116,6 +121,57 @@ final class AppEnvironment {
 
     func togglePlayPause() {
         Task { await player.togglePlayPause() }
+    }
+
+    /// Перемотка относительно текущей позиции (SPEC §7.6: →/← ±5 с).
+    func seek(by seconds: Double) {
+        Task {
+            if let time = await player.playbackTime() {
+                await player.seek(to: max(0, min(time.total, time.current + seconds)))
+            }
+        }
+    }
+
+    /// ⌘L: раздел Albums + альбом играющего трека.
+    func revealCurrentTrack() {
+        revealCurrentTrigger += 1
+    }
+
+    /// Трек, который сейчас играет или на паузе.
+    var currentTrack: Track? {
+        switch playbackState {
+        case .playing(let track), .paused(let track), .loading(let track):
+            return track
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - Queue persistence (продолжение с места остановки)
+
+    private static let queueIdsKey = "playback.queue.trackIds"
+    private static let queueIndexKey = "playback.queue.index"
+
+    /// Снимок очереди в UserDefaults при каждом старте трека.
+    /// ponytail: enqueue/playNext без старта не снимаются — снимок догонит
+    /// на следующем переходе трека.
+    private func saveQueueSnapshot() async {
+        let items = await player.queuedItems()
+        let index = await player.currentIndex()
+        UserDefaults.standard.set(items.compactMap { $0.track.id }, forKey: Self.queueIdsKey)
+        UserDefaults.standard.set(index, forKey: Self.queueIndexKey)
+    }
+
+    /// Восстановление очереди при запуске: состав и позиция, без звука.
+    private func restoreQueue() async {
+        guard let raw = UserDefaults.standard.array(forKey: Self.queueIdsKey) as? [Int],
+            !raw.isEmpty,
+            let tracks = try? trackRepo.tracks(ids: raw.map(Int64.init))
+        else { return }
+        let items = resolveItems(tracks: tracks)
+        guard !items.isEmpty else { return }
+        let index = UserDefaults.standard.integer(forKey: Self.queueIndexKey)
+        await player.restore(items: items, at: index)
     }
 
     func next() {

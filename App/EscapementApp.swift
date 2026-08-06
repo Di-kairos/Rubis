@@ -5,6 +5,7 @@ import SwiftUI
 @main
 struct EscapementApp: App {
     @State private var env = Self.makeEnvironment()
+    @State private var media: MediaIntegration?
 
     private static func makeEnvironment() -> AppEnvironment {
         do {
@@ -19,6 +20,11 @@ struct EscapementApp: App {
         Window("Escapement", id: "main") {
             MainWindow()
                 .environment(env)
+                .task {
+                    media = MediaIntegration(env: env)
+                    media?.update()
+                }
+                .onChange(of: env.playbackState) { media?.update() }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -31,8 +37,14 @@ struct EscapementApp: App {
                     .keyboardShortcut(.leftArrow, modifiers: [.command])
                 Button("Rescan Sources") { env.rescanAll() }
                     .keyboardShortcut("r", modifiers: [.command])
+                Button("Seek Forward") { env.seek(by: 5) }
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                Button("Seek Backward") { env.seek(by: -5) }
+                    .keyboardShortcut(.leftArrow, modifiers: [])
                 Button("Search") { env.searchFocusTrigger += 1 }
                     .keyboardShortcut("f", modifiers: [.command])
+                Button("Show Current Track") { env.revealCurrentTrack() }
+                    .keyboardShortcut("l", modifiers: [.command])
                 Button("New Playlist") { env.createPlaylist() }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }
@@ -42,6 +54,15 @@ struct EscapementApp: App {
             SettingsScene()
                 .environment(env)
         }
+
+        // SPEC §7.6 хочет ⌘⌥M, но система держит его; берём ⌘⇧M (kickoff S02).
+        Window("Mini Player", id: "mini-player") {
+            MiniPlayer()
+                .environment(env)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .keyboardShortcut("m", modifiers: [.command, .shift])
 
         #if DEBUG
         Window("Design Gallery", id: "design-gallery") {

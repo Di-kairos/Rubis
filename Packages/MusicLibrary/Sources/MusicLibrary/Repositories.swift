@@ -151,6 +151,10 @@ public struct AlbumRepository: Sendable {
         try db.reader.read { try Album.order(Column("sort_title")).fetchAll($0) }
     }
 
+    public func album(id: Int64) throws -> Album? {
+        try db.reader.read { try Album.fetchOne($0, key: id) }
+    }
+
     public func albums(byArtist artistId: Int64) throws -> [Album] {
         try db.reader.read {
             try Album
