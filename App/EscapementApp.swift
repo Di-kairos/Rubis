@@ -17,7 +17,8 @@ struct EscapementApp: App {
         Window("Design Gallery", id: "design-gallery") {
             DesignSystemGallery()
         }
-        .keyboardShortcut("d", modifiers: [.command, .option])
+        // ⌘⌥D from TASKS is taken by the system Dock toggle; ⌘⇧D is free.
+        .keyboardShortcut("d", modifiers: [.command, .shift])
         #endif
     }
 }

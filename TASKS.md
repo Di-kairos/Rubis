@@ -37,7 +37,8 @@
       `DSProgressBar`, `DSCoverImage` (с плейсхолдером), `DSTechBadge`
 - [x] `#Preview` для каждого — light + dark; неактивное окно через `controlActiveState`
       (accent → accentMuted в `DSProgressBar`/`DSTechBadge`)
-- [x] Демо-сцена `DesignSystemGallery` (только DEBUG), открывается по `⌘⌥D`
+- [x] Демо-сцена `DesignSystemGallery` (только DEBUG), открывается по `⌘⇧D`
+      _(⌘⌥D из ТЗ занят системным «скрыть Dock» — перехватывается до приложения)_
 
 **Acceptance:** галерея открывается, все компоненты корректны в обоих режимах,
 тест контраста проходит, ни одного литерала цвета/размера вне пакета.
