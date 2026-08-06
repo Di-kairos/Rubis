@@ -18,6 +18,7 @@
 		454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88ACAC7C6CAD73585D762B31 /* Assets.xcassets */; };
 		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
 		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
+		65F64FDA7A9CADD32BBA59C4 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E4F68722A7AE60FF86B58686 /* Sparkle */; };
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
 		803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB66BEAD427530E18C9938 /* Playlists.swift */; };
 		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
@@ -64,6 +65,7 @@
 				B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */,
 				293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */,
 				FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */,
+				65F64FDA7A9CADD32BBA59C4 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -169,6 +171,7 @@
 				5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */,
 				0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */,
 				D61AF376BFE2E74CC999958E /* DesignSystem */,
+				E4F68722A7AE60FF86B58686 /* Sparkle */,
 			);
 			productName = Escapement;
 			productReference = BB27EE93F7BB4DE77FF7059C /* Escapement.app */;
@@ -198,6 +201,7 @@
 			mainGroup = 5A5AAAA18D323AD33EDA83D9;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				D05B0AEA0E1BB73DD2AFE242 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */,
 				46D7B220EEDB309B37318427 /* XCLocalSwiftPackageReference "Packages/EscapementCore" */,
 				690753854E7A53AFB12DEC6E /* XCLocalSwiftPackageReference "Packages/MusicLibrary" */,
@@ -339,6 +343,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -355,6 +360,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -465,6 +471,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -485,6 +502,11 @@
 		D61AF376BFE2E74CC999958E /* DesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DesignSystem;
+		};
+		E4F68722A7AE60FF86B58686 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

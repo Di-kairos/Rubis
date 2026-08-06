@@ -1,5 +1,6 @@
 import DesignSystem
 import EscapementCore
+import Sparkle
 import SwiftUI
 
 /// App entry point. Thin wrapper — all logic lives in Packages/ (SPEC §3.1).
@@ -19,6 +20,9 @@ struct EscapementApp: App {
 
     @State private var env = Self.makeEnvironment()
     @State private var media: MediaIntegration?
+    /// Sparkle (D-005): проверка и установка обновлений из rubis-releases.
+    private let updater = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     private static func makeEnvironment() -> AppEnvironment {
         do {
@@ -30,7 +34,7 @@ struct EscapementApp: App {
     }
 
     var body: some Scene {
-        Window("Escapement", id: "main") {
+        Window("Rubis Music", id: "main") {
             MainWindow()
                 .environment(env)
                 .task {
@@ -45,6 +49,9 @@ struct EscapementApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { updater.updater.checkForUpdates() }
+            }
             CommandGroup(after: .toolbar) {
                 Button("Play/Pause") { env.togglePlayPause() }
                     .keyboardShortcut(.space, modifiers: [])
