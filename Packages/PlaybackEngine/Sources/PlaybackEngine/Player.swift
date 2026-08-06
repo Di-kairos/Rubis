@@ -352,6 +352,10 @@ public actor Player {
                 index += 1
                 await startCurrent()
             } else {
+                // endOfAudio fires when the last frame is rendered into the
+                // engine, not when the device drains its buffer (~100 ms).
+                // Immediate stop() would clip the audible tail of the last track.
+                try? await Task.sleep(for: .milliseconds(250))
                 stop()
             }
         case .error(let message):

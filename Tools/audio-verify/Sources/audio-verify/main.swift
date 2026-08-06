@@ -225,13 +225,19 @@ func verifyFixture(
         let channels = Int(refFormat.channelCount)
 
         // Частоту выставляем ДО старта захвата и воспроизведения; Player увидит
-        // совпадение и не будет вставлять паузу смены частоты.
+        // совпадение и не будет вставлять паузу смены частоты. Ждём, пока HAL
+        // реально подтвердит новую частоту — большие даунсвитчи (192k→44.1k)
+        // применяются не мгновенно, ранний старт глотает первые сэмплы.
         try await controller.setNominalSampleRate(
             deviceID: loopback.id, rate: Double(meta.rate))
-        try await Task.sleep(for: .milliseconds(200))
-
-        let recorder = LoopbackRecorder(deviceID: loopback.id)
-        try recorder.start()
+        var settleWaited = 0
+        while settleWaited < 2000 {
+            let actual = try await controller.nominalSampleRate(deviceID: loopback.id)
+            if actual == Double(meta.rate) { break }
+            try await Task.sleep(for: .milliseconds(50))
+            settleWaited += 50
+        }
+        try await Task.sleep(for: .milliseconds(500))
 
         let player = Player(
             devices: controller,
@@ -244,9 +250,26 @@ func verifyFixture(
         let track = Track(
             sourceId: "audio-verify", title: name, duration: 5,
             codec: "flac", sampleRate: meta.rate, bitDepth: meta.bits)
+        let item = PlaybackItem(track: track, url: url)
 
-        await player.play(items: [PlaybackItem(track: track, url: url)])
+        // Прогревочный проход: после смены частоты аудио-граф глотает первые
+        // ~100 мс. Первый прогон греет тракт, записываем второй.
+        await player.play(items: [item])
+        if case .failed(_, let error) = await player.state {
+            return FixtureResult(name: name, passed: false, detail: "warm-up: \(error)")
+        }
+        var warmWaited = 0
+        while warmWaited < 8000 {
+            if case .idle = await player.state { break }
+            try await Task.sleep(for: .milliseconds(100))
+            warmWaited += 100
+        }
 
+        let recorder = LoopbackRecorder(deviceID: loopback.id)
+        try recorder.start()
+        try await Task.sleep(for: .milliseconds(200))
+
+        await player.play(items: [item])
         if case .failed(_, let error) = await player.state {
             _ = recorder.stop()
             return FixtureResult(name: name, passed: false, detail: "playback: \(error)")
@@ -282,8 +305,24 @@ func verifyFixture(
 
 // MARK: - Entry point
 
-let fixturesDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-    .appendingPathComponent("Fixtures")
+// Каталог фикстур: argv[1] или ./Fixtures. argv[2] — файл-отчёт (для запуска
+// через LaunchServices, где stdout уходит в системный лог).
+let fixturesDir =
+    CommandLine.arguments.count > 1
+    ? URL(fileURLWithPath: CommandLine.arguments[1])
+    : URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .appendingPathComponent("Fixtures")
+let reportPath = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : nil
+var reportLines: [String] = []
+@MainActor
+func report(_ line: String) {
+    print(line)
+    reportLines.append(line)
+    if let reportPath {
+        try? reportLines.joined(separator: "\n").write(
+            toFile: reportPath, atomically: true, encoding: .utf8)
+    }
+}
 
 guard
     let fixtureURLs = try? FileManager.default.contentsOfDirectory(
@@ -297,11 +336,15 @@ else {
     exit(2)
 }
 
-// Захват аудио-входа обычно требует microphone-permission (TCC). Статус
-// печатаем, но не блокируемся: решает фактический захват — если придут
-// одни нули, диагноз в отчёте будет ясен.
+// Захват аудио-входа требует microphone-permission (TCC) даже для loopback.
+// Запрашиваем явно (вшитый Info.plist даёт usage description для промпта),
+// но не блокируемся: решает фактический захват.
 let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
 print("mic permission status: \(micStatus.rawValue) (3=authorized)")
+if micStatus != .authorized {
+    let granted = await AVCaptureDevice.requestAccess(for: .audio)
+    print("mic request result: \(granted)")
+}
 
 let controller = AudioDeviceController()
 let loopback: AudioDeviceController.DeviceInfo
@@ -312,17 +355,17 @@ do {
     exit(2)
 }
 
-print("Loopback: \(loopback.name) [\(loopback.uid)]")
-print("Fixtures: \(fixtureURLs.count)\n")
+report("Loopback: \(loopback.name) [\(loopback.uid)]")
+report("Fixtures: \(fixtureURLs.count)\n")
 
 var results: [FixtureResult] = []
 for url in fixtureURLs {
     let result = await verifyFixture(url: url, loopback: loopback, controller: controller)
     let mark = result.passed ? "PASS" : "FAIL"
-    print("[\(mark)] \(result.name) — \(result.detail)")
+    report("[\(mark)] \(result.name) — \(result.detail)")
     results.append(result)
 }
 
 let failed = results.filter { !$0.passed }
-print("\n\(results.count - failed.count)/\(results.count) bit-perfect")
+report("\n\(results.count - failed.count)/\(results.count) bit-perfect")
 exit(failed.isEmpty ? 0 : 1)
