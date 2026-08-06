@@ -67,6 +67,7 @@ struct AlbumDetail: View {
                         .onTapGesture(count: 2) {
                             env.play(album: album, startAt: index)
                         }
+                        .draggable(track.dragPayload)
                     }
                 }
             }

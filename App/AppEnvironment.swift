@@ -32,6 +32,10 @@ final class AppEnvironment {
     /// Инкремент по ⌘F — Sidebar фокусирует поле.
     var searchFocusTrigger = 0
 
+    /// Свежесозданный по ⌘⇧N плейлист: MainWindow переключает раздел,
+    /// PlaylistsView открывает его и сразу даёт переименовать.
+    var pendingPlaylistId: Int64?
+
     init() throws {
         db = try AppDatabase.standard()
         devices = AudioDeviceController()
@@ -104,6 +108,16 @@ final class AppEnvironment {
                 return nil
             }
             return PlaybackItem(track: track, url: root.appendingPathComponent(relative))
+        }
+    }
+
+    // MARK: - Playlists
+
+    func createPlaylist() {
+        do {
+            pendingPlaylistId = try playlistRepo.create(name: "New Playlist").id
+        } catch {
+            Log.library.error("create playlist failed: \(error, privacy: .public)")
         }
     }
 

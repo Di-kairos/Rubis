@@ -46,6 +46,16 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Треки по списку id с сохранением порядка запроса (порядок в плейлисте).
+    /// Отсутствующие id молча выпадают.
+    public func tracks(ids: [Int64]) throws -> [Track] {
+        guard !ids.isEmpty else { return [] }
+        let fetched = try db.reader.read { try Track.fetchAll($0, keys: ids) }
+        let byId = Dictionary(
+            uniqueKeysWithValues: fetched.compactMap { t in t.id.map { ($0, t) } })
+        return ids.compactMap { byId[$0] }
+    }
+
     public func delete(ids: [Int64]) throws {
         _ = try db.writer.write { try Track.deleteAll($0, keys: ids) }
     }
@@ -195,6 +205,33 @@ public struct PlaylistRepository: Sendable {
             try database.execute(
                 sql: "UPDATE playlist SET updated_at = ? WHERE id = ?",
                 arguments: [Date(), playlistId])
+        }
+    }
+
+    /// Дописывает треки в конец, пропуская уже присутствующие (d&d из библиотеки).
+    public func append(_ ids: [Int64], to playlistId: Int64) throws {
+        try db.writer.write { database in
+            let existing = try Int64.fetchAll(
+                database,
+                sql: "SELECT track_id FROM playlist_item WHERE playlist_id = ?",
+                arguments: [playlistId])
+            var position = existing.count
+            for id in ids where !existing.contains(id) {
+                try PlaylistItem(playlistId: playlistId, trackId: id, position: position)
+                    .insert(database)
+                position += 1
+            }
+            try database.execute(
+                sql: "UPDATE playlist SET updated_at = ? WHERE id = ?",
+                arguments: [Date(), playlistId])
+        }
+    }
+
+    public func rename(id: Int64, to name: String) throws {
+        try db.writer.write { database in
+            try database.execute(
+                sql: "UPDATE playlist SET name = ?, updated_at = ? WHERE id = ?",
+                arguments: [name, Date(), id])
         }
     }
 

@@ -62,6 +62,10 @@ struct MainWindow: View {
             minWidth: DS.Metrics.windowMinWidth,
             minHeight: DS.Metrics.windowMinHeight
         )
+        // ⌘⇧N создаёт плейлист из любого раздела — переключаемся к нему.
+        .onChange(of: env.pendingPlaylistId) {
+            if env.pendingPlaylistId != nil { section = .playlists }
+        }
         // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
         .dropDestination(for: URL.self) { urls, _ in
             let folders = urls.filter { url in
@@ -90,10 +94,7 @@ struct MainWindow: View {
             case .recentlyAdded:
                 RecentlyAddedGrid(selectedAlbum: $selectedAlbum)
             case .playlists:
-                // Pack 3 фазы 5: плейлисты с drag & drop
-                DSText("Playlists — coming next", style: .body, color: DS.Color.textTertiary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(DS.Color.bgBase)
+                PlaylistsView()
             }
         }
     }

@@ -33,6 +33,8 @@ struct EscapementApp: App {
                     .keyboardShortcut("r", modifiers: [.command])
                 Button("Search") { env.searchFocusTrigger += 1 }
                     .keyboardShortcut("f", modifiers: [.command])
+                Button("New Playlist") { env.createPlaylist() }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
             }
         }
 

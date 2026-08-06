@@ -84,6 +84,32 @@ struct CRUDTests {
         #expect(try repo.trackIds(in: playlist.id!) == ids)
     }
 
+    @Test func playlistAppendSkipsDuplicatesAndKeepsOrder() throws {
+        let db = try AppDatabase.inMemory()
+        let source = try makeSource(db)
+        let trackRepo = TrackRepository(db: db)
+        let tracks = try trackRepo.insert(
+            (1...3).map {
+                Track(
+                    sourceId: source.id, relativePath: "t\($0).flac", title: "Track \($0)",
+                    duration: 100, codec: "flac", sampleRate: 44_100)
+            })
+        let ids = tracks.compactMap(\.id)
+        let repo = PlaylistRepository(db: db)
+        let playlist = try repo.create(name: "Mix")
+
+        try repo.append([ids[2], ids[0]], to: playlist.id!)
+        try repo.append([ids[0], ids[1]], to: playlist.id!)
+        let stored = try repo.trackIds(in: playlist.id!)
+        #expect(stored == [ids[2], ids[0], ids[1]])
+        // Порядок плейлиста, а не порядок id в таблице.
+        #expect(
+            try trackRepo.tracks(ids: stored).map(\.title) == ["Track 3", "Track 1", "Track 2"])
+
+        try repo.rename(id: playlist.id!, to: "Evening")
+        #expect(try repo.all().first?.name == "Evening")
+    }
+
     @Test func cascadeDeleteSourceRemovesTracks() throws {
         let db = try AppDatabase.inMemory()
         let source = try makeSource(db)

@@ -37,6 +37,7 @@ struct SearchResults: View {
                             .onTapGesture(count: 2) {
                                 env.play(tracks: hits.map(\.track), startAt: index)
                             }
+                            .draggable(hit.track.dragPayload)
                         }
                     }
                 }

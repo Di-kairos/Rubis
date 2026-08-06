@@ -88,6 +88,7 @@ struct TracksList: View {
                         }
                     }
                     .onTapGesture(count: 2) { play(from: index) }
+                    .draggable(track.dragPayload)
                 }
             }
         }
