@@ -35,7 +35,9 @@ extension DS {
 
     /// Typography (DESIGN.md §3). System fonts only.
     public enum Font {
-        public static let display = SwiftUI.Font.system(size: 28, weight: .regular)
+        public static let display = SwiftUI.Font.system(size: 28, weight: .bold)
+        /// Артист под названием альбома — акцентным цветом (DESIGN §3).
+        public static let displayArtist = SwiftUI.Font.system(size: 22, weight: .regular)
         public static let title = SwiftUI.Font.system(size: 20, weight: .medium)
         public static let headline = SwiftUI.Font.system(size: 14, weight: .semibold)
         public static let body = SwiftUI.Font.system(size: 13, weight: .regular)

@@ -26,6 +26,12 @@ final class AppEnvironment {
     private(set) var outputStatus: OutputStatus?
     private(set) var scanProgress: ScanProgress?
 
+    // MARK: - Search (SPEC §7.2)
+
+    var searchText = ""
+    /// Инкремент по ⌘F — Sidebar фокусирует поле.
+    var searchFocusTrigger = 0
+
     init() throws {
         db = try AppDatabase.standard()
         devices = AudioDeviceController()
@@ -55,6 +61,12 @@ final class AppEnvironment {
             let items = resolveItems(tracks: tracks)
             await player.play(items: items, startAt: index)
         }
+    }
+
+    /// Плей произвольного списка треков с позиции.
+    func play(tracks: [Track], startAt index: Int = 0) {
+        let items = resolveItems(tracks: tracks)
+        Task { await player.play(items: items, startAt: index) }
     }
 
     func togglePlayPause() {

@@ -31,6 +31,8 @@ struct EscapementApp: App {
                     .keyboardShortcut(.leftArrow, modifiers: [.command])
                 Button("Rescan Sources") { env.rescanAll() }
                     .keyboardShortcut("r", modifiers: [.command])
+                Button("Search") { env.searchFocusTrigger += 1 }
+                    .keyboardShortcut("f", modifiers: [.command])
             }
         }
 

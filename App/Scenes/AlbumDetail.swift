@@ -16,8 +16,10 @@ struct AlbumDetail: View {
                 DSCoverImage(image: coverImage, size: 200, radius: DS.Radius.card)
                 VStack(alignment: .leading, spacing: DS.Space.sm) {
                     DSText(album.title, style: .display)
-                    DSText(
-                        album.albumArtist ?? "", style: .body, color: DS.Color.textSecondary)
+                    Text(album.albumArtist ?? "")
+                        .font(DS.Font.displayArtist)
+                        .foregroundStyle(DS.Color.accent)
+                        .lineLimit(1)
                     DSText(metaLine, style: .caption, color: DS.Color.textTertiary)
                     HStack(spacing: DS.Space.md) {
                         Button {

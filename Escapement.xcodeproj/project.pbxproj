@@ -10,11 +10,13 @@
 		059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6186081353886B17DD038F1F /* AlbumsGrid.swift */; };
 		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
+		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
 		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
 		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
 		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
+		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
 		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
@@ -25,8 +27,10 @@
 /* Begin PBXFileReference section */
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
 		1F5775751BCC167A604DDAF2 /* SettingsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScene.swift; sourceTree = "<group>"; };
+		2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResults.swift; sourceTree = "<group>"; };
 		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
 		3381F8269F03E8595BAFB27C /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		470192454F34299CE626000F /* ArtistsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtistsList.swift; sourceTree = "<group>"; };
 		4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		5771AB6CC12B8F72156A2016 /* DesignSystem */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DesignSystem; path = Packages/DesignSystem; sourceTree = SOURCE_ROOT; };
 		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
@@ -109,7 +113,9 @@
 			children = (
 				E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */,
 				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
+				470192454F34299CE626000F /* ArtistsList.swift */,
 				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
+				2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */,
 				1F5775751BCC167A604DDAF2 /* SettingsScene.swift */,
 				4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */,
 				CA25FCB47B384004AAD3364F /* TransportBar.swift */,
@@ -191,8 +197,10 @@
 				905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */,
 				059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */,
 				6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */,
+				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
 				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
+				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,
 				1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */,
 				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
 				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,

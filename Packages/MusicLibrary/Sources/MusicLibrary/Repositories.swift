@@ -144,6 +144,22 @@ public struct AlbumRepository: Sendable {
                 .fetchAll($0)
         }
     }
+
+    /// Альбомы по свежести добавления треков (раздел Recently Added).
+    public func recentlyAdded(limit: Int = 60) throws -> [Album] {
+        try db.reader.read {
+            try Album.fetchAll(
+                $0,
+                sql: """
+                    SELECT album.* FROM album
+                    JOIN track ON track.album_id = album.id
+                    GROUP BY album.id
+                    ORDER BY max(track.added_at) DESC
+                    LIMIT ?
+                    """,
+                arguments: [limit])
+        }
+    }
 }
 
 public struct PlaylistRepository: Sendable {

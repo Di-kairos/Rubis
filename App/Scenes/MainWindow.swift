@@ -60,7 +60,8 @@ struct MainWindow: View {
         .background(DS.Color.bgBase)
         .frame(
             minWidth: DS.Metrics.windowMinWidth,
-            minHeight: DS.Metrics.windowMinHeight)
+            minHeight: DS.Metrics.windowMinHeight
+        )
         // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
         .dropDestination(for: URL.self) { urls, _ in
             let folders = urls.filter { url in
@@ -76,14 +77,24 @@ struct MainWindow: View {
 
     @ViewBuilder
     private var sectionContent: some View {
-        switch section {
-        case .albums, .nowPlaying, .recentlyAdded:
-            AlbumsGrid(selectedAlbum: $selectedAlbum)
-        case .artists, .tracks, .playlists:
-            // Pack 2 фазы 5: отдельные списки артистов/треков/плейлистов
-            DSText("Coming in phase 5 pack 2", style: .body, color: DS.Color.textTertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DS.Color.bgBase)
+        if !env.searchText.isEmpty {
+            SearchResults(selectedAlbum: $selectedAlbum)
+        } else {
+            switch section {
+            case .albums, .nowPlaying:
+                AlbumsGrid(selectedAlbum: $selectedAlbum)
+            case .artists:
+                ArtistsList(selectedAlbum: $selectedAlbum)
+            case .tracks:
+                TracksList()
+            case .recentlyAdded:
+                RecentlyAddedGrid(selectedAlbum: $selectedAlbum)
+            case .playlists:
+                // Pack 3 фазы 5: плейлисты с drag & drop
+                DSText("Playlists — coming next", style: .body, color: DS.Color.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(DS.Color.bgBase)
+            }
         }
     }
 }

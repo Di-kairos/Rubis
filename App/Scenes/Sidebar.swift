@@ -8,8 +8,16 @@ struct Sidebar: View {
     @Environment(AppEnvironment.self) private var env
     @State private var sources: [Source] = []
 
+    @FocusState private var searchFocused: Bool
+
     var body: some View {
+        @Bindable var env = env
         VStack(alignment: .leading, spacing: 0) {
+            DSSearchField(text: $env.searchText)
+                .focused($searchFocused)
+                .padding(DS.Space.md)
+                .onChange(of: env.searchFocusTrigger) { searchFocused = true }
+
             DSSectionHeader("Library")
             ForEach(LibrarySection.allCases) { item in
                 sidebarRow(item)

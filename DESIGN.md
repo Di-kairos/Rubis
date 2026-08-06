@@ -91,7 +91,8 @@
 
 | Токен | Шрифт | Размер / вес | Применение |
 |---|---|---|---|
-| `display` | SF Pro Display | 28 / Regular, tracking −0.4 | название альбома на детальном экране |
+| `display` | SF Pro Display | 28 / Bold, tracking −0.4 | название альбома на детальном экране (решение Di-kairos 2026-08-06: как в Apple Music) |
+| `displayArtist` | SF Pro Display | 22 / Regular, цвет accent | артист под названием альбома |
 | `title` | SF Pro Display | 20 / Medium | заголовки секций |
 | `headline` | SF Pro Text | 14 / Semibold | название трека в списке |
 | `body` | SF Pro Text | 13 / Regular | основной текст |
