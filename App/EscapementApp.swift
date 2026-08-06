@@ -1,3 +1,4 @@
+import DesignSystem
 import SwiftUI
 
 /// App entry point. Thin wrapper — all logic lives in Packages/ (SPEC §3.1).
@@ -6,9 +7,19 @@ struct EscapementApp: App {
     var body: some Scene {
         Window("Escapement", id: "main") {
             EmptyContentView()
-                .frame(minWidth: 900, minHeight: 600)
+                .frame(
+                    minWidth: DS.Metrics.windowMinWidth,
+                    minHeight: DS.Metrics.windowMinHeight)
         }
         .windowStyle(.hiddenTitleBar)
+
+        #if DEBUG
+        Window("Design Gallery", id: "design-gallery") {
+            DesignSystemGallery()
+        }
+        // ⌘⌥D from TASKS is taken by the system Dock toggle; ⌘⇧D is free.
+        .keyboardShortcut("d", modifiers: [.command, .shift])
+        #endif
     }
 }
 
