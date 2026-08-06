@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "9875a87"
+head: "463f1e7"
 tests: 0/0
 last_session: 1
 last_reviewed: 2026-08-06
