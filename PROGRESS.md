@@ -29,20 +29,20 @@ links:
 
 ## Текущее состояние
 
-Session 1 (2026-08-06): проект связан (git + X10 + память), принят пакет ТЗ Escapement —
-bit-perfect macOS-плеер. SPEC/DESIGN/TASKS в корне. Кода нет, фаза 0 не начата.
-HEAD: `9efb92f` — feat(ui): artists, tracks, recently added, cmd-F search (сессия 01 закрыта, фаза 5 packs 1–2).
+Session 1 (2026-08-06, Mac Mini): фазы 0–4 закрыты и в main; **audio-verify 24/24
+bit-perfect**; живой прогон подтверждён (бейдж `16/44.1 · Exclusive · BenQ MA270U`).
+Фаза 5 packs 1–2 в ветке `phase/05-interface`. Детали — `docs/sessions/progress-report-session01.md`.
+HEAD: `9efb92f` — feat(ui): artists, tracks, recently added, cmd-F search (сессия 01 закрыта).
 
 ## Фазы (из TASKS.md)
 
-- Фаза 0 — Каркас ✅ (закрыта: сборка без warnings, тесты 8/8, окно запускается)
-
-
-- Фаза 2 — БД и модель
-- Фаза 3 — Аудио-движок (ключевая, bit-perfect верификация)
-- Фаза 4 — Локальная библиотека
-- Фаза 5 — Интерфейс
-- Фаза 6 — Subsonic/Navidrome
+- Фаза 0 — Каркас ✅
+- Фаза 1 — Дизайн-система ✅ (галерея ⌘⇧D, WCAG-тест)
+- Фаза 2 — БД и модель ✅ (100k FTS < 50 мс)
+- Фаза 3 — Аудио-движок ✅ (**verify 24/24 bit-perfect**; риск: старт после смены частоты)
+- Фаза 4 — Локальная библиотека ✅ (10k скан 5.2 с)
+- **Фаза 5 — Интерфейс** ← packs 1–2 готовы; pack 3: плейлисты, mini-player, бюджеты §12
+- Фаза 6 — Subsonic/Navidrome (отложена, D-003)
 - Фаза 7 — Системная интеграция и шлифовка
 
 ## Env Vars
