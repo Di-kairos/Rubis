@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "36cc211"
+head: "86b0ae1"
 tests: 30/30 (swift test, 5 packages)
 last_session: 1
 last_reviewed: 2026-08-06
@@ -29,7 +29,7 @@ next_actions:
 
 Session 1 (2026-08-06): проект связан (git + X10 + память), принят пакет ТЗ Escapement —
 bit-perfect macOS-плеер. SPEC/DESIGN/TASKS в корне. Кода нет, фаза 0 не начата.
-HEAD: `36cc211` — feat(tools): fixtures generator + audio-verify CLI (ветка phase/03-audio, Pack 3).
+HEAD: `86b0ae1` — feat(playback): DSD DoP/PCM (ветка phase/03-audio, Pack 4). Осталось: прогон audio-verify (нужен BlackHole).
 
 ## Фазы (из TASKS.md)
 
