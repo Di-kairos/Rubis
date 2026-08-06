@@ -72,12 +72,72 @@ struct ScannerTests {
         #expect(second.updated == 0)
         #expect(second.unchanged == 6)
 
-        // Удаление файла подхватывается
+        // Удаление файла помечает трек недоступным, но не выкидывает из библиотеки
         try FileManager.default.removeItem(
             at: root.appendingPathComponent("Album A/track-0.flac"))
         let third = try await scanner.scan(source: source)
-        #expect(third.removed == 1)
-        #expect(try TrackRepository(db: db).count() == 5)
+        #expect(third.unavailable == 1)
+        #expect(try TrackRepository(db: db).count() == 6)
+        #expect(try TrackRepository(db: db).unavailableCount() == 1)
+    }
+
+    @Test(.enabled(if: fixturesAvailable)) func movedFileKeepsIdentity() async throws {
+        let root = try makeLibrary(copies: 2)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let db = try AppDatabase.inMemory()
+        var source = Source(kind: .local, displayName: "Test")
+        source.bookmark = try LibraryScanner.makeBookmark(for: root)
+        try SourceRepository(db: db).upsert(source)
+
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: source)
+
+        let trackRepo = TrackRepository(db: db)
+        let moved = try #require(
+            try trackRepo.tracks(ids: [1, 2]).first { $0.relativePath == "Album A/track-0.flac" })
+        // Трек в плейлисте — он обязан пережить перенос файла
+        let playlistRepo = PlaylistRepository(db: db)
+        let playlist = try playlistRepo.create(name: "Mix")
+        try playlistRepo.setTracks([moved.id!], in: playlist.id!)
+
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("Album B"), withIntermediateDirectories: true)
+        try FileManager.default.moveItem(
+            at: root.appendingPathComponent("Album A/track-0.flac"),
+            to: root.appendingPathComponent("Album B/track-0.flac"))
+
+        let summary = try await scanner.scan(source: source)
+        #expect(summary.moved == 1)
+        #expect(summary.unavailable == 0)
+        #expect(try trackRepo.count() == 2)
+        #expect(try playlistRepo.trackIds(in: playlist.id!) == [moved.id!])
+        #expect(try trackRepo.track(id: moved.id!)?.relativePath == "Album B/track-0.flac")
+    }
+
+    @Test(.enabled(if: fixturesAvailable)) func returningFileClearsUnavailable() async throws {
+        let root = try makeLibrary(copies: 2)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let db = try AppDatabase.inMemory()
+        var source = Source(kind: .local, displayName: "Test")
+        source.bookmark = try LibraryScanner.makeBookmark(for: root)
+        try SourceRepository(db: db).upsert(source)
+
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: source)
+
+        // Файл «уехал вместе с томом» и вернулся тем же самым
+        let path = root.appendingPathComponent("Album A/track-0.flac")
+        let stash = FileManager.default.temporaryDirectory
+            .appendingPathComponent("stash-\(UUID().uuidString).flac")
+        try FileManager.default.moveItem(at: path, to: stash)
+        #expect(try await scanner.scan(source: source).unavailable == 1)
+
+        try FileManager.default.moveItem(at: stash, to: path)
+        let back = try await scanner.scan(source: source)
+        #expect(back.restored == 1)
+        #expect(try TrackRepository(db: db).unavailableCount() == 0)
     }
 
     @Test(.enabled(if: fixturesAvailable)) func brokenFileDoesNotAbortScan() async throws {

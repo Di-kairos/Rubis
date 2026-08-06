@@ -53,10 +53,10 @@ struct AlbumDetail: View {
                                     color: DS.Color.textTertiary
                                 )
                                 .frame(width: 24, alignment: .trailing)
+                                UnavailableMark(track: track)
                                 DSText(
                                     track.title, style: .headline,
-                                    color: isPlaying(track)
-                                        ? DS.Color.accent : DS.Color.textPrimary
+                                    color: track.titleColor(isPlaying: isPlaying(track))
                                 )
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 DSText(

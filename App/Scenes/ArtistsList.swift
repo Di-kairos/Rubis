@@ -74,9 +74,10 @@ struct TracksList: View {
                 ForEach(Array(tracks.enumerated()), id: \.offset) { index, track in
                     DSListRow(isSelected: isCurrent(track)) {
                         HStack(spacing: DS.Space.md) {
+                            UnavailableMark(track: track)
                             DSText(
                                 track.title, style: .headline,
-                                color: isCurrent(track) ? DS.Color.accent : DS.Color.textPrimary
+                                color: track.titleColor(isPlaying: isCurrent(track))
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
                             DSText(

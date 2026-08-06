@@ -114,6 +114,9 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
     public var replaygainTrack: Double?
     public var replaygainAlbum: Double?
     public var addedAt: Date
+    /// Файла нет на месте: том отключён или файл удалён. Строка приглушена
+    /// в UI, трек не попадает в воспроизведение, но живёт в плейлистах.
+    public var unavailable: Bool
 
     public init(
         id: Int64? = nil,
@@ -135,7 +138,8 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         bitrate: Int? = nil,
         replaygainTrack: Double? = nil,
         replaygainAlbum: Double? = nil,
-        addedAt: Date = Date()
+        addedAt: Date = Date(),
+        unavailable: Bool = false
     ) {
         self.id = id
         self.sourceId = sourceId
@@ -157,6 +161,7 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         self.replaygainTrack = replaygainTrack
         self.replaygainAlbum = replaygainAlbum
         self.addedAt = addedAt
+        self.unavailable = unavailable
     }
 }
 

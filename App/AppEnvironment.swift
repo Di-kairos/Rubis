@@ -62,15 +62,18 @@ final class AppEnvironment {
         guard let albumId = album.id else { return }
         Task {
             guard let tracks = try? trackRepo.tracks(inAlbum: albumId) else { return }
-            let items = resolveItems(tracks: tracks)
-            await player.play(items: items, startAt: index)
+            play(tracks: tracks, startAt: index)
         }
     }
 
     /// Плей произвольного списка треков с позиции.
     func play(tracks: [Track], startAt index: Int = 0) {
         let items = resolveItems(tracks: tracks)
-        Task { await player.play(items: items, startAt: index) }
+        // Часть треков могла отвалиться (нет файла) — стартовая позиция ищется
+        // по самому треку, а не по индексу исходного списка.
+        let target = tracks.indices.contains(index) ? tracks[index].id : nil
+        let start = items.firstIndex { $0.track.id == target } ?? 0
+        Task { await player.play(items: items, startAt: start) }
     }
 
     func togglePlayPause() {
@@ -104,7 +107,10 @@ final class AppEnvironment {
                 return (source.id, url)
             })
         return tracks.compactMap { track in
-            guard let root = roots[track.sourceId], let relative = track.relativePath else {
+            // Пропавшие файлы не попадают в очередь (SPEC §9) — играем остальное.
+            guard !track.unavailable,
+                let root = roots[track.sourceId], let relative = track.relativePath
+            else {
                 return nil
             }
             return PlaybackItem(track: track, url: root.appendingPathComponent(relative))

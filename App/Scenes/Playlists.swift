@@ -96,9 +96,10 @@ struct PlaylistsView: View {
                                 "\(index + 1)", style: .numeric, color: DS.Color.textTertiary
                             )
                             .frame(width: 24, alignment: .trailing)
+                            UnavailableMark(track: track)
                             DSText(
                                 track.title, style: .headline,
-                                color: isCurrent(track) ? DS.Color.accent : DS.Color.textPrimary
+                                color: track.titleColor(isPlaying: isCurrent(track))
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
                             DSText(

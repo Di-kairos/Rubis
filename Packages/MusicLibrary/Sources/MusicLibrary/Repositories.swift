@@ -64,6 +64,11 @@ public struct TrackRepository: Sendable {
         try db.reader.read { try Track.fetchCount($0) }
     }
 
+    /// Сколько треков помечено недоступными (файл не найден при скане).
+    public func unavailableCount() throws -> Int {
+        try db.reader.read { try Track.filter(Column("unavailable") == true).fetchCount($0) }
+    }
+
     /// FTS5 prefix search (SPEC §7.2). Query is sanitized into quoted prefix
     /// terms so user input can never break MATCH syntax.
     public func search(_ query: String, limit: Int = 50) throws -> [SearchHit] {

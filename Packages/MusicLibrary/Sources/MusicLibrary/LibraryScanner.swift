@@ -12,7 +12,12 @@ public enum ScanProgress: Sendable {
 public struct ScanSummary: Sendable, Equatable {
     public var added = 0
     public var updated = 0
-    public var removed = 0
+    /// Файл узнан под новым путём (size+mtime) — id, плейлисты и история целы.
+    public var moved = 0
+    /// Файлов не найдено — треки помечены недоступными, а не удалены.
+    public var unavailable = 0
+    /// Файл вернулся на место — пометка снята.
+    public var restored = 0
     public var unchanged = 0
     /// Paths that failed to read — the Problem files list.
     public var failed: [String] = []
@@ -115,6 +120,7 @@ public actor LibraryScanner {
             var relativePath: String
             var fileSize: Int64?
             var modifiedAt: Date?
+            var unavailable: Bool
 
             static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
                 .convertFromSnakeCase
@@ -122,14 +128,18 @@ public actor LibraryScanner {
         let known: [String: KnownTrack] = try await db.reader.read { database in
             let rows = try KnownTrack.fetchAll(
                 database,
-                sql:
-                    "SELECT id, relative_path, file_size, modified_at FROM track WHERE source_id = ?",
+                sql: """
+                    SELECT id, relative_path, file_size, modified_at, unavailable
+                    FROM track WHERE source_id = ?
+                    """,
                 arguments: [source.id])
             return Dictionary(uniqueKeysWithValues: rows.map { ($0.relativePath, $0) })
         }
 
         // 3. Инкрементальность: только новые и изменённые (mtime или size)
         var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
+        /// Вернувшиеся файлы — снять пометку недоступности.
+        var restoredIDs: [Int64] = []
         for (relative, info) in onDisk {
             if let existing = known[relative] {
                 let sameSize = existing.fileSize == info.size
@@ -139,6 +149,7 @@ public actor LibraryScanner {
                     } ?? false
                 if sameSize && sameTime {
                     summary.unchanged += 1
+                    if existing.unavailable { restoredIDs.append(existing.id) }
                     continue
                 }
                 toRead.append((relative, info.url, existing.id))
@@ -147,11 +158,56 @@ public actor LibraryScanner {
             }
         }
 
-        // 4. Удалённые с диска
-        let deletedIDs = known.filter { onDisk[$0.key] == nil }.map(\.value.id)
-        if !deletedIDs.isEmpty {
-            _ = try await db.writer.write { try Track.deleteAll($0, keys: deletedIDs) }
-            summary.removed = deletedIDs.count
+        // 4. Пропавшие пути: сначала ищем перенос — тот же size+mtime под новым
+        //    именем. Узнали → трек сохраняет id (а с ним плейлисты и историю),
+        //    просто меняет путь. Не узнали → помечаем недоступным, не удаляем:
+        //    том мог быть отключён (D-002), файл может вернуться.
+        var missing = known.filter { onDisk[$0.key] == nil }.map(\.value)
+        if !missing.isEmpty {
+            var newIndexBySignature: [String: Int] = [:]
+            for (index, item) in toRead.enumerated() where item.existingID == nil {
+                if let info = onDisk[item.relative] {
+                    newIndexBySignature[Self.signature(size: info.size, mtime: info.mtime)] = index
+                }
+            }
+            var stillMissing: [KnownTrack] = []
+            for candidate in missing {
+                guard let size = candidate.fileSize, let mtime = candidate.modifiedAt,
+                    let index =
+                        newIndexBySignature
+                        .removeValue(forKey: Self.signature(size: size, mtime: mtime))
+                else {
+                    stillMissing.append(candidate)
+                    continue
+                }
+                toRead[index].existingID = candidate.id
+                summary.moved += 1
+            }
+            missing = stillMissing
+        }
+        if !missing.isEmpty {
+            let ids = missing.map(\.id)
+            try await db.writer.write { database in
+                try database.execute(
+                    sql: """
+                        UPDATE track SET unavailable = 1
+                        WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))
+                        """,
+                    arguments: StatementArguments(ids))
+            }
+            summary.unavailable = ids.count
+        }
+        let restored = restoredIDs
+        if !restored.isEmpty {
+            try await db.writer.write { database in
+                try database.execute(
+                    sql: """
+                        UPDATE track SET unavailable = 0
+                        WHERE id IN (\(restored.map { _ in "?" }.joined(separator: ",")))
+                        """,
+                    arguments: StatementArguments(restored))
+            }
+            summary.restored = restored.count
         }
 
         // 5. Параллельное чтение метаданных + батчевая запись
@@ -209,7 +265,7 @@ public actor LibraryScanner {
                 arguments: [Date(), source.id])
         }
         log(
-            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) -\(summary.removed) =\(summary.unchanged) !\(summary.failed.count)"
+            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) →\(summary.moved) ?\(summary.unavailable) ↩\(summary.restored) =\(summary.unchanged) !\(summary.failed.count)"
         )
         onProgress?(.finished(summary))
         return summary
@@ -347,6 +403,14 @@ public actor LibraryScanner {
         albumCache = result.albums
         summary.added += result.added
         summary.updated += result.updated
+    }
+
+    /// Подпись содержимого файла для распознавания переноса: размер + mtime
+    /// с точностью до секунды (mv сохраняет оба).
+    /// ponytail: без хеша содержимого — коллизия «два файла одного размера и
+    /// времени» даёт неверную привязку id; переходить на хеш, если всплывёт.
+    private static func signature(size: Int64, mtime: Date) -> String {
+        "\(size)-\(Int(mtime.timeIntervalSince1970.rounded()))"
     }
 
     /// Обложка из папки трека, кэш на директорию (тег важнее, зовётся только
