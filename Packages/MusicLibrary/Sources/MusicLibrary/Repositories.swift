@@ -46,6 +46,11 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Вся библиотека по алфавиту — раздел Tracks. Виртуализацию держит List.
+    public func all() throws -> [Track] {
+        try db.reader.read { try Track.order(Column("title")).fetchAll($0) }
+    }
+
     /// Треки по списку id с сохранением порядка запроса (порядок в плейлисте).
     /// Отсутствующие id молча выпадают.
     public func tracks(ids: [Int64]) throws -> [Track] {

@@ -63,40 +63,44 @@ struct ArtistsList: View {
     }
 }
 
-/// Tracks section: flat list of everything, double-click plays from that row.
+/// Tracks section: the whole library alphabetically, double-click plays
+/// from that row. List keeps 100k rows virtualized (SPEC §7.4 check).
 struct TracksList: View {
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(tracks.enumerated()), id: \.offset) { index, track in
-                    DSListRow(isSelected: isCurrent(track)) {
-                        HStack(spacing: DS.Space.md) {
-                            UnavailableMark(track: track)
-                            DSText(
-                                track.title, style: .headline,
-                                color: track.titleColor(isPlaying: isCurrent(track))
-                            )
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            DSText(
-                                track.codec.uppercased(), style: .caption,
-                                color: DS.Color.textTertiary)
-                            DSText(
-                                AlbumDetail.format(duration: track.duration), style: .numeric,
-                                color: DS.Color.textTertiary)
-                        }
+        List {
+            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
+                DSListRow(isSelected: isCurrent(track)) {
+                    HStack(spacing: DS.Space.md) {
+                        UnavailableMark(track: track)
+                        DSText(
+                            track.title, style: .headline,
+                            color: track.titleColor(isPlaying: isCurrent(track))
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        DSText(
+                            track.codec.uppercased(), style: .caption,
+                            color: DS.Color.textTertiary)
+                        DSText(
+                            AlbumDetail.format(duration: track.duration), style: .numeric,
+                            color: DS.Color.textTertiary)
                     }
-                    .onTapGesture(count: 2) { play(from: index) }
-                    .draggable(track.dragPayload)
-                    .trackQueueMenu(track, env: env)
                 }
+                .onTapGesture(count: 2) { play(from: index) }
+                .draggable(track.dragPayload)
+                .trackQueueMenu(track, env: env)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(DS.Color.bgBase)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(DS.Color.bgBase)
         .task {
-            tracks = (try? env.trackRepo.recentlyAdded(limit: 5000)) ?? []
+            tracks = (try? env.trackRepo.all()) ?? []
         }
     }
 

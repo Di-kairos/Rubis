@@ -1,9 +1,22 @@
 import DesignSystem
+import EscapementCore
 import SwiftUI
 
 /// App entry point. Thin wrapper — all logic lives in Packages/ (SPEC §3.1).
 @main
 struct EscapementApp: App {
+    /// Бюджет §12: холодный старт < 800 мс. Точка отсчёта — exec процесса
+    /// (kinfo_proc), т.е. метрика включает dyld и весь путь до первого кадра.
+    static func processStartDate() -> Date? {
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        guard sysctl(&mib, 4, &info, &size, nil, 0) == 0 else { return nil }
+        let tv = info.kp_proc.p_starttime
+        return Date(
+            timeIntervalSince1970: Double(tv.tv_sec) + Double(tv.tv_usec) / 1_000_000)
+    }
+
     @State private var env = Self.makeEnvironment()
     @State private var media: MediaIntegration?
 
@@ -21,6 +34,10 @@ struct EscapementApp: App {
             MainWindow()
                 .environment(env)
                 .task {
+                    if let start = Self.processStartDate() {
+                        let ms = Int(Date().timeIntervalSince(start) * 1000)
+                        Log.ui.info("launch to interactive window: \(ms, privacy: .public) ms")
+                    }
                     media = MediaIntegration(env: env)
                     media?.update()
                 }
