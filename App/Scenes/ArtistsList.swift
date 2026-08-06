@@ -75,6 +75,7 @@ struct TracksList: View {
                 DSListRow(isSelected: isCurrent(track)) {
                     HStack(spacing: DS.Space.md) {
                         UnavailableMark(track: track)
+                        PlayingMark(isPlaying: isCurrent(track))
                         DSText(
                             track.title, style: .headline,
                             color: track.titleColor(isPlaying: isCurrent(track))

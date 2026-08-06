@@ -54,6 +54,7 @@ struct AlbumDetail: View {
                                 )
                                 .frame(width: 24, alignment: .trailing)
                                 UnavailableMark(track: track)
+                                PlayingMark(isPlaying: isPlaying(track))
                                 DSText(
                                     track.title, style: .headline,
                                     color: track.titleColor(isPlaying: isPlaying(track))

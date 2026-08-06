@@ -97,6 +97,7 @@ struct PlaylistsView: View {
                             )
                             .frame(width: 24, alignment: .trailing)
                             UnavailableMark(track: track)
+                            PlayingMark(isPlaying: isCurrent(track))
                             DSText(
                                 track.title, style: .headline,
                                 color: track.titleColor(isPlaying: isCurrent(track))

@@ -18,6 +18,22 @@ struct UnavailableMark: View {
     }
 }
 
+/// ◆-маркер играющего трека — единственный гранат в интерфейсе (DESIGN §2.3, D-007).
+/// Держит ширину и для молчащих строк, чтобы список не дёргался.
+struct PlayingMark: View {
+    let isPlaying: Bool
+
+    var body: some View {
+        Image(systemName: "diamond.fill")
+            .font(.system(size: 7))
+            .foregroundStyle(DS.Color.gem)
+            .frame(width: 10)
+            .opacity(isPlaying ? 1 : 0)
+            .accessibilityHidden(!isPlaying)
+            .accessibilityLabel("Now playing")
+    }
+}
+
 extension Track {
     /// Цвет названия в списках: играющий → акцент, пропавший → приглушённый.
     func titleColor(isPlaying: Bool) -> SwiftUI.Color {

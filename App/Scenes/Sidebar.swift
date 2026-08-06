@@ -63,20 +63,28 @@ struct Sidebar: View {
             section = item
         } label: {
             HStack(spacing: DS.Space.sm) {
+                // Активный раздел — золотая нить слева, не заливная пилюля (D-007).
+                Rectangle()
+                    .fill(section == item ? DS.Color.accent : .clear)
+                    .frame(width: 2)
                 Image(systemName: item.icon)
                     .font(.system(size: 12))
                     .foregroundStyle(section == item ? DS.Color.accent : DS.Color.textTertiary)
                     .frame(width: 16)
-                DSText(item.rawValue, style: .body)
+                DSText(
+                    item.rawValue, style: .body,
+                    color: section == item ? DS.Color.textPrimary : DS.Color.textSecondary)
                 Spacer()
             }
-            .padding(.horizontal, DS.Space.md)
+            .padding(.leading, DS.Space.md - 2)
+            .padding(.trailing, DS.Space.md)
             .frame(height: DS.Metrics.sidebarRow)
             .background(section == item ? DS.Color.bgSelected : .clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.rawValue)
+        .accessibilityAddTraits(section == item ? .isSelected : [])
     }
 
     private func reloadSources() {

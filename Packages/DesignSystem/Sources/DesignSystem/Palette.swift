@@ -34,13 +34,14 @@ struct ColorPair: Sendable {
 }
 
 enum Palette {
-    static let bgBase = ColorPair(dark: RGBA(0x0B0B0C), light: RGBA(0xFAF8F5))
-    static let bgRaised = ColorPair(dark: RGBA(0x141416), light: RGBA(0xFFFFFF))
-    static let bgOverlay = ColorPair(dark: RGBA(0x1C1C1F), light: RGBA(0xFFFFFF))
+    static let bgBase = ColorPair(dark: RGBA(0x100D10), light: RGBA(0xFAF8F5))
+    static let bgRaised = ColorPair(dark: RGBA(0x181419), light: RGBA(0xFDFBF7))
+    static let bgOverlay = ColorPair(dark: RGBA(0x211B22), light: RGBA(0xFFFFFF))
     static let bgHover = ColorPair(
         dark: RGBA(0xFFFFFF, alpha: 0.04), light: RGBA(0x000000, alpha: 0.035))
+    /// Выделение — золотая дымка, а не серая заливка (D-007).
     static let bgSelected = ColorPair(
-        dark: RGBA(0xFFFFFF, alpha: 0.07), light: RGBA(0x000000, alpha: 0.06))
+        dark: RGBA(0xC9A76A, alpha: 0.14), light: RGBA(0x8A6C2E, alpha: 0.12))
     static let strokeHairline = ColorPair(
         dark: RGBA(0xFFFFFF, alpha: 0.07), light: RGBA(0x000000, alpha: 0.08))
     static let strokeStrong = ColorPair(
@@ -49,8 +50,10 @@ enum Palette {
     static let textSecondary = ColorPair(dark: RGBA(0x96948E), light: RGBA(0x6B6862))
     static let textTertiary = ColorPair(dark: RGBA(0x5A5854), light: RGBA(0x9A968E))
     static let textDisabled = ColorPair(dark: RGBA(0x3A3937), light: RGBA(0xC4C0B8))
-    static let accent = ColorPair(dark: RGBA(0xC2A15A), light: RGBA(0x8A6C2E))
+    static let accent = ColorPair(dark: RGBA(0xC9A76A), light: RGBA(0x8A6C2E))
     static let accentMuted = ColorPair(dark: RGBA(0x7A6739), light: RGBA(0xB5A47E))
+    /// Приглушённый гранат — только ◆-маркер играющего трека (DESIGN §2.3, D-007).
+    static let gem = ColorPair(dark: RGBA(0xA85868), light: RGBA(0x8A4351))
     static let warning = ColorPair(dark: RGBA(0xC87F4A), light: RGBA(0xA25E2B))
     static let danger = ColorPair(dark: RGBA(0xB4534A), light: RGBA(0x96382F))
     static let overlayShadow = ColorPair(

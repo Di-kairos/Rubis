@@ -79,6 +79,11 @@ struct AlbumCard: View {
                     .accessibilityLabel("Play \(album.title)")
                 }
             }
+            // Выбранный альбом — тонкое золотое кольцо вокруг обложки (D-007).
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card)
+                    .strokeBorder(isSelected ? DS.Color.accent : .clear, lineWidth: 1.5)
+            )
             .offset(y: hovering ? -2 : 0)
             .animation(DS.Motion.hover, value: hovering)
             DSText(album.title, style: .body)
