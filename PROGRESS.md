@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "dfc8f60"
-tests: 8/8 (swift test, 5 packages)
+head: "18f336e"
+tests: 11/11 (swift test, 5 packages)
 last_session: 1
 last_reviewed: 2026-08-06
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui]
@@ -29,7 +29,7 @@ next_actions:
 
 Session 1 (2026-08-06): проект связан (git + X10 + память), принят пакет ТЗ Escapement —
 bit-perfect macOS-плеер. SPEC/DESIGN/TASKS в корне. Кода нет, фаза 0 не начата.
-HEAD: `dfc8f60` — feat(scaffold): xcodeproj via XcodeGen, warning-free app build — phase 0 complete.
+HEAD: `18f336e` — feat(design-system): tokens, eight primitives, WCAG contrast test, debug gallery (ветка phase/01-design-system).
 
 ## Фазы (из TASKS.md)
 
