@@ -7,3 +7,15 @@ __pycache__/
 .DS_Store
 dist/
 build/
+
+# Xcode / SPM
+.xcuserdata/
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+
+# Runtime artifacts
+library.sqlite*
+Fixtures/
+*.log

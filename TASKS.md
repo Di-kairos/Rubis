@@ -11,14 +11,15 @@
 
 **Цель:** пустое окно, которое собирается и запускается.
 
-- [ ] Xcode-проект `Escapement`, target macOS 15.0, arm64, Swift 6 strict concurrency
-- [ ] `Config/Escapement.xcconfig` со всеми идентификаторами (SPEC §14)
-- [ ] Пять локальных SPM-пакетов из SPEC §3.1, пустые, но с тестовыми таргетами
-- [ ] Тест, проверяющий правило зависимостей между пакетами (парсит `Package.swift`)
-- [ ] `swift-format` конфиг + скрипт `Tools/format.sh`
-- [ ] `.gitignore`, `README.md` с командами сборки
-- [ ] Entitlements: hardened runtime вкл., sandbox выкл.
-- [ ] `OSLog` категории `audio` / `library` / `network` / `ui`
+- [x] Xcode-проект `Escapement`, target macOS 15.0, arm64, Swift 6 strict concurrency
+      _(генерируется XcodeGen из `project.yml` — правки проекта делать там, затем `xcodegen generate`)_
+- [x] `Config/Escapement.xcconfig` со всеми идентификаторами (SPEC §14)
+- [x] Пять локальных SPM-пакетов из SPEC §3.1, пустые, но с тестовыми таргетами
+- [x] Тест, проверяющий правило зависимостей между пакетами (парсит `Package.swift`)
+- [x] `swift-format` конфиг + скрипт `Tools/format.sh` (+ `Tools/test.sh` для CLT)
+- [x] `.gitignore`, `README.md` с командами сборки
+- [x] Entitlements: hardened runtime вкл. (xcconfig), sandbox выкл. — проверено сборкой
+- [x] `OSLog` категории `audio` / `library` / `network` / `ui`
 
 **Acceptance:** `xcodebuild -scheme Escapement` без warnings; `swift test` зелёный;
 приложение запускается и показывает пустое окно 900×600 с hidden titlebar.
