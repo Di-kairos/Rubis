@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5]
 hosting: "local macOS app (arm64, macOS 15+), не для App Store"
-head: "e938131"
+head: "e3d5ff1"
 tests: 35/35 (swift test, 5 packages)
 last_session: 1
 last_reviewed: 2026-08-06
@@ -32,7 +32,7 @@ links:
 Session 1 (2026-08-06, Mac Mini): фазы 0–4 закрыты и в main; **audio-verify 24/24
 bit-perfect**; живой прогон подтверждён (бейдж `16/44.1 · Exclusive · BenQ MA270U`).
 Фаза 5 packs 1–2 в ветке `phase/05-interface`. Детали — `docs/sessions/progress-report-session01.md`.
-HEAD: `e938131` — feat(library): folder cover art fallback (strawberry PickBestArt).
+HEAD: `e3d5ff1` — feat(library): move-safe identity + unavailable flag (strawberry song tracking).
 
 ## Фазы (из TASKS.md)
 
