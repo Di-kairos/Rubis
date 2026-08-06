@@ -38,30 +38,34 @@ struct AlbumDetail: View {
             }
             .frame(width: 280)
 
-            VStack(spacing: 0) {
-                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                    DSListRow(isSelected: isPlaying(track)) {
-                        HStack(spacing: DS.Space.md) {
-                            DSText(
-                                "\(track.trackNo ?? index + 1)", style: .numeric,
-                                color: DS.Color.textTertiary
-                            )
-                            .frame(width: 24, alignment: .trailing)
-                            DSText(
-                                track.title, style: .headline,
-                                color: isPlaying(track) ? DS.Color.accent : DS.Color.textPrimary)
-                            Spacer()
-                            DSText(
-                                Self.format(duration: track.duration), style: .numeric,
-                                color: DS.Color.textTertiary)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(tracks.enumerated()), id: \.offset) { index, track in
+                        DSListRow(isSelected: isPlaying(track)) {
+                            HStack(spacing: DS.Space.md) {
+                                DSText(
+                                    "\(track.trackNo ?? index + 1)", style: .numeric,
+                                    color: DS.Color.textTertiary
+                                )
+                                .frame(width: 24, alignment: .trailing)
+                                DSText(
+                                    track.title, style: .headline,
+                                    color: isPlaying(track)
+                                        ? DS.Color.accent : DS.Color.textPrimary
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                DSText(
+                                    Self.format(duration: track.duration), style: .numeric,
+                                    color: DS.Color.textTertiary)
+                            }
+                        }
+                        .onTapGesture(count: 2) {
+                            env.play(album: album, startAt: index)
                         }
                     }
-                    .onTapGesture(count: 2) {
-                        env.play(album: album, startAt: index)
-                    }
                 }
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .padding(DS.Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
