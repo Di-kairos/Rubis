@@ -5,7 +5,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: bootstrap
 stack: []
 hosting: TBD
-head: null
+head: "a5203c9"
 tests: 0/0
 last_session: 1
 last_reviewed: 2026-08-06
@@ -23,7 +23,8 @@ next_actions:
 ## Текущее состояние
 
 Session 1 (2026-08-06): проект связан — git init, remote `Di-kairos/Rubis`,
-память Claude через X10, базовые доки. Кода нет. HEAD — см. frontmatter.
+память Claude через X10, базовые доки. Кода нет.
+HEAD: `a5203c9` — chore: bootstrap project — docs skeleton, gitignore.
 
 ## Фазы
 
