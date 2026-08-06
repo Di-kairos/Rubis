@@ -20,7 +20,8 @@ struct AlbumsGrid: View {
         Group {
             if albums.isEmpty {
                 DSText(
-                    "Add a folder in Settings → Library", style: .body,
+                    "Drop a music folder here, or add one in Settings (⌘,) → Library",
+                    style: .body,
                     color: DS.Color.textTertiary
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

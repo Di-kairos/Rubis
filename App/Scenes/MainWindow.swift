@@ -61,6 +61,17 @@ struct MainWindow: View {
         .frame(
             minWidth: DS.Metrics.windowMinWidth,
             minHeight: DS.Metrics.windowMinHeight)
+        // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
+        .dropDestination(for: URL.self) { urls, _ in
+            let folders = urls.filter { url in
+                (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+            }
+            guard !folders.isEmpty else { return false }
+            for folder in folders {
+                env.addFolderSource(url: folder)
+            }
+            return true
+        }
     }
 
     @ViewBuilder
