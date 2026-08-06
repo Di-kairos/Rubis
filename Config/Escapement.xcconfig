@@ -1,7 +1,7 @@
 // Single place for product identity (SPEC §14). Renaming the product = editing this file.
 PRODUCT_NAME = Escapement
 PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement
-MARKETING_VERSION = 0.1.0
+MARKETING_VERSION = 0.2.0
 CURRENT_PROJECT_VERSION = 1
 DEVELOPMENT_TEAM =
 
