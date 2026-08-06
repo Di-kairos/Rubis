@@ -25,3 +25,23 @@ extension Track {
         return isPlaying ? DS.Color.accent : DS.Color.textPrimary
     }
 }
+
+extension View {
+    /// Контекстное меню очереди — одинаковое во всех списках треков.
+    func trackQueueMenu(_ track: Track, env: AppEnvironment) -> some View {
+        contextMenu {
+            QueueMenuItems(tracks: [track], env: env)
+        }
+    }
+}
+
+/// Пункты «в очередь» — отдельно, чтобы их можно было доложить в чужое меню.
+struct QueueMenuItems: View {
+    let tracks: [Track]
+    let env: AppEnvironment
+
+    var body: some View {
+        Button("Play Next") { env.playNext(tracks: tracks) }
+        Button("Add to Queue") { env.addToQueue(tracks: tracks) }
+    }
+}

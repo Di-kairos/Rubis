@@ -38,6 +38,7 @@ struct SearchResults: View {
                                 env.play(tracks: hits.map(\.track), startAt: index)
                             }
                             .draggable(hit.track.dragPayload)
+                            .trackQueueMenu(hit.track, env: env)
                         }
                     }
                 }

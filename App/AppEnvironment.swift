@@ -25,6 +25,8 @@ final class AppEnvironment {
     private(set) var playbackState: PlaybackState = .idle
     private(set) var outputStatus: OutputStatus?
     private(set) var scanProgress: ScanProgress?
+    private(set) var repeatMode: RepeatMode = .off
+    private(set) var shuffleMode: ShuffleMode = .off
 
     // MARK: - Search (SPEC §7.2)
 
@@ -74,6 +76,42 @@ final class AppEnvironment {
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
         Task { await player.play(items: items, startAt: start) }
+    }
+
+    /// Кнопка Shuffle на экране альбома (DESIGN §5.4): включает перемешивание
+    /// и играет альбом с него же.
+    func playShuffled(album: Album) {
+        shuffleMode = .tracks
+        Task {
+            await player.setShuffleMode(.tracks)
+            play(album: album)
+        }
+    }
+
+    /// Треки сразу после текущего.
+    func playNext(tracks: [Track]) {
+        let items = resolveItems(tracks: tracks)
+        Task { await player.playNext(items: items) }
+    }
+
+    /// Треки в конец очереди.
+    func addToQueue(tracks: [Track]) {
+        let items = resolveItems(tracks: tracks)
+        Task { await player.enqueue(items: items) }
+    }
+
+    func cycleShuffleMode() {
+        let modes = ShuffleMode.allCases
+        let next = modes[(modes.firstIndex(of: shuffleMode).map { $0 + 1 } ?? 0) % modes.count]
+        shuffleMode = next
+        Task { await player.setShuffleMode(next) }
+    }
+
+    func cycleRepeatMode() {
+        let modes = RepeatMode.allCases
+        let next = modes[(modes.firstIndex(of: repeatMode).map { $0 + 1 } ?? 0) % modes.count]
+        repeatMode = next
+        Task { await player.setRepeatMode(next) }
     }
 
     func togglePlayPause() {

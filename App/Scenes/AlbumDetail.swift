@@ -68,6 +68,7 @@ struct AlbumDetail: View {
                             env.play(album: album, startAt: index)
                         }
                         .draggable(track.dragPayload)
+                        .trackQueueMenu(track, env: env)
                     }
                 }
             }
@@ -107,8 +108,7 @@ struct AlbumDetail: View {
     }
 
     private func playShuffled() {
-        guard album.id != nil else { return }
-        env.play(album: album, startAt: Int.random(in: 0..<max(tracks.count, 1)))
+        env.playShuffled(album: album)
     }
 
     static func format(duration: Double) -> String {

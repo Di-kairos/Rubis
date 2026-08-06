@@ -40,6 +40,19 @@ struct TransportBar: View {
                 ) { env.next() }
             }
 
+            HStack(spacing: DS.Space.sm) {
+                orderButton(
+                    icon: env.shuffleMode == .albums ? "shuffle.circle" : "shuffle",
+                    isOn: env.shuffleMode != .off,
+                    label: "Shuffle: \(env.shuffleMode.rawValue)"
+                ) { env.cycleShuffleMode() }
+                orderButton(
+                    icon: env.repeatMode == .track ? "repeat.1" : "repeat",
+                    isOn: env.repeatMode != .off,
+                    label: "Repeat: \(env.repeatMode.rawValue)"
+                ) { env.cycleRepeatMode() }
+            }
+
             VStack(spacing: 2) {
                 DSProgressBar(progress: progress) { fraction in
                     env.seek(to: fraction)
@@ -58,6 +71,23 @@ struct TransportBar: View {
         .frame(height: DS.Metrics.transportBar)
         .background(DS.Color.bgRaised)
         .onReceive(tick) { _ in refreshTime() }
+    }
+
+    /// Кнопка режима очереди: включённый режим горит акцентом, состояние —
+    /// в тултипе и accessibility-метке.
+    private func orderButton(
+        icon: String, isOn: Bool, label: String, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: DS.Metrics.iconList))
+                .foregroundStyle(isOn ? DS.Color.accent : DS.Color.textTertiary)
+                .frame(width: DS.Metrics.iconList + DS.Space.md)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(label)
+        .accessibilityLabel(label)
     }
 
     // MARK: - Badge (SPEC §7.3 — единственный источник правды: OutputStatus)

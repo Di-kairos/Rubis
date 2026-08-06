@@ -109,6 +109,8 @@ struct PlaylistsView: View {
                     }
                     .onTapGesture(count: 2) { env.play(tracks: tracks, startAt: index) }
                     .contextMenu {
+                        QueueMenuItems(tracks: [track], env: env)
+                        Divider()
                         Button("Remove from Playlist") { remove(at: index, in: playlist) }
                     }
                     .listRowInsets(EdgeInsets())
