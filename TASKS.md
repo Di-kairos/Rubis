@@ -30,13 +30,14 @@
 
 **Цель:** все токены и примитивы существуют и видны в превью до того, как появилась логика.
 
-- [ ] `DS.Color` — оба режима из DESIGN §2, адаптивные через dynamic provider
-- [ ] `DS.Font`, `DS.Space`, `DS.Radius`, `DS.Motion`
-- [ ] Проверка контраста в тесте (расчёт WCAG-коэффициента для пар токенов)
-- [ ] Примитивы: `DSText`, `DSIconButton`, `DSListRow`, `DSSectionHeader`, `DSSearchField`,
+- [x] `DS.Color` — оба режима из DESIGN §2, адаптивные через dynamic provider
+- [x] `DS.Font`, `DS.Space`, `DS.Radius`, `DS.Motion` (+ `DS.Metrics`, `DS.Shadow`)
+- [x] Проверка контраста в тесте (расчёт WCAG-коэффициента для пар токенов)
+- [x] Примитивы: `DSText`, `DSIconButton`, `DSListRow`, `DSSectionHeader`, `DSSearchField`,
       `DSProgressBar`, `DSCoverImage` (с плейсхолдером), `DSTechBadge`
-- [ ] `#Preview` для каждого — light + dark, активное и неактивное окно
-- [ ] Демо-сцена `DesignSystemGallery` (только DEBUG), открывается по `⌘⌥D`
+- [x] `#Preview` для каждого — light + dark; неактивное окно через `controlActiveState`
+      (accent → accentMuted в `DSProgressBar`/`DSTechBadge`)
+- [x] Демо-сцена `DesignSystemGallery` (только DEBUG), открывается по `⌘⌥D`
 
 **Acceptance:** галерея открывается, все компоненты корректны в обоих режимах,
 тест контраста проходит, ни одного литерала цвета/размера вне пакета.
