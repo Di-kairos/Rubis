@@ -8,7 +8,7 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
 head: "6129bdc"
 tests: 70/70 (swift test, 5 packages)
-last_session: 3
+last_session: 4
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
@@ -25,8 +25,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session03.md
-  latest_kickoff: docs/sessions/SESSION_04_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session04.md
+  latest_kickoff: docs/sessions/SESSION_05_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -50,7 +50,10 @@ MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и с�
 поверх окон, глобальные медиа-клавиши за явным Accessibility, восстановление
 позиции внутри трека и раздела сайдбара, Reduce Motion / Increase Contrast,
 чистка декоративных иконок от VoiceOver, docs/manual-checklist.md на 40 пунктов.
-HEAD: `8823de4` — fix(state): apply the restored position to the restored track only.
+Экран альбома починен по скриншоту владельца: название и артист больше не
+схлопываются в узкой колонке, кнопки не теряют подписи (`ViewThatFits`,
+`DSText(lines:)`, минимум 460 pt на detail-колонку).
+HEAD: `6129bdc` — fix(album): stop the album screen collapsing in a narrow detail column.
 
 ## Фазы (из TASKS.md)
 
