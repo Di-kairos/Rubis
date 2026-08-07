@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "22c69fb"
+head: "43731ca"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -72,7 +72,18 @@ macOS 26 погашено (`.focusEffectDisabled()`, свой индикатор
 заглушкой — показывает очередь воспроизведения (◆ на играющем, двойной клик /
 Return — прыжок на трек; `NowPlayingQueue.swift`, `queueSnapshot`/`playQueueItem`
 в AppEnvironment). Выпущен **0.3.2** (build 5), SHA256 сверен.
-HEAD: `22c69fb` — chore(release): bump version to 0.3.2 (build 5).
+Живой тест с ЦАПом (FiiO QX13, UAC2.0): плеер шёл только за системным
+default-выходом — добавлен Picker «Output device» в Settings → Audio
+(`preferredDeviceUID` уже был в AudioConfiguration; PlaybackEngine не тронут).
+Заодно вылечен пробел: настройки Audio применялись только при открытии Settings —
+теперь сохранённый конфиг толкается в плеер при старте
+(`storedAudioConfiguration()` в AppEnvironment — единственный маппинг ключей).
+По жалобам владельца: шапка у Now Playing (название + счётчик + общее время),
+клик по источнику в сайдбаре ведёт в Albums. Выпущен **0.3.3** (build 6), SHA256
+сверен. Открыто: жалоба «колонки и наушники играют разные альбомы» — у coreaudiod
+спикерный контекст держали и Rubis (21768), и WebKit GPU (браузер); ждём
+дискриминатор (пауза в Rubis глушит колонки или нет).
+HEAD: `43731ca` — chore(release): bump version to 0.3.3 (build 6).
 
 ## Фазы (из TASKS.md)
 
