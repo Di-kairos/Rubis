@@ -81,6 +81,15 @@ final class AppEnvironment {
             }
         }
         Task { await restoreQueue() }
+        // Позиция внутри трека нигде больше не хранится — пишем её раз в
+        // секунду, чтобы ⌘Q в любой момент терял не больше секунды.
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard let self else { return }
+                await self.saveTrackOffset()
+            }
+        }
         Task { [player] in
             for await status in await player.statusStream() {
                 self.outputStatus = status
@@ -175,29 +184,33 @@ final class AppEnvironment {
 
     // MARK: - Queue persistence (продолжение с места остановки)
 
-    private static let queueIdsKey = "playback.queue.trackIds"
-    private static let queueIndexKey = "playback.queue.index"
-
-    /// Снимок очереди в UserDefaults при каждом старте трека.
+    /// Снимок очереди: состав, индекс и позиция внутри трека.
     /// ponytail: enqueue/playNext без старта не снимаются — снимок догонит
-    /// на следующем переходе трека.
+    /// на следующем тике или переходе трека.
     private func saveQueueSnapshot() async {
         let items = await player.queuedItems()
-        let index = await player.currentIndex()
-        UserDefaults.standard.set(items.compactMap { $0.track.id }, forKey: Self.queueIdsKey)
-        UserDefaults.standard.set(index, forKey: Self.queueIndexKey)
+        let snapshot = PlaybackSnapshot(
+            trackIds: items.compactMap { $0.track.id },
+            index: await player.currentIndex(),
+            offset: await player.playbackTime()?.current ?? 0)
+        snapshot.save(to: .standard)
     }
 
-    /// Восстановление очереди при запуске: состав и позиция, без звука.
+    /// Только позиция внутри трека — раз в секунду во время игры.
+    private func saveTrackOffset() async {
+        guard isPlaying, let time = await player.playbackTime() else { return }
+        PlaybackSnapshot.saveOffset(time.current, to: .standard)
+    }
+
+    /// Восстановление очереди при запуске: состав, индекс и позиция — без звука.
+    /// Первый Play продолжит трек с той же секунды.
     private func restoreQueue() async {
-        guard let raw = UserDefaults.standard.array(forKey: Self.queueIdsKey) as? [Int],
-            !raw.isEmpty,
-            let tracks = try? trackRepo.tracks(ids: raw.map(Int64.init))
+        guard let snapshot = PlaybackSnapshot.load(from: .standard),
+            let tracks = try? trackRepo.tracks(ids: snapshot.trackIds)
         else { return }
         let items = resolveItems(tracks: tracks)
         guard !items.isEmpty else { return }
-        let index = UserDefaults.standard.integer(forKey: Self.queueIndexKey)
-        await player.restore(items: items, at: index)
+        await player.restore(items: items, at: snapshot.index, offset: snapshot.offset)
     }
 
     func next() {

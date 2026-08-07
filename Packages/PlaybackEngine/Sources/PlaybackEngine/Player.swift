@@ -50,6 +50,8 @@ public actor Player {
     private var gaplessDecoderID: ObjectIdentifier?
     /// Set by prepareDevice when the current track goes out as DoP packets.
     private var currentUsesDoP = false
+    /// Позиция из прошлого запуска: применяется к первому же старту и гасится.
+    private var pendingSeek: TimeInterval?
 
     private var stateContinuations: [UUID: AsyncStream<PlaybackState>.Continuation] = [:]
     private var statusContinuations: [UUID: AsyncStream<OutputStatus?>.Continuation] = [:]
@@ -112,14 +114,14 @@ public actor Player {
     }
 
     /// Восстановление очереди при запуске: состав и позиция без старта звука.
-    /// Первый Play играет восстановленный трек с начала.
-    /// ponytail: позиция внутри трека не восстанавливается — добавить seek
-    /// после play, если понадобится точное продолжение.
-    public func restore(items: [PlaybackItem], at position: Int) {
+    /// `offset` — секунды внутри трека, с которых продолжить: первый Play
+    /// стартует трек и сразу перематывает туда.
+    public func restore(items: [PlaybackItem], at position: Int, offset: TimeInterval = 0) {
         installBridgeIfNeeded()
         sourceQueue = items
         queue = items
         index = min(max(position, 0), max(items.count - 1, 0))
+        pendingSeek = offset > 0 ? offset : nil
     }
 
     /// Старт текущего элемента восстановленной очереди (Play из idle).
@@ -265,6 +267,12 @@ public actor Player {
             currentDecoderID = ObjectIdentifier(decoder as AnyObject)
             gaplessDecoderID = nil
             try engine.play(decoder)
+            // Продолжение с места остановки прошлого запуска — ровно один раз,
+            // дальше очередь идёт с начала треков.
+            if let offset = pendingSeek {
+                pendingSeek = nil
+                _ = engine.seek(time: offset)
+            }
             state = .playing(item.track)
             armGapless()
         } catch let error as PlaybackError {

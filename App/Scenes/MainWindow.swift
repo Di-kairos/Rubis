@@ -29,7 +29,8 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 /// Main window: sidebar / content / detail + transport bar (SPEC §7.1).
 struct MainWindow: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var section: LibrarySection = MainWindow.startSection
+    /// Раздел переживает перезапуск (фаза 7: восстановление состояния).
+    @AppStorage("ui.section") private var section: LibrarySection = .albums
     @State private var selectedAlbum: Album?
 
     var body: some View {
@@ -62,6 +63,9 @@ struct MainWindow: View {
             minWidth: DS.Metrics.windowMinWidth,
             minHeight: DS.Metrics.windowMinHeight
         )
+        .task {
+            if let forced = MainWindow.debugStartSection { section = forced }
+        }
         // ⌘⇧N создаёт плейлист из любого раздела — переключаемся к нему.
         .onChange(of: env.pendingPlaylistId) {
             if env.pendingPlaylistId != nil { section = .playlists }
@@ -88,18 +92,17 @@ struct MainWindow: View {
         }
     }
 
-    /// Раздел при запуске. В DEBUG его можно задать `RUBIS_START_SECTION=Tracks` —
-    /// нужно, чтобы замер скролла на синтетической 100k-библиотеке начинался
-    /// сразу на списке, а не с двух кликов мышью.
-    private static var startSection: LibrarySection {
+    /// Замеры перекрывают сохранённый раздел: `RUBIS_START_SECTION=Tracks`
+    /// открывает приложение сразу на списке. Только DEBUG.
+    private static var debugStartSection: LibrarySection? {
         #if DEBUG
-        if let raw = ProcessInfo.processInfo.environment["RUBIS_START_SECTION"],
-            let section = LibrarySection(rawValue: raw)
-        {
-            return section
+        guard let raw = ProcessInfo.processInfo.environment["RUBIS_START_SECTION"] else {
+            return nil
         }
+        return LibrarySection(rawValue: raw)
+        #else
+        return nil
         #endif
-        return .albums
     }
 
     @ViewBuilder
