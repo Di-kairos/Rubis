@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "447a1a1"
+head: "f3887e6"
 tests: 57/57 (swift test, 5 packages)
 last_session: 3
 last_reviewed: 2026-08-07
@@ -45,7 +45,7 @@ MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и с�
 полей. Скролл на 100k измерен in-process харнессом: 59–60 fps при 60 Гц, 0–1.1%
 опозданий → **SwiftUI остаётся, NSTableView не нужен**. Снимки окна (light/dark)
 подтвердили золотое выделение и поймали два дефекта колонок.
-HEAD: `447a1a1` — merge: phase/05-interface в main (фазы 0–5).
+HEAD: `f3887e6` — docs(release): 0.2.1 published (merge 447a1a1 + фид).
 
 ## Фазы (из TASKS.md)
 
