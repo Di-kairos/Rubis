@@ -6,16 +6,16 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "f3ca2f6"
+head: "cf4febe"
 tests: 70/70 (swift test, 5 packages)
-last_session: 4
+last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: внешний ЦАП, gapless на живом альбоме, 8 часов без dropout, VoiceOver, Reduce Motion / Increase Contrast глазами"
-  - "Merge phase/07-integration в main (нужно явное согласие) → релиз 0.3.0"
   - "Дизайн Jewel Box (D-007): владелец смотрит на своей библиотеке и возвращается с правками"
-  - "Нажать «Check for Updates…» на установленной 0.2.0 — живая проверка апдейта до 0.2.1 (фид и подпись проверены)"
+  - "Нажать «Check for Updates…» на установленной 0.2.x — живая проверка апдейта до 0.3.0 (фид и подпись проверены)"
+  - "Развилка после фазы 7: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
 links:
@@ -53,7 +53,10 @@ MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и с�
 Экран альбома починен по скриншоту владельца: название и артист больше не
 схлопываются в узкой колонке, кнопки не теряют подписи (`ViewThatFits`,
 `DSText(lines:)`, минимум 460 pt на detail-колонку).
-HEAD: `6129bdc` — fix(album): stop the album screen collapsing in a narrow detail column.
+Session 5 (2026-08-07): `phase/07-integration` слита в main (`94b0320`, тесты 70/70
+перед merge), выпущен **Rubis Music 0.3.0** (build 3) в `rubis-releases` — DMG подписан
+EdDSA, appcast обновлён, опубликованный файл сверен по SHA256.
+HEAD: `cf4febe` — chore(release): bump version to 0.3.0 (build 3).
 
 ## Фазы (из TASKS.md)
 
@@ -65,11 +68,10 @@ HEAD: `6129bdc` — fix(album): stop the album screen collapsing in a narrow det
 - Фаза 5 — Интерфейс ✅ (acceptance весь зелёный: старт 208–219 мс, поиск < 50 мс,
   скролл 100k 59–60 fps, память 50k 221 МБ, клавиатура во всех разделах;
   слита в main, выпущена как 0.2.1)
-- ← **Развилка: фаза 6 или фаза 7 — решает Di-kairos**
-- **Фаза 7 — Системная интеграция** ← код закрыт целиком (меню-бар, always-on-top,
+- **Фаза 7 — Системная интеграция** ✅ по коду (меню-бар, always-on-top,
   глобальные медиа-клавиши, восстановление позиции и раздела, Reduce Motion /
-  Increase Contrast, a11y-метки, чек-лист). Осталось: ручной прогон чек-листа
-  на железе -> merge -> релиз 0.3.0
+  Increase Contrast, a11y-метки, чек-лист); слита в main, выпущена как **0.3.0**.
+  Осталось: ручной прогон `docs/manual-checklist.md` на железе (acceptance)
 - Фаза 6 — Subsonic/Navidrome (отложена, D-003) — развилка после фазы 7
 
 ## Дистрибуция
