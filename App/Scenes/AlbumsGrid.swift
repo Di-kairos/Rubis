@@ -60,6 +60,15 @@ struct AlbumsGrid: View {
             do {
                 for try await list in LibraryObservation.albums(db: env.db) {
                     albums = list
+                    #if DEBUG
+                    // Снимок экрана альбома харнессом: выбрать первый, иначе
+                    // деталь показывает «Select an album».
+                    if ProcessInfo.processInfo.environment["RUBIS_DEBUG_SELECT"] != nil,
+                        selectedAlbum == nil
+                    {
+                        selectedAlbum = list.first
+                    }
+                    #endif
                 }
             } catch {
                 Log.ui.error("album observation failed: \(error, privacy: .public)")

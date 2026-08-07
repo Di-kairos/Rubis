@@ -60,6 +60,9 @@ struct MainWindow: View {
             } detail: {
                 if let album = selectedAlbum {
                     AlbumDetail(album: album)
+                        // Ниже этого экран альбома нечитаем: обложка 200 pt
+                        // плюс поля не оставляют места под название.
+                        .navigationSplitViewColumnWidth(min: 460, ideal: 560)
                 } else {
                     DSText("Select an album", style: .body, color: DS.Color.textTertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
