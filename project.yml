@@ -9,6 +9,11 @@ configFiles:
   Debug: Config/Escapement.xcconfig
   Release: Config/Escapement.xcconfig
 packages:
+  # 4-я внешняя зависимость сверх SPEC §3.2 — одобрена владельцем (D-005):
+  # autoupdate через Sparkle, фид в публичном репо rubis-releases.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.0
   EscapementCore:
     path: Packages/EscapementCore
   PlaybackEngine:
@@ -27,14 +32,49 @@ targets:
       - path: App
         excludes:
           - "*.entitlements"
+          - "Info.plist"
+    # Sparkle (D-005): фид и ключ подписи апдейтов. Остальной plist
+    # генерируется как раньше — Xcode мержит файл с INFOPLIST_KEY_*.
+    info:
+      path: App/Info.plist
+      properties:
+        SUFeedURL: https://raw.githubusercontent.com/Di-kairos/rubis-releases/main/appcast.xml
+        SUPublicEDKey: B9ET1V4F1uNjHOjG+kJROT8Z1oajNxBbAX9UNrQ/sjg=
+        SUEnableAutomaticChecks: true
     dependencies:
       - package: EscapementCore
       - package: PlaybackEngine
       - package: MusicLibrary
       - package: SubsonicKit
       - package: DesignSystem
+      - package: Sparkle
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    postBuildScripts:
+      # Бинарные фреймворки декодеров приезжают из SPM уже подписанными чужим
+      # Team ID. С ad-hoc подписью приложения и hardened runtime dyld отказывается
+      # их грузить («different Team IDs») и приложение падает на старте.
+      # Переподписываем всё одной идентичностью после сборки.
+      - name: Re-sign embedded frameworks ad-hoc
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          frameworks="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+          [ -d "$frameworks" ] || exit 0
+          for framework in "$frameworks"/*.framework; do
+            [ -e "$framework" ] || continue
+            codesign --force --sign - --options runtime "$framework"
+          done
+          # Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —
+          # без подписи он валит codesign всего бандла.
+          for dylib in "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH"/*.dylib; do
+            [ -e "$dylib" ] || continue
+            codesign --force --sign - "$dylib"
+          done
+          codesign --force --sign - --options runtime \
+            --entitlements "$SRCROOT/$CODE_SIGN_ENTITLEMENTS" \
+            "$TARGET_BUILD_DIR/$WRAPPER_NAME"

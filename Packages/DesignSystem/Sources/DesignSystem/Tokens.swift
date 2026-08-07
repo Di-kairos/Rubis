@@ -29,14 +29,19 @@ extension DS {
         public static let textDisabled = adaptive(Palette.textDisabled)
         public static let accent = adaptive(Palette.accent)
         public static let accentMuted = adaptive(Palette.accentMuted)
+        public static let gem = adaptive(Palette.gem)
         public static let warning = adaptive(Palette.warning)
         public static let danger = adaptive(Palette.danger)
     }
 
     /// Typography (DESIGN.md §3). System fonts only.
     public enum Font {
-        public static let display = SwiftUI.Font.system(size: 28, weight: .regular)
-        public static let title = SwiftUI.Font.system(size: 20, weight: .medium)
+        // D-007: serif (New York) — фирменный знак Rubis, отказ от SF-подобия Apple Music.
+        public static let display = SwiftUI.Font.system(size: 28, weight: .semibold, design: .serif)
+        /// Артист под названием альбома — акцентным цветом (DESIGN §3).
+        public static let displayArtist = SwiftUI.Font.system(
+            size: 22, weight: .regular, design: .serif)
+        public static let title = SwiftUI.Font.system(size: 20, weight: .medium, design: .serif)
         public static let headline = SwiftUI.Font.system(size: 14, weight: .semibold)
         public static let body = SwiftUI.Font.system(size: 13, weight: .regular)
         public static let caption = SwiftUI.Font.system(size: 11, weight: .regular)

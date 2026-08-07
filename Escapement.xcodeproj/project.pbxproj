@@ -7,23 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6186081353886B17DD038F1F /* AlbumsGrid.swift */; };
+		0D810CD658C8D8A5A61331B4 /* DebugHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F4C769CDF187F104033B37 /* DebugHarness.swift */; };
+		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
+		221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */; };
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
+		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
+		2AAFCE253BF65518BF0942EC /* TracksList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F9F0833B17181AC9CC3A98 /* TracksList.swift */; };
+		350A1D7C966EF8A9AD919B94 /* KeyboardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */; };
+		37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2030066472ADBF7ECD20D373 /* MiniPlayer.swift */; };
+		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
+		454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88ACAC7C6CAD73585D762B31 /* Assets.xcassets */; };
+		49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3381F8269F03E8595BAFB27C /* MainWindow.swift */; };
+		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
+		65F64FDA7A9CADD32BBA59C4 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E4F68722A7AE60FF86B58686 /* Sparkle */; };
+		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
+		803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB66BEAD427530E18C9938 /* Playlists.swift */; };
+		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
+		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
+		B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4654C15A6867CBA18211295 /* MediaIntegration.swift */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
 		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
 		FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = D61AF376BFE2E74CC999958E /* DesignSystem */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardList.swift; sourceTree = "<group>"; };
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
+		1F5775751BCC167A604DDAF2 /* SettingsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScene.swift; sourceTree = "<group>"; };
+		2030066472ADBF7ECD20D373 /* MiniPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayer.swift; sourceTree = "<group>"; };
+		2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResults.swift; sourceTree = "<group>"; };
 		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
+		3381F8269F03E8595BAFB27C /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		470192454F34299CE626000F /* ArtistsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtistsList.swift; sourceTree = "<group>"; };
+		4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
+		50F9F0833B17181AC9CC3A98 /* TracksList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksList.swift; sourceTree = "<group>"; };
 		5771AB6CC12B8F72156A2016 /* DesignSystem */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DesignSystem; path = Packages/DesignSystem; sourceTree = SOURCE_ROOT; };
 		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
+		6186081353886B17DD038F1F /* AlbumsGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumsGrid.swift; sourceTree = "<group>"; };
+		66FB66BEAD427530E18C9938 /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
 		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
+		88ACAC7C6CAD73585D762B31 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		A0F4C769CDF187F104033B37 /* DebugHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugHarness.swift; sourceTree = "<group>"; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA25FCB47B384004AAD3364F /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
+		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
+		E4654C15A6867CBA18211295 /* MediaIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIntegration.swift; sourceTree = "<group>"; };
+		EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRowSupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +71,7 @@
 				B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */,
 				293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */,
 				FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */,
+				65F64FDA7A9CADD32BBA59C4 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -45,9 +81,22 @@
 		2CDE4D07DE91E2F89D56CAD8 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
+				A0F4C769CDF187F104033B37 /* DebugHarness.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
+				E4654C15A6867CBA18211295 /* MediaIntegration.swift */,
+				2F2247502F75DD4B505A1583 /* Resources */,
+				E7B4B35890D8DC655121CD10 /* Scenes */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		2F2247502F75DD4B505A1583 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				88ACAC7C6CAD73585D762B31 /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		314ABF676BA09340B3BE7837 /* Products */ = {
@@ -88,6 +137,26 @@
 			path = Packages;
 			sourceTree = "<group>";
 		};
+		E7B4B35890D8DC655121CD10 /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */,
+				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
+				470192454F34299CE626000F /* ArtistsList.swift */,
+				052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */,
+				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
+				2030066472ADBF7ECD20D373 /* MiniPlayer.swift */,
+				66FB66BEAD427530E18C9938 /* Playlists.swift */,
+				2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */,
+				1F5775751BCC167A604DDAF2 /* SettingsScene.swift */,
+				4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */,
+				EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */,
+				50F9F0833B17181AC9CC3A98 /* TracksList.swift */,
+				CA25FCB47B384004AAD3364F /* TransportBar.swift */,
+			);
+			path = Scenes;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -96,7 +165,9 @@
 			buildConfigurationList = F0F9F4338EFAC8DCC986D501 /* Build configuration list for PBXNativeTarget "Escapement" */;
 			buildPhases = (
 				85FBAC58AA6FED180C27B66F /* Sources */,
+				FCF30F936E30D57862EC40D1 /* Resources */,
 				A094D214FB3AA2EC3AE15CBD /* Frameworks */,
+				2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */,
 			);
 			buildRules = (
 			);
@@ -109,6 +180,7 @@
 				5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */,
 				0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */,
 				D61AF376BFE2E74CC999958E /* DesignSystem */,
+				E4F68722A7AE60FF86B58686 /* Sparkle */,
 			);
 			productName = Escapement;
 			productReference = BB27EE93F7BB4DE77FF7059C /* Escapement.app */;
@@ -138,6 +210,7 @@
 			mainGroup = 5A5AAAA18D323AD33EDA83D9;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				D05B0AEA0E1BB73DD2AFE242 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */,
 				46D7B220EEDB309B37318427 /* XCLocalSwiftPackageReference "Packages/EscapementCore" */,
 				690753854E7A53AFB12DEC6E /* XCLocalSwiftPackageReference "Packages/MusicLibrary" */,
@@ -154,12 +227,61 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		FCF30F936E30D57862EC40D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign embedded frameworks ad-hoc";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n[ -d \"$frameworks\" ] || exit 0\nfor framework in \"$frameworks\"/*.framework; do\n  [ -e \"$framework\" ] || continue\n  codesign --force --sign - --options runtime \"$framework\"\ndone\n# Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —\n# без подписи он валит codesign всего бандла.\nfor dylib in \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH\"/*.dylib; do\n  [ -e \"$dylib\" ] || continue\n  codesign --force --sign - \"$dylib\"\ndone\ncodesign --force --sign - --options runtime \\\n  --entitlements \"$SRCROOT/$CODE_SIGN_ENTITLEMENTS\" \\\n  \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		85FBAC58AA6FED180C27B66F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */,
+				059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */,
+				6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */,
+				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,
+				0D810CD658C8D8A5A61331B4 /* DebugHarness.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
+				350A1D7C966EF8A9AD919B94 /* KeyboardList.swift in Sources */,
+				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
+				B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */,
+				37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */,
+				803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */,
+				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,
+				1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */,
+				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
+				221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */,
+				2AAFCE253BF65518BF0942EC /* TracksList.swift in Sources */,
+				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -233,6 +355,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -249,6 +372,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -359,6 +483,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -379,6 +514,11 @@
 		D61AF376BFE2E74CC999958E /* DesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DesignSystem;
+		};
+		E4F68722A7AE60FF86B58686 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C608A05481EAE3D00C9E2373 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

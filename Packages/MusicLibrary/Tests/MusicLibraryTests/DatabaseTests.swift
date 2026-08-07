@@ -84,6 +84,32 @@ struct CRUDTests {
         #expect(try repo.trackIds(in: playlist.id!) == ids)
     }
 
+    @Test func playlistAppendSkipsDuplicatesAndKeepsOrder() throws {
+        let db = try AppDatabase.inMemory()
+        let source = try makeSource(db)
+        let trackRepo = TrackRepository(db: db)
+        let tracks = try trackRepo.insert(
+            (1...3).map {
+                Track(
+                    sourceId: source.id, relativePath: "t\($0).flac", title: "Track \($0)",
+                    duration: 100, codec: "flac", sampleRate: 44_100)
+            })
+        let ids = tracks.compactMap(\.id)
+        let repo = PlaylistRepository(db: db)
+        let playlist = try repo.create(name: "Mix")
+
+        try repo.append([ids[2], ids[0]], to: playlist.id!)
+        try repo.append([ids[0], ids[1]], to: playlist.id!)
+        let stored = try repo.trackIds(in: playlist.id!)
+        #expect(stored == [ids[2], ids[0], ids[1]])
+        // Порядок плейлиста, а не порядок id в таблице.
+        #expect(
+            try trackRepo.tracks(ids: stored).map(\.title) == ["Track 3", "Track 1", "Track 2"])
+
+        try repo.rename(id: playlist.id!, to: "Evening")
+        #expect(try repo.all().first?.name == "Evening")
+    }
+
     @Test func cascadeDeleteSourceRemovesTracks() throws {
         let db = try AppDatabase.inMemory()
         let source = try makeSource(db)
@@ -157,6 +183,128 @@ struct FTSTests {
         let db = try AppDatabase.inMemory()
         try seed(db)
         #expect(try TrackRepository(db: db).search("\"jo\"ga\"").count == 1)
+    }
+
+    @Test func allWithNamesJoinsArtistAndAlbum() throws {
+        let db = try AppDatabase.inMemory()
+        try seed(db)
+        let rows = try TrackRepository(db: db).allWithNames()
+        #expect(rows.count == 2)
+        let joga = rows.first { $0.track.title == "Jóga" }
+        #expect(joga?.artistName == "Björk")
+        #expect(joga?.albumTitle == nil)
+        #expect(rows.first { $0.track.title == "Группа крови" }?.artistName == "Кино")
+    }
+}
+
+struct GroupedSearchTests {
+    private func seed(_ db: TestDatabase) throws -> (Artist, Album) {
+        let source = Source(kind: .local, displayName: "L")
+        try SourceRepository(db: db).upsert(source)
+        let beatles = try ArtistRepository(db: db).findOrCreate(name: "The Beatles")
+        _ = try ArtistRepository(db: db).findOrCreate(name: "Björk")
+        let album = try AlbumRepository(db: db).insert(
+            Album(
+                title: "Abbey Road", sortTitle: Normalize.sortName(for: "Abbey Road"),
+                artistId: beatles.id))
+        _ = try TrackRepository(db: db).insert([
+            Track(
+                sourceId: source.id, relativePath: "1.flac", title: "Come Together",
+                artistId: beatles.id, albumId: album.id, trackNo: 1, duration: 1,
+                codec: "flac", sampleRate: 44_100),
+            Track(
+                sourceId: source.id, relativePath: "2.flac", title: "Something",
+                artistId: beatles.id, albumId: album.id, trackNo: 2, duration: 1,
+                codec: "flac", sampleRate: 44_100),
+        ])
+        return (beatles, album)
+    }
+
+    @Test func artistSearchIgnoresArticleAndDiacritics() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        let repo = ArtistRepository(db: db)
+        #expect(try repo.search("beat").map(\.name) == ["The Beatles"])
+        #expect(try repo.search("The Beat").map(\.name) == ["The Beatles"])
+        #expect(try repo.search("bjork").map(\.name) == ["Björk"])
+        #expect(try repo.search("  ").isEmpty, "пустой запрос не тянет всю таблицу")
+    }
+
+    @Test func albumSearchMatchesPrefix() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        #expect(try AlbumRepository(db: db).search("abbey").map(\.title) == ["Abbey Road"])
+        #expect(try AlbumRepository(db: db).search("road").isEmpty, "поиск префиксный")
+    }
+
+    @Test func wildcardsInQueryAreEscaped() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        // «%» как шаблон вернул бы всех; экранированный — никого.
+        #expect(try ArtistRepository(db: db).search("%").isEmpty)
+        #expect(try ArtistRepository(db: db).search("_eatles").isEmpty)
+    }
+
+    @Test func artistTracksComeInAlbumOrder() throws {
+        let db = try AppDatabase.inMemory()
+        let (beatles, _) = try seed(db)
+        let tracks = try TrackRepository(db: db).tracks(byArtist: beatles.id!)
+        #expect(tracks.map(\.title) == ["Come Together", "Something"])
+    }
+}
+
+struct TrackSortTests {
+    private func hit(
+        _ title: String, _ artist: String?, _ album: String?, _ duration: Double,
+        _ codec: String
+    ) -> SearchHit {
+        SearchHit(
+            track: Track(
+                id: Int64(title.count), sourceId: "s", title: title, duration: duration,
+                codec: codec, sampleRate: 44_100),
+            artistName: artist, albumTitle: album)
+    }
+
+    private var rows: [SearchHit] {
+        [
+            hit("Track 10", "Björk", "Post", 120, "alac"),
+            hit("track 2", "bjork jr", nil, 300, "flac"),
+            hit("Ábc", nil, "Debut", 60, "dsf"),
+        ]
+    }
+
+    @Test func titleSortIsHumanAndCaseInsensitive() {
+        let asc = TrackSort.sorted(rows, by: .title, ascending: true).map(\.track.title)
+        #expect(asc == ["Ábc", "track 2", "Track 10"])
+    }
+
+    @Test func descendingReversesOrder() {
+        let desc = TrackSort.sorted(rows, by: .duration, ascending: false).map(\.track.duration)
+        #expect(desc == [300, 120, 60])
+    }
+
+    @Test func missingNamesSortFirst() {
+        let byArtist = TrackSort.sorted(rows, by: .artist, ascending: true).map { $0.artistName }
+        #expect(byArtist == [nil, "Björk", "bjork jr"])
+        let byAlbum = TrackSort.sorted(rows, by: .album, ascending: true).map { $0.albumTitle }
+        #expect(byAlbum == [nil, "Debut", "Post"])
+    }
+
+    @Test func equalKeysKeepIdOrderInBothDirections() {
+        let same = [
+            hit("B", "same", nil, 100, "flac"),
+            hit("AA", "same", nil, 100, "flac"),
+        ]
+        // id = длина названия: 1 («B») и 2 («AA»).
+        let asc = TrackSort.sorted(same, by: .artist, ascending: true).map(\.id)
+        let desc = TrackSort.sorted(same, by: .artist, ascending: false).map(\.id)
+        #expect(asc == [1, 2])
+        #expect(desc == asc, "равные ключи не должны переворачиваться вместе с направлением")
+    }
+
+    @Test func formatSortsByCodec() {
+        let byFormat = TrackSort.sorted(rows, by: .format, ascending: true).map(\.track.codec)
+        #expect(byFormat == ["alac", "dsf", "flac"])
     }
 }
 

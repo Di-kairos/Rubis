@@ -2,11 +2,20 @@ import EscapementCore
 import Foundation
 import GRDB
 
-/// One row of FTS search output: track plus display names for grouping.
-public struct SearchHit: Sendable, Equatable {
+/// Track plus display names — строка списка и результат поиска.
+public struct SearchHit: Sendable, Equatable, Identifiable {
     public let track: Track
     public let artistName: String?
     public let albumTitle: String?
+
+    /// Строки всегда приходят из БД, где id есть; -1 — недостижимая заглушка.
+    public var id: Int64 { track.id ?? -1 }
+
+    public init(track: Track, artistName: String?, albumTitle: String?) {
+        self.track = track
+        self.artistName = artistName
+        self.albumTitle = albumTitle
+    }
 }
 
 public struct TrackRepository: Sendable {
@@ -40,10 +49,49 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Все треки артиста по альбомам — Enter на строке артиста в поиске.
+    public func tracks(byArtist artistId: Int64) throws -> [Track] {
+        try db.reader.read {
+            try Track
+                .filter(Column("artist_id") == artistId)
+                .order(
+                    Column("album_id").ascNullsLast, Column("disc_no").ascNullsLast,
+                    Column("track_no").ascNullsLast
+                )
+                .fetchAll($0)
+        }
+    }
+
     public func recentlyAdded(limit: Int = 100) throws -> [Track] {
         try db.reader.read {
             try Track.order(Column("added_at").desc).limit(limit).fetchAll($0)
         }
+    }
+
+    /// Вся библиотека с именами артиста и альбома — колонки раздела Tracks.
+    /// Без ORDER BY: порядок всё равно задаёт `TrackSort` в UI.
+    public func allWithNames() throws -> [SearchHit] {
+        try db.reader.read { database in
+            let rows = try Row.fetchAll(
+                database,
+                sql: """
+                    SELECT track.*, artist.name AS artist_name, album.title AS album_title
+                    FROM track
+                    LEFT JOIN artist ON artist.id = track.artist_id
+                    LEFT JOIN album ON album.id = track.album_id
+                    """)
+            return try Self.hits(from: rows)
+        }
+    }
+
+    /// Треки по списку id с сохранением порядка запроса (порядок в плейлисте).
+    /// Отсутствующие id молча выпадают.
+    public func tracks(ids: [Int64]) throws -> [Track] {
+        guard !ids.isEmpty else { return [] }
+        let fetched = try db.reader.read { try Track.fetchAll($0, keys: ids) }
+        let byId = Dictionary(
+            uniqueKeysWithValues: fetched.compactMap { t in t.id.map { ($0, t) } })
+        return ids.compactMap { byId[$0] }
     }
 
     public func delete(ids: [Int64]) throws {
@@ -52,6 +100,11 @@ public struct TrackRepository: Sendable {
 
     public func count() throws -> Int {
         try db.reader.read { try Track.fetchCount($0) }
+    }
+
+    /// Сколько треков помечено недоступными (файл не найден при скане).
+    public func unavailableCount() throws -> Int {
+        try db.reader.read { try Track.filter(Column("unavailable") == true).fetchCount($0) }
     }
 
     /// FTS5 prefix search (SPEC §7.2). Query is sanitized into quoted prefix
@@ -78,12 +131,16 @@ public struct TrackRepository: Sendable {
                     LIMIT ?
                     """,
                 arguments: [match, limit])
-            return try rows.map { row in
-                SearchHit(
-                    track: try Track(row: row),
-                    artistName: row["artist_name"],
-                    albumTitle: row["album_title"])
-            }
+            return try Self.hits(from: rows)
+        }
+    }
+
+    private static func hits(from rows: [Row]) throws -> [SearchHit] {
+        try rows.map { row in
+            SearchHit(
+                track: try Track(row: row),
+                artistName: row["artist_name"],
+                albumTitle: row["album_title"])
         }
     }
 }
@@ -115,6 +172,37 @@ public struct ArtistRepository: Sendable {
     public func all() throws -> [Artist] {
         try db.reader.read { try Artist.order(Column("sort_name")).fetchAll($0) }
     }
+
+    /// Группа Artists в поиске (SPEC §7.2): префикс по нормализованному имени,
+    /// поэтому «bjork» находит «Björk», а «beatles» — «The Beatles».
+    public func search(_ query: String, limit: Int = 8) throws -> [Artist] {
+        guard let range = PrefixRange(query) else { return [] }
+        return try db.reader.read {
+            try Artist
+                .filter(Column("sort_name") >= range.low && Column("sort_name") < range.high)
+                .order(Column("sort_name"))
+                .limit(limit)
+                .fetchAll($0)
+        }
+    }
+}
+
+/// Диапазон «строки, начинающиеся с префикса» для поиска по sort-ключу.
+/// Range вместо `LIKE 'x%'`: с ESCAPE SQLite отключает LIKE-оптимизацию и
+/// сканирует индекс целиком, а на сравнениях идёт seek по индексу.
+/// Заодно `%` и `_` из запроса — обычные символы, а не шаблон.
+struct PrefixRange {
+    let low: String
+    let high: String
+
+    /// nil на пустом запросе — иначе диапазон накрыл бы всю таблицу.
+    init?(_ query: String) {
+        let normalized = Normalize.sortName(for: query)
+        guard !normalized.isEmpty else { return nil }
+        low = normalized
+        // Верхняя граница: старший скаляр Unicode — больше него в ключе быть нечему.
+        high = normalized + "\u{10FFFF}"
+    }
 }
 
 public struct AlbumRepository: Sendable {
@@ -136,12 +224,44 @@ public struct AlbumRepository: Sendable {
         try db.reader.read { try Album.order(Column("sort_title")).fetchAll($0) }
     }
 
+    public func album(id: Int64) throws -> Album? {
+        try db.reader.read { try Album.fetchOne($0, key: id) }
+    }
+
+    /// Группа Albums в поиске (SPEC §7.2) — префикс по `sort_title`.
+    public func search(_ query: String, limit: Int = 8) throws -> [Album] {
+        guard let range = PrefixRange(query) else { return [] }
+        return try db.reader.read {
+            try Album
+                .filter(Column("sort_title") >= range.low && Column("sort_title") < range.high)
+                .order(Column("sort_title"))
+                .limit(limit)
+                .fetchAll($0)
+        }
+    }
+
     public func albums(byArtist artistId: Int64) throws -> [Album] {
         try db.reader.read {
             try Album
                 .filter(Column("artist_id") == artistId)
                 .order(Column("year").ascNullsLast)
                 .fetchAll($0)
+        }
+    }
+
+    /// Альбомы по свежести добавления треков (раздел Recently Added).
+    public func recentlyAdded(limit: Int = 60) throws -> [Album] {
+        try db.reader.read {
+            try Album.fetchAll(
+                $0,
+                sql: """
+                    SELECT album.* FROM album
+                    JOIN track ON track.album_id = album.id
+                    GROUP BY album.id
+                    ORDER BY max(track.added_at) DESC
+                    LIMIT ?
+                    """,
+                arguments: [limit])
         }
     }
 }
@@ -179,6 +299,33 @@ public struct PlaylistRepository: Sendable {
             try database.execute(
                 sql: "UPDATE playlist SET updated_at = ? WHERE id = ?",
                 arguments: [Date(), playlistId])
+        }
+    }
+
+    /// Дописывает треки в конец, пропуская уже присутствующие (d&d из библиотеки).
+    public func append(_ ids: [Int64], to playlistId: Int64) throws {
+        try db.writer.write { database in
+            let existing = try Int64.fetchAll(
+                database,
+                sql: "SELECT track_id FROM playlist_item WHERE playlist_id = ?",
+                arguments: [playlistId])
+            var position = existing.count
+            for id in ids where !existing.contains(id) {
+                try PlaylistItem(playlistId: playlistId, trackId: id, position: position)
+                    .insert(database)
+                position += 1
+            }
+            try database.execute(
+                sql: "UPDATE playlist SET updated_at = ? WHERE id = ?",
+                arguments: [Date(), playlistId])
+        }
+    }
+
+    public func rename(id: Int64, to name: String) throws {
+        try db.writer.write { database in
+            try database.execute(
+                sql: "UPDATE playlist SET name = ?, updated_at = ? WHERE id = ?",
+                arguments: [name, Date(), id])
         }
     }
 

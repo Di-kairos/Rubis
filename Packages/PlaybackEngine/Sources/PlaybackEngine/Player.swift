@@ -34,10 +34,20 @@ public actor Player {
     private var config: AudioConfiguration
     private var bridge: DelegateBridge?
 
+    /// Порядок, в котором очередь пришла — база для выключения shuffle.
+    private var sourceQueue: [PlaybackItem] = []
+    /// Фактический порядок воспроизведения.
     private var queue: [PlaybackItem] = []
     private var index = 0
+    public private(set) var repeatMode: RepeatMode = .off
+    public private(set) var shuffleMode: ShuffleMode = .off
+    private var random = SystemRandomNumberGenerator()
     private var currentDeviceID: UInt32?
-    private var gaplessArmed = false
+    /// Декодер, который играет сейчас, и декодер, заряженный на gapless.
+    /// nowPlayingChanged сверяется с ними: событие от ручного старта не
+    /// должно двигать индекс — иначе клик по треку «играет следующий».
+    private var currentDecoderID: ObjectIdentifier?
+    private var gaplessDecoderID: ObjectIdentifier?
     /// Set by prepareDevice when the current track goes out as DoP packets.
     private var currentUsesDoP = false
 
@@ -87,9 +97,80 @@ public actor Player {
     /// Replaces the queue and starts playback at the given position.
     public func play(items: [PlaybackItem], startAt position: Int = 0) async {
         installBridgeIfNeeded()
+        sourceQueue = items
+        let start = min(max(position, 0), max(items.count - 1, 0))
+        if shuffleMode == .off {
+            queue = items
+            index = start
+        } else {
+            queue = PlaybackOrder.shuffled(
+                items: items, current: items.indices.contains(start) ? items[start] : nil,
+                mode: shuffleMode, using: &random)
+            index = 0
+        }
+        await startCurrent()
+    }
+
+    /// Восстановление очереди при запуске: состав и позиция без старта звука.
+    /// Первый Play играет восстановленный трек с начала.
+    /// ponytail: позиция внутри трека не восстанавливается — добавить seek
+    /// после play, если понадобится точное продолжение.
+    public func restore(items: [PlaybackItem], at position: Int) {
+        installBridgeIfNeeded()
+        sourceQueue = items
         queue = items
         index = min(max(position, 0), max(items.count - 1, 0))
+    }
+
+    /// Старт текущего элемента восстановленной очереди (Play из idle).
+    public func playCurrent() async {
+        guard !queue.isEmpty else { return }
         await startCurrent()
+    }
+
+    public func currentIndex() -> Int { index }
+
+    /// Треки сразу после текущего — не трогая остальную очередь.
+    public func playNext(items: [PlaybackItem]) {
+        guard !items.isEmpty else { return }
+        let insertion = queue.isEmpty ? 0 : index + 1
+        queue.insert(contentsOf: items, at: insertion)
+        sourceQueue.append(contentsOf: items)
+        armGapless()
+    }
+
+    /// Треки в конец очереди.
+    public func enqueue(items: [PlaybackItem]) {
+        guard !items.isEmpty else { return }
+        queue.append(contentsOf: items)
+        sourceQueue.append(contentsOf: items)
+        armGapless()
+    }
+
+    public func queuedItems() -> [PlaybackItem] { queue }
+
+    // MARK: - Порядок обхода (SPEC §7.3 транспорт)
+
+    public func setRepeatMode(_ mode: RepeatMode) {
+        repeatMode = mode
+    }
+
+    /// Меняет режим и перестраивает остаток очереди, не трогая текущий трек.
+    public func setShuffleMode(_ mode: ShuffleMode) {
+        shuffleMode = mode
+        let current = queue.indices.contains(index) ? queue[index] : nil
+        if mode == .off {
+            queue = sourceQueue
+            index =
+                current.flatMap { item in
+                    queue.firstIndex { $0.track.id == item.track.id }
+                } ?? 0
+        } else {
+            queue = PlaybackOrder.shuffled(
+                items: sourceQueue, current: current, mode: mode, using: &random)
+            index = 0
+        }
+        armGapless()
     }
 
     public func pause() {
@@ -104,10 +185,11 @@ public actor Player {
         state = .playing(track)
     }
 
-    public func togglePlayPause() {
+    public func togglePlayPause() async {
         switch state {
         case .playing: pause()
         case .paused: resume()
+        case .idle: await playCurrent()  // восстановленная очередь: Play её будит
         default: break
         }
     }
@@ -120,14 +202,20 @@ public actor Player {
     }
 
     public func next() async {
-        guard index + 1 < queue.count else { return }
-        index += 1
+        guard
+            let position = PlaybackOrder.manualNext(
+                after: index, count: queue.count, repeatMode: repeatMode)
+        else { return }
+        index = position
         await startCurrent()
     }
 
     public func previous() async {
-        guard index > 0 else { return }
-        index -= 1
+        guard
+            let position = PlaybackOrder.previous(
+                before: index, count: queue.count, repeatMode: repeatMode)
+        else { return }
+        index = position
         await startCurrent()
     }
 
@@ -173,7 +261,10 @@ public actor Player {
         outputDeviceLost = false
         do {
             try await prepareDevice(for: item.track)
-            try engine.play(makeDecoder(for: item))
+            let decoder = try makeDecoder(for: item)
+            currentDecoderID = ObjectIdentifier(decoder as AnyObject)
+            gaplessDecoderID = nil
+            try engine.play(decoder)
             state = .playing(item.track)
             armGapless()
         } catch let error as PlaybackError {
@@ -204,7 +295,13 @@ public actor Player {
         }
 
         var exclusive = false
-        if config.exclusiveAccess {
+        // Hog only external/virtual devices. Hogging the built-in output makes
+        // CoreAudio republish the device mid-flight; AVAudioEngine's config-change
+        // notification then sees an invalid output format and SFB's noexcept
+        // handler dies on NSException (IsFormatSampleRateAndChannelCountValid)
+        // → SIGABRT. Bit-perfect through built-in speakers is fiction anyway —
+        // the badge honestly shows Shared.
+        if config.exclusiveAccess, await !devices.isBuiltInDevice(deviceID: device.id) {
             exclusive = await devices.startHogging(deviceID: device.id)
             if exclusive {
                 await devices.disableMixing(deviceID: device.id)
@@ -286,9 +383,13 @@ public actor Player {
     /// Preloads the next queue item for gapless transition when the sample
     /// rate matches (SPEC §4.2.5) — SFBAudioEngine handles the seam.
     private func armGapless() {
-        gaplessArmed = false
-        let nextIndex = index + 1
-        guard queue.indices.contains(nextIndex) else { return }
+        gaplessDecoderID = nil
+        guard
+            let nextIndex = PlaybackOrder.next(
+                after: index, count: queue.count, repeatMode: repeatMode),
+            nextIndex != index,  // repeat track: перезапуск не склеиваем
+            queue.indices.contains(nextIndex)
+        else { return }
         let current = queue[index]
         let next = queue[nextIndex]
         // Gapless only within one PCM format family; DSD transitions restart cleanly.
@@ -298,7 +399,7 @@ public actor Player {
             let decoder = try? makeDecoder(for: next)
         else { return }
         if (try? engine.enqueue(decoder)) != nil {
-            gaplessArmed = true
+            gaplessDecoderID = ObjectIdentifier(decoder as AnyObject)
         }
     }
 
@@ -324,7 +425,7 @@ public actor Player {
     // MARK: - Delegate events
 
     private enum EngineEvent: Sendable {
-        case nowPlayingChanged
+        case nowPlayingChanged(ObjectIdentifier)
         case endOfAudio
         case error(String)
     }
@@ -340,16 +441,26 @@ public actor Player {
 
     private func handle(_ event: EngineEvent) async {
         switch event {
-        case .nowPlayingChanged:
-            // The engine moved to a gapless-enqueued decoder: advance bookkeeping.
-            if gaplessArmed, case .playing = state, queue.indices.contains(index + 1) {
-                index += 1
+        case .nowPlayingChanged(let decoderID):
+            // Advance bookkeeping ONLY for the decoder we armed for gapless.
+            // A manual start fires the same notification for its own decoder —
+            // reacting to it made a click on a track "play the next one".
+            if decoderID == gaplessDecoderID, case .playing = state,
+                let position = PlaybackOrder.next(
+                    after: index, count: queue.count, repeatMode: repeatMode),
+                queue.indices.contains(position)
+            {
+                index = position
+                currentDecoderID = decoderID
                 state = .playing(queue[index].track)
                 armGapless()
             }
         case .endOfAudio:
-            if queue.indices.contains(index + 1) {
-                index += 1
+            if let position = PlaybackOrder.next(
+                after: index, count: queue.count, repeatMode: repeatMode),
+                queue.indices.contains(position)
+            {
+                index = position
                 await startCurrent()
             } else {
                 // endOfAudio fires when the last frame is rendered into the
@@ -375,8 +486,8 @@ public actor Player {
         func audioPlayer(
             _ audioPlayer: AudioPlayer, nowPlayingChanged nowPlaying: (any PCMDecoding)?
         ) {
-            if nowPlaying != nil {
-                onEvent(.nowPlayingChanged)
+            if let nowPlaying {
+                onEvent(.nowPlayingChanged(ObjectIdentifier(nowPlaying as AnyObject)))
             }
         }
 

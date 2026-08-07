@@ -143,6 +143,14 @@ enum Migrations {
                     """)
         }
 
+        // Пропавший файл больше не удаляется из библиотеки: том может быть
+        // отключён (D-002), файл — переименован. Трек помечается недоступным,
+        // плейлисты и история его переживают.
+        migrator.registerMigration("v2_track_unavailable") { db in
+            try db.execute(
+                sql: "ALTER TABLE track ADD COLUMN unavailable INTEGER NOT NULL DEFAULT 0")
+        }
+
         return migrator
     }
 }

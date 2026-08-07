@@ -12,7 +12,12 @@ public enum ScanProgress: Sendable {
 public struct ScanSummary: Sendable, Equatable {
     public var added = 0
     public var updated = 0
-    public var removed = 0
+    /// Файл узнан под новым путём (size+mtime) — id, плейлисты и история целы.
+    public var moved = 0
+    /// Файлов не найдено — треки помечены недоступными, а не удалены.
+    public var unavailable = 0
+    /// Файл вернулся на место — пометка снята.
+    public var restored = 0
     public var unchanged = 0
     /// Paths that failed to read — the Problem files list.
     public var failed: [String] = []
@@ -25,6 +30,9 @@ public actor LibraryScanner {
         "flac", "m4a", "wav", "aiff", "aif", "dsf", "dff",
         "opus", "ogg", "mp3", "aac", "wv", "ape",
     ]
+    static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "webp"]
+    /// Имена файлов обложки в порядке убывания важности: front.jpg побеждает back.jpg.
+    static let artFilters = ["front", "cover", "folder", "album"]
     static let batchSize = 500
 
     private let db: any DatabaseAccess
@@ -34,6 +42,8 @@ public actor LibraryScanner {
     /// Кэши разрешённых артистов/альбомов на время одного скана.
     private var artistCache: [String: Int64] = [:]
     private var albumCache: [String: Int64] = [:]
+    /// Обложки из папок на время скана: путь директории → байты картинки.
+    private var folderArtCache: [String: Data?] = [:]
 
     public init(db: any DatabaseAccess, covers: CoverCache, logURL: URL? = nil) {
         self.db = db
@@ -51,7 +61,7 @@ public actor LibraryScanner {
             options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
     }
 
-    static func resolveBookmark(_ data: Data) throws -> URL {
+    public static func resolveBookmark(_ data: Data) throws -> URL {
         var stale = false
         let url = try URL(
             resolvingBookmarkData: data, options: [.withSecurityScope],
@@ -77,6 +87,7 @@ public actor LibraryScanner {
 
         artistCache.removeAll()
         albumCache.removeAll()
+        folderArtCache.removeAll()
         var summary = ScanSummary()
 
         // 1. Обход дерева
@@ -109,6 +120,7 @@ public actor LibraryScanner {
             var relativePath: String
             var fileSize: Int64?
             var modifiedAt: Date?
+            var unavailable: Bool
 
             static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
                 .convertFromSnakeCase
@@ -116,14 +128,18 @@ public actor LibraryScanner {
         let known: [String: KnownTrack] = try await db.reader.read { database in
             let rows = try KnownTrack.fetchAll(
                 database,
-                sql:
-                    "SELECT id, relative_path, file_size, modified_at FROM track WHERE source_id = ?",
+                sql: """
+                    SELECT id, relative_path, file_size, modified_at, unavailable
+                    FROM track WHERE source_id = ?
+                    """,
                 arguments: [source.id])
             return Dictionary(uniqueKeysWithValues: rows.map { ($0.relativePath, $0) })
         }
 
         // 3. Инкрементальность: только новые и изменённые (mtime или size)
         var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
+        /// Вернувшиеся файлы — снять пометку недоступности.
+        var restoredIDs: [Int64] = []
         for (relative, info) in onDisk {
             if let existing = known[relative] {
                 let sameSize = existing.fileSize == info.size
@@ -133,6 +149,7 @@ public actor LibraryScanner {
                     } ?? false
                 if sameSize && sameTime {
                     summary.unchanged += 1
+                    if existing.unavailable { restoredIDs.append(existing.id) }
                     continue
                 }
                 toRead.append((relative, info.url, existing.id))
@@ -141,11 +158,56 @@ public actor LibraryScanner {
             }
         }
 
-        // 4. Удалённые с диска
-        let deletedIDs = known.filter { onDisk[$0.key] == nil }.map(\.value.id)
-        if !deletedIDs.isEmpty {
-            _ = try await db.writer.write { try Track.deleteAll($0, keys: deletedIDs) }
-            summary.removed = deletedIDs.count
+        // 4. Пропавшие пути: сначала ищем перенос — тот же size+mtime под новым
+        //    именем. Узнали → трек сохраняет id (а с ним плейлисты и историю),
+        //    просто меняет путь. Не узнали → помечаем недоступным, не удаляем:
+        //    том мог быть отключён (D-002), файл может вернуться.
+        var missing = known.filter { onDisk[$0.key] == nil }.map(\.value)
+        if !missing.isEmpty {
+            var newIndexBySignature: [String: Int] = [:]
+            for (index, item) in toRead.enumerated() where item.existingID == nil {
+                if let info = onDisk[item.relative] {
+                    newIndexBySignature[Self.signature(size: info.size, mtime: info.mtime)] = index
+                }
+            }
+            var stillMissing: [KnownTrack] = []
+            for candidate in missing {
+                guard let size = candidate.fileSize, let mtime = candidate.modifiedAt,
+                    let index =
+                        newIndexBySignature
+                        .removeValue(forKey: Self.signature(size: size, mtime: mtime))
+                else {
+                    stillMissing.append(candidate)
+                    continue
+                }
+                toRead[index].existingID = candidate.id
+                summary.moved += 1
+            }
+            missing = stillMissing
+        }
+        if !missing.isEmpty {
+            let ids = missing.map(\.id)
+            try await db.writer.write { database in
+                try database.execute(
+                    sql: """
+                        UPDATE track SET unavailable = 1
+                        WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))
+                        """,
+                    arguments: StatementArguments(ids))
+            }
+            summary.unavailable = ids.count
+        }
+        let restored = restoredIDs
+        if !restored.isEmpty {
+            try await db.writer.write { database in
+                try database.execute(
+                    sql: """
+                        UPDATE track SET unavailable = 0
+                        WHERE id IN (\(restored.map { _ in "?" }.joined(separator: ",")))
+                        """,
+                    arguments: StatementArguments(restored))
+            }
+            summary.restored = restored.count
         }
 
         // 5. Параллельное чтение метаданных + батчевая запись
@@ -203,7 +265,7 @@ public actor LibraryScanner {
                 arguments: [Date(), source.id])
         }
         log(
-            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) -\(summary.removed) =\(summary.unchanged) !\(summary.failed.count)"
+            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) →\(summary.moved) ?\(summary.unavailable) ↩\(summary.restored) =\(summary.unchanged) !\(summary.failed.count)"
         )
         onProgress?(.finished(summary))
         return summary
@@ -238,7 +300,12 @@ public actor LibraryScanner {
         let albumsSnapshot = albumCache
         let coverCache = covers
         let batchValues = batch.map { item in
-            (item.relative, item.existingID, item.meta, onDiskValues(for: item, source: source))
+            (
+                item.relative, item.existingID, item.meta,
+                onDiskValues(for: item, source: source),
+                item.meta.embeddedCover == nil
+                    ? folderArt(for: item.relative, source: source) : nil
+            )
         }
 
         let result: (added: Int, updated: Int, artists: [String: Int64], albums: [String: Int64]) =
@@ -247,10 +314,12 @@ public actor LibraryScanner {
                 var albums = albumsSnapshot
                 var added = 0
                 var updated = 0
-                for (relative, existingID, meta, diskValues) in batchValues {
+                for (relative, existingID, meta, diskValues, folderCover) in batchValues {
                     let item = (relative: relative, existingID: existingID, meta: meta)
                     let values = diskValues
                     let meta = item.meta
+                    // Тег важнее файла в папке (SPEC §5.4).
+                    let cover = meta.embeddedCover ?? folderCover
 
                     // Артист трека
                     let trackArtistID = try Self.resolveArtist(
@@ -284,13 +353,17 @@ public actor LibraryScanner {
                                     artistId: albumArtistID,
                                     albumArtist: albumArtistName, year: meta.year, date: meta.date,
                                     discCount: nil, isCompilation: meta.isCompilationTagged)
-                                if let cover = meta.embeddedCover,
-                                    let hash = try? coverCache.store(cover)
-                                {
+                                if let cover, let hash = try? coverCache.store(cover) {
                                     new.coverHash = hash
                                 }
                                 try new.insert(database)
                                 album = new
+                            } else if album?.coverHash == nil, let cover,
+                                let hash = try? coverCache.store(cover)
+                            {
+                                // Альбом уже был без обложки — досыпаем найденную.
+                                album?.coverHash = hash
+                                try album?.update(database)
                             }
                             albumID = album?.id
                             if let id = album?.id { albums[key] = id }
@@ -330,6 +403,55 @@ public actor LibraryScanner {
         albumCache = result.albums
         summary.added += result.added
         summary.updated += result.updated
+    }
+
+    /// Подпись содержимого файла для распознавания переноса: размер + mtime
+    /// с точностью до секунды (mv сохраняет оба).
+    /// ponytail: без хеша содержимого — коллизия «два файла одного размера и
+    /// времени» даёт неверную привязку id; переходить на хеш, если всплывёт.
+    private static func signature(size: Int64, mtime: Date) -> String {
+        "\(size)-\(Int(mtime.timeIntervalSince1970.rounded()))"
+    }
+
+    /// Обложка из папки трека, кэш на директорию (тег важнее, зовётся только
+    /// когда встроенной картинки нет).
+    private func folderArt(for relative: String, source: Source) -> Data? {
+        guard let bookmark = source.bookmark,
+            let root = try? Self.resolveBookmark(bookmark)
+        else { return nil }
+        let directory = root.appendingPathComponent(relative).deletingLastPathComponent()
+        if let cached = folderArtCache[directory.path] { return cached }
+        let data = Self.folderArt(in: directory)
+        folderArtCache[directory.path] = data
+        return data
+    }
+
+    /// Выбор картинки в директории: фильтры имён по важности, среди совпавших —
+    /// самый большой файл. Совпадений нет — самая большая из всех.
+    static func folderArt(in directory: URL) -> Data? {
+        guard
+            let entries = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.fileSizeKey],
+                options: [.skipsHiddenFiles])
+        else { return nil }
+        let images = entries.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        guard !images.isEmpty else { return nil }
+
+        var candidates: [URL] = []
+        for filter in artFilters {
+            candidates = images.filter {
+                $0.deletingPathExtension().lastPathComponent.lowercased().contains(filter)
+            }
+            if !candidates.isEmpty { break }
+        }
+        if candidates.isEmpty { candidates = images }
+
+        let biggest = candidates.max { left, right in
+            let leftSize = (try? left.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            let rightSize = (try? right.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            return leftSize < rightSize
+        }
+        return biggest.flatMap { try? Data(contentsOf: $0) }
     }
 
     /// mtime/size для записи в БД — повторный stat дешевле таскания через TaskGroup.
