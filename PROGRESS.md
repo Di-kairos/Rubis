@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "43731ca"
+head: "45e3047"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -83,7 +83,14 @@ default-выходом — добавлен Picker «Output device» в Settings
 сверен. Открыто: жалоба «колонки и наушники играют разные альбомы» — у coreaudiod
 спикерный контекст держали и Rubis (21768), и WebKit GPU (браузер); ждём
 дискриминатор (пауза в Rubis глушит колонки или нет).
-HEAD: `43731ca` — chore(release): bump version to 0.3.3 (build 6).
+Развязка «колонки/наушники»: пауза в Rubis не глушила колонки → второй звук был
+вкладкой браузера (WebKit держал audio-out). Чередование устройства по трекам —
+флаппинг system default из-за hog (macOS уводит default с захваченного устройства);
+лекарство — прибить выход в Rubis Settings → Audio (`preferredDeviceUID`), а
+default оставить на колонках. По решению владельца Now Playing стал фокусным
+экраном на всю площадь окна (две колонки: сайдбар + hero-обложка и очередь).
+Выпущен **0.3.4** (build 7), SHA256 сверен.
+HEAD: `45e3047` — chore(release): bump version to 0.3.4 (build 7).
 
 ## Фазы (из TASKS.md)
 
