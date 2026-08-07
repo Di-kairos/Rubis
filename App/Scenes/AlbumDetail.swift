@@ -84,23 +84,21 @@ struct AlbumDetail: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             DSText(metaLine, style: .caption, color: DS.Color.textTertiary, lines: 2)
-            HStack(spacing: DS.Space.md) {
-                Button {
-                    env.play(album: album)
-                } label: {
-                    Label("Play", systemImage: "play.fill")
-                        .font(DS.Font.headline)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(DS.Color.accent)
-                Button {
-                    playShuffled()
-                } label: {
-                    Label("Shuffle", systemImage: "shuffle")
-                        .font(DS.Font.body)
-                }
-                .buttonStyle(.bordered)
+            // Одна тихая кнопка в языке Jewel Box: тонкое золотое кольцо,
+            // не залитая плашка (вердикт владельца: заливные кнопки грубые,
+            // Shuffle дублировал транспортную панель и удалён).
+            Button {
+                env.play(album: album)
+            } label: {
+                Label("Play", systemImage: "play.fill")
+                    .font(DS.Font.headline)
+                    .foregroundStyle(DS.Color.accent)
+                    .padding(.horizontal, DS.Space.lg)
+                    .padding(.vertical, DS.Space.sm)
+                    .overlay(Capsule().strokeBorder(DS.Color.accent, lineWidth: 1))
+                    .contentShape(Capsule())
             }
+            .buttonStyle(.plain)
             .fixedSize()
             .padding(.top, DS.Space.sm)
         }
@@ -122,10 +120,6 @@ struct AlbumDetail: View {
         if case .playing(let current) = env.playbackState { return current.id == track.id }
         if case .paused(let current) = env.playbackState { return current.id == track.id }
         return false
-    }
-
-    private func playShuffled() {
-        env.playShuffled(album: album)
     }
 
     static func format(duration: Double) -> String {

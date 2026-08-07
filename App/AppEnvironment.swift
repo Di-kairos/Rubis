@@ -127,16 +127,6 @@ final class AppEnvironment {
         Task { await player.play(items: items, startAt: start) }
     }
 
-    /// Кнопка Shuffle на экране альбома (DESIGN §5.4): включает перемешивание
-    /// и играет альбом с него же.
-    func playShuffled(album: Album) {
-        shuffleMode = .tracks
-        Task {
-            await player.setShuffleMode(.tracks)
-            play(album: album)
-        }
-    }
-
     /// Треки сразу после текущего.
     func playNext(tracks: [Track]) {
         let items = resolveItems(tracks: tracks)
