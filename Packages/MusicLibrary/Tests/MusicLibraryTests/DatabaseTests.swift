@@ -197,6 +197,62 @@ struct FTSTests {
     }
 }
 
+struct GroupedSearchTests {
+    private func seed(_ db: TestDatabase) throws -> (Artist, Album) {
+        let source = Source(kind: .local, displayName: "L")
+        try SourceRepository(db: db).upsert(source)
+        let beatles = try ArtistRepository(db: db).findOrCreate(name: "The Beatles")
+        _ = try ArtistRepository(db: db).findOrCreate(name: "Björk")
+        let album = try AlbumRepository(db: db).insert(
+            Album(
+                title: "Abbey Road", sortTitle: Normalize.sortName(for: "Abbey Road"),
+                artistId: beatles.id))
+        _ = try TrackRepository(db: db).insert([
+            Track(
+                sourceId: source.id, relativePath: "1.flac", title: "Come Together",
+                artistId: beatles.id, albumId: album.id, trackNo: 1, duration: 1,
+                codec: "flac", sampleRate: 44_100),
+            Track(
+                sourceId: source.id, relativePath: "2.flac", title: "Something",
+                artistId: beatles.id, albumId: album.id, trackNo: 2, duration: 1,
+                codec: "flac", sampleRate: 44_100),
+        ])
+        return (beatles, album)
+    }
+
+    @Test func artistSearchIgnoresArticleAndDiacritics() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        let repo = ArtistRepository(db: db)
+        #expect(try repo.search("beat").map(\.name) == ["The Beatles"])
+        #expect(try repo.search("The Beat").map(\.name) == ["The Beatles"])
+        #expect(try repo.search("bjork").map(\.name) == ["Björk"])
+        #expect(try repo.search("  ").isEmpty, "пустой запрос не тянет всю таблицу")
+    }
+
+    @Test func albumSearchMatchesPrefix() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        #expect(try AlbumRepository(db: db).search("abbey").map(\.title) == ["Abbey Road"])
+        #expect(try AlbumRepository(db: db).search("road").isEmpty, "поиск префиксный")
+    }
+
+    @Test func wildcardsInQueryAreEscaped() throws {
+        let db = try AppDatabase.inMemory()
+        _ = try seed(db)
+        // «%» как шаблон вернул бы всех; экранированный — никого.
+        #expect(try ArtistRepository(db: db).search("%").isEmpty)
+        #expect(try ArtistRepository(db: db).search("_eatles").isEmpty)
+    }
+
+    @Test func artistTracksComeInAlbumOrder() throws {
+        let db = try AppDatabase.inMemory()
+        let (beatles, _) = try seed(db)
+        let tracks = try TrackRepository(db: db).tracks(byArtist: beatles.id!)
+        #expect(tracks.map(\.title) == ["Come Together", "Something"])
+    }
+}
+
 struct TrackSortTests {
     private func hit(
         _ title: String, _ artist: String?, _ album: String?, _ duration: Double,

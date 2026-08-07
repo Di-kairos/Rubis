@@ -17,6 +17,7 @@ final class AppEnvironment {
 
     var trackRepo: TrackRepository { TrackRepository(db: db) }
     var albumRepo: AlbumRepository { AlbumRepository(db: db) }
+    var artistRepo: ArtistRepository { ArtistRepository(db: db) }
     var sourceRepo: SourceRepository { SourceRepository(db: db) }
     var playlistRepo: PlaylistRepository { PlaylistRepository(db: db) }
 
@@ -33,6 +34,8 @@ final class AppEnvironment {
     var searchText = ""
     /// Инкремент по ⌘F — Sidebar фокусирует поле.
     var searchFocusTrigger = 0
+    /// Инкремент по ↓ в поле поиска — фокус уходит в список результатов.
+    var searchResultsFocusTrigger = 0
 
     /// Свежесозданный по ⌘⇧N плейлист: MainWindow переключает раздел,
     /// PlaylistsView открывает его и сразу даёт переименовать.

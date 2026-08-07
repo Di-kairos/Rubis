@@ -49,6 +49,19 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Все треки артиста по альбомам — Enter на строке артиста в поиске.
+    public func tracks(byArtist artistId: Int64) throws -> [Track] {
+        try db.reader.read {
+            try Track
+                .filter(Column("artist_id") == artistId)
+                .order(
+                    Column("album_id").ascNullsLast, Column("disc_no").ascNullsLast,
+                    Column("track_no").ascNullsLast
+                )
+                .fetchAll($0)
+        }
+    }
+
     public func recentlyAdded(limit: Int = 100) throws -> [Track] {
         try db.reader.read {
             try Track.order(Column("added_at").desc).limit(limit).fetchAll($0)
@@ -159,6 +172,37 @@ public struct ArtistRepository: Sendable {
     public func all() throws -> [Artist] {
         try db.reader.read { try Artist.order(Column("sort_name")).fetchAll($0) }
     }
+
+    /// Группа Artists в поиске (SPEC §7.2): префикс по нормализованному имени,
+    /// поэтому «bjork» находит «Björk», а «beatles» — «The Beatles».
+    public func search(_ query: String, limit: Int = 8) throws -> [Artist] {
+        guard let range = PrefixRange(query) else { return [] }
+        return try db.reader.read {
+            try Artist
+                .filter(Column("sort_name") >= range.low && Column("sort_name") < range.high)
+                .order(Column("sort_name"))
+                .limit(limit)
+                .fetchAll($0)
+        }
+    }
+}
+
+/// Диапазон «строки, начинающиеся с префикса» для поиска по sort-ключу.
+/// Range вместо `LIKE 'x%'`: с ESCAPE SQLite отключает LIKE-оптимизацию и
+/// сканирует индекс целиком, а на сравнениях идёт seek по индексу.
+/// Заодно `%` и `_` из запроса — обычные символы, а не шаблон.
+struct PrefixRange {
+    let low: String
+    let high: String
+
+    /// nil на пустом запросе — иначе диапазон накрыл бы всю таблицу.
+    init?(_ query: String) {
+        let normalized = Normalize.sortName(for: query)
+        guard !normalized.isEmpty else { return nil }
+        low = normalized
+        // Верхняя граница: старший скаляр Unicode — больше него в ключе быть нечему.
+        high = normalized + "\u{10FFFF}"
+    }
 }
 
 public struct AlbumRepository: Sendable {
@@ -182,6 +226,18 @@ public struct AlbumRepository: Sendable {
 
     public func album(id: Int64) throws -> Album? {
         try db.reader.read { try Album.fetchOne($0, key: id) }
+    }
+
+    /// Группа Albums в поиске (SPEC §7.2) — префикс по `sort_title`.
+    public func search(_ query: String, limit: Int = 8) throws -> [Album] {
+        guard let range = PrefixRange(query) else { return [] }
+        return try db.reader.read {
+            try Album
+                .filter(Column("sort_title") >= range.low && Column("sort_title") < range.high)
+                .order(Column("sort_title"))
+                .limit(limit)
+                .fetchAll($0)
+        }
     }
 
     public func albums(byArtist artistId: Int64) throws -> [Album] {

@@ -17,6 +17,18 @@ struct Sidebar: View {
                 .focused($searchFocused)
                 .padding(DS.Space.md)
                 .onChange(of: env.searchFocusTrigger) { searchFocused = true }
+                // ↓ из поля — фокус в результаты, дальше стрелками (SPEC §7.2).
+                .onKeyPress(.downArrow) {
+                    guard !env.searchText.isEmpty else { return .ignored }
+                    env.searchResultsFocusTrigger += 1
+                    return .handled
+                }
+                // Esc из поля сбрасывает поиск, не заставляя чистить руками.
+                .onKeyPress(.escape) {
+                    guard !env.searchText.isEmpty else { return .ignored }
+                    env.searchText = ""
+                    return .handled
+                }
 
             DSSectionHeader("Library")
             ForEach(LibrarySection.allCases) { item in
