@@ -1,9 +1,11 @@
-# HANDOFF — Rubis / Escapement
+# HANDOFF — Rubis / Rubis Music
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **01** (2026-08-06, Mac Mini) — отчёт `docs/sessions/progress-report-session01.md`
-- Следующая: **02** — kickoff `docs/sessions/SESSION_02_KICKOFF.md`
-- Рабочая ветка: `phase/05-interface` (packs 1–2 запушены); main = фазы 0–4
-- Статус продукта: играет bit-perfect (verify 24/24; живой DAC подтверждён)
-- Фокус: фаза 5 pack 3 — плейлисты, mini-player, бюджеты §12
+- Последняя сессия: **02** (2026-08-06, MacBook Pro M5 Max) — отчёт `docs/sessions/progress-report-session02.md`
+- Следующая: **03** — kickoff `docs/sessions/SESSION_03_KICKOFF.md`
+- Рабочая ветка: `phase/05-interface` (запушена); main = фазы 0–4
+- Статус продукта: **Rubis Music 0.2.0** — играет bit-perfect (verify 24/24), плейлисты,
+  shuffle/repeat/очередь, медиа-клавиши, mini-player, autoupdate (Sparkle → rubis-releases),
+  дизайн Jewel Box (D-007), DMG-конвейер
+- Фокус: вердикт владельца по дизайну → 0.2.1 в фид → добить чекбоксы фазы 5 → acceptance/merge
