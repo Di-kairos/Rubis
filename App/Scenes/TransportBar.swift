@@ -17,7 +17,7 @@ struct TransportBar: View {
 
     var body: some View {
         HStack(spacing: DS.Space.lg) {
-            DSCoverImage(image: nil, size: DS.Metrics.transportCover)
+            DSCoverImage(image: coverImage, size: DS.Metrics.transportCover)
 
             VStack(alignment: .leading, spacing: 2) {
                 DSText(titleLine, style: .headline)
@@ -74,6 +74,22 @@ struct TransportBar: View {
         .background(DS.Color.bgRaised)
         .onReceive(tick) { _ in refreshTime() }
         .task(id: env.outputStatus?.deviceName) { await refreshVolume() }
+        // Обложка меняется только со сменой альбома — не считать её на тиках.
+        .task(id: env.currentTrack?.albumId) { reloadCover() }
+    }
+
+    @State private var coverImage: NSImage?
+
+    private func reloadCover() {
+        guard let albumId = env.currentTrack?.albumId,
+            let album = try? env.albumRepo.album(id: albumId),
+            let hash = album.coverHash,
+            let url = env.covers.url(hash: hash, size: 256)
+        else {
+            coverImage = nil
+            return
+        }
+        coverImage = NSImage(contentsOf: url)
     }
 
     // MARK: - Hardware volume (SPEC §4.4 — только громкость устройства)
