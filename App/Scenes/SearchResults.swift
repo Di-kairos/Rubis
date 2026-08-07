@@ -62,6 +62,8 @@ struct SearchResults: View {
         .background(DS.Color.bgBase)
         // Фокусируемся и на «Nothing found» — иначе Esc в этом состоянии мёртв.
         .focusable()
+        // Системное синее кольцо фокуса (macOS 26) — не наш индикатор (D-007).
+        .focusEffectDisabled()
         .focused($listFocused)
         .onKeyPress(keys: [.upArrow, .downArrow, .return, .escape]) { press in
             handle(press, in: rows)

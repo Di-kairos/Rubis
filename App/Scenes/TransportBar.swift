@@ -98,6 +98,7 @@ struct TransportBar: View {
                 )
                 .controlSize(.mini)
                 .frame(width: 72)
+                .tint(DS.Color.accent)
                 .accessibilityLabel("Device volume")
             }
         }

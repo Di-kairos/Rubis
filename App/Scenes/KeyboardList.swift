@@ -18,6 +18,9 @@ struct KeyboardListNavigation: ViewModifier {
     func body(content: Content) -> some View {
         content
             .focusable(count > 0)
+            // Свой индикатор фокуса — золотое выделение (D-007); системное
+            // синее кольцо вокруг всей области (macOS 26) не нужно.
+            .focusEffectDisabled()
             .focused($isFocused)
             // Клик по строке забирает и клавиатурный фокус, не отбирая тап у строки.
             .simultaneousGesture(TapGesture().onEnded { isFocused = true })
