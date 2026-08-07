@@ -24,6 +24,9 @@ struct TracksList: View {
     @State private var column: TrackSort = .title
     @State private var ascending = true
     @State private var selection: Set<Int64> = []
+    /// Счётчик пересортировок: результат устаревшей задачи не применяем.
+    @State private var generation = 0
+    @State private var isLoading = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,43 +34,77 @@ struct TracksList: View {
             Rectangle()
                 .fill(DS.Color.strokeHairline)
                 .frame(height: 1)
-            List(selection: $selection) {
-                ForEach(rows) { row in
-                    TrackListRow(
-                        row: row,
-                        index: (positions[row.id] ?? 0) + 1,
-                        isCurrent: isCurrent(row.track),
-                        isSelected: selection.contains(row.id)
-                    )
-                    .onTapGesture(count: 2) { play(from: positions[row.id]) }
-                    .draggable(row.track.dragPayload)
-                    .contextMenu { QueueMenuItems(tracks: menuTargets(row), env: env) }
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(DS.Color.bgBase)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            // Return играет с верхней выделенной строки.
-            .onKeyPress(.return) {
-                guard let index = selection.compactMap({ positions[$0] }).min() else {
-                    return .ignored
-                }
-                play(from: index)
-                return .handled
+            if isLoading {
+                DSText("Loading library…", style: .body, color: DS.Color.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                trackList
             }
         }
         .background(DS.Color.bgBase)
-        .task { resort(loading: (try? env.trackRepo.allWithNames()) ?? []) }
-        .onChange(of: column) { resort() }
-        .onChange(of: ascending) { resort() }
+        .task {
+            let repo = env.trackRepo
+            let loaded = await Task.detached(priority: .userInitiated) {
+                (try? repo.allWithNames()) ?? []
+            }.value
+            // Сортируем по колонке, выбранной к этому моменту: клик по заголовку
+            // во время загрузки не теряется.
+            await resort(loading: loaded)
+            isLoading = false
+        }
+        // Пока список грузится, сортировать нечего — порядок подхватит загрузка.
+        .onChange(of: column) { if !isLoading { Task { await resort() } } }
+        .onChange(of: ascending) { if !isLoading { Task { await resort() } } }
     }
 
-    private func resort(loading loaded: [SearchHit]? = nil) {
-        rows = TrackSort.sorted(loaded ?? rows, by: column, ascending: ascending)
-        positions = Dictionary(
-            rows.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+    private var trackList: some View {
+        List(selection: $selection) {
+            ForEach(rows) { row in
+                TrackListRow(
+                    row: row,
+                    index: (positions[row.id] ?? 0) + 1,
+                    isCurrent: isCurrent(row.track),
+                    isSelected: selection.contains(row.id)
+                )
+                .onTapGesture(count: 2) { play(from: positions[row.id]) }
+                .draggable(row.track.dragPayload)
+                .contextMenu { QueueMenuItems(tracks: menuTargets(row), env: env) }
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(DS.Color.bgBase)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        // Return играет с верхней выделенной строки.
+        .onKeyPress(.return) {
+            guard let index = selection.compactMap({ positions[$0] }).min() else {
+                return .ignored
+            }
+            play(from: index)
+            return .handled
+        }
+    }
+
+    /// Загрузка и сортировка уходят с главного потока: на 100k это 1.5 с и 0.4 с
+    /// (release), на MainActor окно бы вставало колом.
+    /// ponytail: библиотека целиком в памяти; упрётся — страничная выборка.
+    private func resort(loading loaded: [SearchHit]? = nil) async {
+        let source = loaded ?? rows
+        let (field, ascending) = (column, self.ascending)
+        // Быстрые клики по заголовкам запускают сортировки внахлёст; применяем
+        // только последнюю, иначе порядок разойдётся со стрелкой в заголовке.
+        generation += 1
+        let token = generation
+        let result = await Task.detached(priority: .userInitiated) {
+            let sorted = TrackSort.sorted(source, by: field, ascending: ascending)
+            let positions = Dictionary(
+                sorted.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+            return (sorted, positions)
+        }.value
+        guard token == generation else { return }
+        rows = result.0
+        positions = result.1
     }
 
     /// Контекстное меню по строке внутри выделения работает на всё выделение,
