@@ -16,6 +16,7 @@ struct PlaylistsView: View {
     @State private var tracks: [Track] = []
     @State private var renamingId: Int64?
     @State private var draftName = ""
+    @State private var focused: Int?
 
     var body: some View {
         HSplitView {
@@ -26,6 +27,10 @@ struct PlaylistsView: View {
         }
         .background(DS.Color.bgBase)
         .task { reload() }
+        .onChange(of: renamingId) { env.renamingPlaylist = renamingId != nil }
+        // Уходя с раздела в середине переименования, не оставляем флаг взведённым —
+        // иначе Space и стрелки останутся глобально выключены.
+        .onDisappear { env.renamingPlaylist = false }
     }
 
     // MARK: - Плейлисты
@@ -42,14 +47,29 @@ struct PlaylistsView: View {
             }
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(playlists) { playlist in
+                    ForEach(Array(playlists.enumerated()), id: \.element.id) { index, playlist in
                         playlistRow(playlist)
+                            .id(playlist.id)
+                            .onTapGesture { focused = index }
                     }
                 }
             }
             Spacer(minLength: 0)
         }
         .background(DS.Color.bgRaised)
+        // Return на плейлисте играет его целиком; во время переименования
+        // навигация выключена — клавиши принадлежат текстовому полю.
+        .keyboardNavigable(count: renamingId == nil ? playlists.count : 0, index: $focused) {
+            index in
+            guard let id = playlists[index].id,
+                let ids = try? env.playlistRepo.trackIds(in: id)
+            else { return }
+            env.play(tracks: (try? env.trackRepo.tracks(ids: ids)) ?? [])
+        }
+        .onChange(of: focused) {
+            guard let focused, playlists.indices.contains(focused) else { return }
+            select(playlists[focused])
+        }
     }
 
     @ViewBuilder
@@ -66,7 +86,6 @@ struct PlaylistsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .onTapGesture { select(playlist) }
         .contextMenu {
             Button("Rename") { startRename(playlist) }
             Button("Delete") { delete(playlist) }

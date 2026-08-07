@@ -9,6 +9,7 @@ struct AlbumsGrid: View {
     @Binding var selectedAlbum: Album?
     @Environment(AppEnvironment.self) private var env
     @State private var albums: [Album] = []
+    @State private var focused: Int?
 
     private let columns = [
         GridItem(
@@ -26,18 +27,34 @@ struct AlbumsGrid: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: DS.Space.xl) {
-                        ForEach(albums) { album in
-                            AlbumCard(album: album, isSelected: selectedAlbum?.id == album.id)
-                                .onTapGesture { selectedAlbum = album }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: DS.Space.xl) {
+                            ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
+                                AlbumCard(
+                                    album: album, isSelected: selectedAlbum?.id == album.id
+                                )
+                                // Выбор идёт через focused — иначе выделение
+                                // назначалось бы дважды за клик.
+                                .id(album.id)
+                                .onTapGesture { focused = index }
+                            }
                         }
+                        .padding(DS.Space.xl)
                     }
-                    .padding(DS.Space.xl)
+                    .onChange(of: focused) {
+                        guard let focused, albums.indices.contains(focused) else { return }
+                        // Стрелки ведут выбор — деталь идёт следом за фокусом.
+                        selectedAlbum = albums[focused]
+                        proxy.scrollTo(albums[focused].id, anchor: .center)
+                    }
                 }
             }
         }
         .background(DS.Color.bgBase)
+        .keyboardNavigable(count: albums.count, index: $focused) { index in
+            env.play(album: albums[index])
+        }
         .task {
             // Живое наблюдение: сетка обновляется по мере скана
             do {

@@ -53,8 +53,11 @@ struct EscapementApp: App {
                 Button("Check for Updates…") { updater.updater.checkForUpdates() }
             }
             CommandGroup(after: .toolbar) {
+                // Пункты без модификаторов гасим на время набора текста —
+                // иначе меню съедает пробел и стрелки до текстового поля.
                 Button("Play/Pause") { env.togglePlayPause() }
                     .keyboardShortcut(.space, modifiers: [])
+                    .disabled(env.isEditingText)
                 Button("Next Track") { env.next() }
                     .keyboardShortcut(.rightArrow, modifiers: [.command])
                 Button("Previous Track") { env.previous() }
@@ -63,8 +66,10 @@ struct EscapementApp: App {
                     .keyboardShortcut("r", modifiers: [.command])
                 Button("Seek Forward") { env.seek(by: 5) }
                     .keyboardShortcut(.rightArrow, modifiers: [])
+                    .disabled(env.isEditingText)
                 Button("Seek Backward") { env.seek(by: -5) }
                     .keyboardShortcut(.leftArrow, modifiers: [])
+                    .disabled(env.isEditingText)
                 Button("Search") { env.searchFocusTrigger += 1 }
                     .keyboardShortcut("f", modifiers: [.command])
                 Button("Show Current Track") { env.revealCurrentTrack() }

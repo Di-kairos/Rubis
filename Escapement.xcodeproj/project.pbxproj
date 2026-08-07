@@ -14,6 +14,7 @@
 		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
 		2AAFCE253BF65518BF0942EC /* TracksList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F9F0833B17181AC9CC3A98 /* TracksList.swift */; };
+		350A1D7C966EF8A9AD919B94 /* KeyboardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */; };
 		37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2030066472ADBF7ECD20D373 /* MiniPlayer.swift */; };
 		37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FCB47B384004AAD3364F /* TransportBar.swift */; };
 		454A8E62E03EE3B915025D96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88ACAC7C6CAD73585D762B31 /* Assets.xcassets */; };
@@ -32,6 +33,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardList.swift; sourceTree = "<group>"; };
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
 		1F5775751BCC167A604DDAF2 /* SettingsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScene.swift; sourceTree = "<group>"; };
 		2030066472ADBF7ECD20D373 /* MiniPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayer.swift; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 				E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */,
 				6186081353886B17DD038F1F /* AlbumsGrid.swift */,
 				470192454F34299CE626000F /* ArtistsList.swift */,
+				052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */,
 				3381F8269F03E8595BAFB27C /* MainWindow.swift */,
 				2030066472ADBF7ECD20D373 /* MiniPlayer.swift */,
 				66FB66BEAD427530E18C9938 /* Playlists.swift */,
@@ -264,6 +267,7 @@
 				6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */,
 				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,
 				26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */,
+				350A1D7C966EF8A9AD919B94 /* KeyboardList.swift in Sources */,
 				49F74595763132F2CCE20B49 /* MainWindow.swift in Sources */,
 				B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */,
 				37A1B90B072EBC631D995F1B /* MiniPlayer.swift in Sources */,

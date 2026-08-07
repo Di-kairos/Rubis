@@ -37,6 +37,18 @@ final class AppEnvironment {
     /// Инкремент по ↓ в поле поиска — фокус уходит в список результатов.
     var searchResultsFocusTrigger = 0
 
+    // MARK: - Ввод текста
+
+    /// В поле поиска стоит курсор.
+    var searchFieldFocused = false
+    /// Переименование плейлиста — открыт TextField.
+    var renamingPlaylist = false
+
+    /// Пока пользователь печатает, глобальные горячие клавиши без модификаторов
+    /// (`Space`, `←`, `→`) отключаются: как пункты меню они перехватывают событие
+    /// раньше текстового поля, и в поиск было бы не набрать пробел.
+    var isEditingText: Bool { searchFieldFocused || renamingPlaylist }
+
     /// Свежесозданный по ⌘⇧N плейлист: MainWindow переключает раздел,
     /// PlaylistsView открывает его и сразу даёт переименовать.
     var pendingPlaylistId: Int64?

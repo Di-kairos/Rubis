@@ -99,6 +99,34 @@ struct PerformanceTests {
         }
     }
 
+    /// Группы Artists/Albums в поиске бьются по каждому нажатию клавиши, поэтому
+    /// живут в том же бюджете 50 мс, что и FTS по трекам (SPEC §12).
+    @Test(.timeLimit(.minutes(5))) func groupedSearchOn100kUnder50ms() throws {
+        let db = try AppDatabase.inMemory()
+        try seedLibrary(db, tracks: 100_000, artists: 2_000, albums: 10_000)
+        let artistRepo = ArtistRepository(db: db)
+        let albumRepo = AlbumRepository(db: db)
+        // Прогрев: первый запрос компилирует statement и поднимает страницы индекса.
+        _ = try artistRepo.search("art")
+        _ = try albumRepo.search("alb")
+
+        for query in ["a", "artist 1", "album 42", "zzz"] {
+            let artistStart = ContinuousClock.now
+            _ = try artistRepo.search(query)
+            let artistElapsed = ContinuousClock.now - artistStart
+            #expect(
+                artistElapsed < .milliseconds(50),
+                "artist search '\(query)' took \(artistElapsed) — budget is 50 ms")
+
+            let albumStart = ContinuousClock.now
+            _ = try albumRepo.search(query)
+            let albumElapsed = ContinuousClock.now - albumStart
+            #expect(
+                albumElapsed < .milliseconds(50),
+                "album search '\(query)' took \(albumElapsed) — budget is 50 ms")
+        }
+    }
+
     /// Библиотека с настоящими связями artist/album — иначе join в запросе холостой.
     private func seedLibrary(_ db: TestDatabase, tracks: Int, artists: Int, albums: Int) throws {
         let source = Source(kind: .local, displayName: "Perf")

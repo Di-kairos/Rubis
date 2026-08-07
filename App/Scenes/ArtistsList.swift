@@ -10,24 +10,40 @@ struct ArtistsList: View {
     @State private var artists: [Artist] = []
     @State private var selectedArtist: Artist?
     @State private var artistAlbums: [Album] = []
+    @State private var focused: Int?
 
     var body: some View {
         HSplitView {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(artists) { artist in
-                        DSListRow(
-                            isSelected: selectedArtist?.id == artist.id,
-                            height: DS.Metrics.sidebarRow
-                        ) {
-                            DSText(artist.name, style: .body)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(artists.enumerated()), id: \.element.id) { index, artist in
+                            DSListRow(
+                                isSelected: selectedArtist?.id == artist.id,
+                                height: DS.Metrics.sidebarRow
+                            ) {
+                                DSText(artist.name, style: .body)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            // Клик только двигает фокус: выбор делает onChange,
+                            // иначе альбомы артиста грузились бы дважды.
+                            .id(artist.id)
+                            .onTapGesture { focused = index }
                         }
-                        .onTapGesture { select(artist) }
                     }
+                }
+                .onChange(of: focused) {
+                    guard let focused, artists.indices.contains(focused) else { return }
+                    select(artists[focused])
+                    proxy.scrollTo(artists[focused].id, anchor: .center)
                 }
             }
             .frame(minWidth: 180, maxWidth: 280)
+            // Return на артисте играет его целиком.
+            .keyboardNavigable(count: artists.count, index: $focused) { index in
+                guard let id = artists[index].id else { return }
+                env.play(tracks: (try? env.trackRepo.tracks(byArtist: id)) ?? [])
+            }
 
             ScrollView {
                 LazyVGrid(

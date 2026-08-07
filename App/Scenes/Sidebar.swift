@@ -17,6 +17,7 @@ struct Sidebar: View {
                 .focused($searchFocused)
                 .padding(DS.Space.md)
                 .onChange(of: env.searchFocusTrigger) { searchFocused = true }
+                .onChange(of: searchFocused) { env.searchFieldFocused = searchFocused }
                 // ↓ из поля — фокус в результаты, дальше стрелками (SPEC §7.2).
                 .onKeyPress(.downArrow) {
                     guard !env.searchText.isEmpty else { return .ignored }
