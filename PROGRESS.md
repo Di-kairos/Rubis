@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "43ca082"
+head: "22c69fb"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -64,7 +64,15 @@ EdDSA, appcast обновлён, опубликованный файл свер�
 SHA256 опубликованного DMG сверен. Замечено: снапшот харнесса на macOS 26 не
 захватывает NSScrollView-контент и vibrancy-сайдбар (белые области) — артефакт
 снапшота, не бага рендера.
-HEAD: `43ca082` — chore(release): bump version to 0.3.1 (build 4).
+Владелец пересобрал библиотеку: одна родительская папка бокс-сета вместо 78
+источников (бекап старой БД — `.claude/backups/library-2026-08-07-before-wipe.sqlite`).
+Ещё три правки по живым жалобам: системное синее focus-кольцо вокруг списков на
+macOS 26 погашено (`.focusEffectDisabled()`, свой индикатор — золото D-007),
+слайдер громкости затонирован токеном accent, раздел **Now Playing** перестал быть
+заглушкой — показывает очередь воспроизведения (◆ на играющем, двойной клик /
+Return — прыжок на трек; `NowPlayingQueue.swift`, `queueSnapshot`/`playQueueItem`
+в AppEnvironment). Выпущен **0.3.2** (build 5), SHA256 сверен.
+HEAD: `22c69fb` — chore(release): bump version to 0.3.2 (build 5).
 
 ## Фазы (из TASKS.md)
 
