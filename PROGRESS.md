@@ -6,16 +6,15 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d7346f8"
+head: "cb4134b"
 tests: 57/57 (swift test, 5 packages)
 last_session: 3
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "РАЗВИЛКА ЗА ВЛАДЕЛЬЦЕМ: фаза 6 Navidrome (D-003) или фаза 7 (глобальные шорткаты, меню-бар, manual checklist)"
   - "Вердикт владельца по дизайну Jewel Box (D-007) → шлифовка → релиз 0.2.1 в фид (проверка автообновления)"
-  - "Ручной прогон Instruments: fps скролла на 100k-библиотеке → закрыть последний чекбокс фазы 5 и развилку SwiftUI/NSTableView"
-  - "Глазами проверить: выделение в Tracks — золотая дымка, не системный синий; ↓ из поиска в результаты; пробел снова набирается в поиске"
-  - "После этих проверок — merge phase/05-interface (нужно явное согласие) → развилка: фаза 6 Navidrome (D-003) или фаза 7"
+  - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
 links:
   decisions: DECISIONS.md
@@ -38,12 +37,14 @@ Sparkle (v0.2.0 опубликован в `rubis-releases`), продукт пе
 дизайн **Jewel Box** (D-007). Три бага вылечены с репро-доказательствами (hog-SIGABRT,
 artwork-SIGTRAP, клик-играет-следующий). audio-verify **24/24 bit-perfect** на M5 Max,
 старт 208–219 мс. Детали — `docs/sessions/progress-report-session02.md`.
-Session 3 (2026-08-07): закрыты почти все чекбоксы фазы 5 — список треков с
-сортировкой и мультивыделением, поиск с группами Artists/Albums/Tracks и
-клавиатурной навигацией, клавиатура во всех разделах, загрузка и сортировка 100k
-уведены с MainActor (1.56 с / ≤ 0.4 с, замер в тесте). Починен перехват `Space`
-и стрелок меню у текстовых полей. Открыт один пункт: ручной замер fps скролла.
-HEAD: `d7346f8` — test(perf): synthetic large-library fixture for the manual scroll audit.
+Session 3 (2026-08-07): **фаза 5 закрыта полностью** — список треков с сортировкой
+и мультивыделением, поиск с группами Artists/Albums/Tracks и клавиатурной
+навигацией, клавиатура во всех разделах. Загрузка и сортировка 100k уведены с
+MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и стрелок меню у текстовых
+полей. Скролл на 100k измерен in-process харнессом: 59–60 fps при 60 Гц, 0–1.1%
+опозданий → **SwiftUI остаётся, NSTableView не нужен**. Снимки окна (light/dark)
+подтвердили золотое выделение и поймали два дефекта колонок.
+HEAD: `cb4134b` — test(perf): in-process harness that measures scroll and snapshots the window.
 
 ## Фазы (из TASKS.md)
 
@@ -52,8 +53,9 @@ HEAD: `d7346f8` — test(perf): synthetic large-library fixture for the manual s
 - Фаза 2 — БД и модель ✅ (100k FTS < 50 мс; v2_track_unavailable)
 - Фаза 3 — Аудио-движок ✅ (**verify 24/24 bit-perfect**; hog только для внешних устройств)
 - Фаза 4 — Локальная библиотека ✅ (обложки из папок, move-safe identity, unavailable)
-- **Фаза 5 — Интерфейс** ← осталось одно: ручной замер fps скролла на 100k
-  (Instruments) → acceptance → merge
+- Фаза 5 — Интерфейс ✅ (acceptance весь зелёный: старт 208–219 мс, поиск < 50 мс,
+  скролл 100k 59–60 fps, память 50k 221 МБ, клавиатура во всех разделах)
+- ← **Развилка: фаза 6 или фаза 7 — решает Di-kairos**
 - Фаза 6 — Subsonic/Navidrome (отложена, D-003)
 - Фаза 7 — Системная интеграция и шлифовка (часть сделана в S02: медиа-клавиши,
   mini-player, восстановление очереди)
