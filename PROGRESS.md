@@ -6,10 +6,10 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "9d5fa1f"
+head: "d7346f8"
 tests: 57/57 (swift test, 5 packages)
 last_session: 3
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Вердикт владельца по дизайну Jewel Box (D-007) → шлифовка → релиз 0.2.1 в фид (проверка автообновления)"
@@ -43,7 +43,7 @@ Session 3 (2026-08-07): закрыты почти все чекбоксы фаз
 клавиатурной навигацией, клавиатура во всех разделах, загрузка и сортировка 100k
 уведены с MainActor (1.56 с / ≤ 0.4 с, замер в тесте). Починен перехват `Space`
 и стрелок меню у текстовых полей. Открыт один пункт: ручной замер fps скролла.
-HEAD: `9d5fa1f` — feat(ui): keyboard navigation for grid, artists and playlists.
+HEAD: `d7346f8` — test(perf): synthetic large-library fixture for the manual scroll audit.
 
 ## Фазы (из TASKS.md)
 
@@ -66,4 +66,9 @@ HEAD: `9d5fa1f` — feat(ui): keyboard navigation for grid, artists and playlist
 
 ## Env Vars
 
-Нет (graphify на M5 Max: OLLAMA_* в ~/.zshrc — см. _global/MACHINE_SETUP.md).
+Только DEBUG, для замеров на синтетической библиотеке (см. TASKS фаза 5):
+`RUBIS_DB_PATH` (путь к library.sqlite), `RUBIS_START_SECTION` (раздел при запуске),
+`RUBIS_GENERATE_LARGE_LIBRARY` + `RUBIS_LARGE_LIBRARY_TRACKS` (генератор фикстуры в тестах).
+В release-сборке ни одна не читается.
+
+(graphify на M5 Max: OLLAMA_* в ~/.zshrc — см. _global/MACHINE_SETUP.md).
