@@ -30,13 +30,26 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 struct MainWindow: View {
     @Environment(AppEnvironment.self) private var env
     /// Раздел переживает перезапуск (фаза 7: восстановление состояния).
-    @AppStorage("ui.section") private var section: LibrarySection = .albums
+    @AppStorage("ui.section") private var storedSection: LibrarySection = .albums
+    /// Раздел, навязанный замером. Живёт в памяти: DEBUG-прогон не должен
+    /// портить сохранённый выбор владельца.
+    @State private var forcedSection: LibrarySection? = MainWindow.debugStartSection
+
+    private var section: Binding<LibrarySection> {
+        Binding(
+            get: { forcedSection ?? storedSection },
+            set: { value in
+                forcedSection = nil
+                storedSection = value
+            })
+    }
     @State private var selectedAlbum: Album?
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         VStack(spacing: 0) {
             NavigationSplitView {
-                Sidebar(section: $section)
+                Sidebar(section: section)
                     .navigationSplitViewColumnWidth(
                         min: DS.Metrics.sidebarWidthMin,
                         ideal: DS.Metrics.sidebarWidth,
@@ -54,7 +67,7 @@ struct MainWindow: View {
                 }
             }
             Rectangle()
-                .fill(DS.Color.strokeHairline)
+                .fill(DS.Contrast.stroke(increased: contrast == .increased))
                 .frame(height: 1)
             TransportBar()
         }
@@ -63,12 +76,9 @@ struct MainWindow: View {
             minWidth: DS.Metrics.windowMinWidth,
             minHeight: DS.Metrics.windowMinHeight
         )
-        .task {
-            if let forced = MainWindow.debugStartSection { section = forced }
-        }
         // ⌘⇧N создаёт плейлист из любого раздела — переключаемся к нему.
         .onChange(of: env.pendingPlaylistId) {
-            if env.pendingPlaylistId != nil { section = .playlists }
+            if env.pendingPlaylistId != nil { section.wrappedValue = .playlists }
         }
         // ⌘L: показать альбом играющего трека (SPEC §7.6).
         .onChange(of: env.revealCurrentTrigger) {
@@ -76,7 +86,7 @@ struct MainWindow: View {
                 let album = try? env.albumRepo.album(id: albumId)
             else { return }
             env.searchText = ""
-            section = .albums
+            section.wrappedValue = .albums
             selectedAlbum = album
         }
         // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
@@ -110,7 +120,7 @@ struct MainWindow: View {
         if !env.searchText.isEmpty {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
-            switch section {
+            switch section.wrappedValue {
             case .albums, .nowPlaying:
                 AlbumsGrid(selectedAlbum: $selectedAlbum)
             case .artists:

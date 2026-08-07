@@ -31,12 +31,13 @@ struct TracksList: View {
     /// Счётчик пересортировок: результат устаревшей задачи не применяем.
     @State private var generation = 0
     @State private var isLoading = true
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         VStack(spacing: 0) {
             TrackListHeader(column: $column, ascending: $ascending)
             Rectangle()
-                .fill(DS.Color.strokeHairline)
+                .fill(DS.Contrast.stroke(increased: contrast == .increased))
                 .frame(height: 1)
             if isLoading {
                 DSText("Loading library…", style: .body, color: DS.Color.textTertiary)
@@ -67,6 +68,11 @@ struct TracksList: View {
         .onChange(of: ascending) { if !isLoading { Task { await resort() } } }
     }
 
+    /// Известный шум AppKit: в этом разделе в debug-логе появляется
+    /// «reentrant operation in its NSTableView delegate». Проверено, что дело
+    /// не в подмене поддерева на время загрузки и не в `onKeyPress` — остаётся
+    /// сам `List(selection:)`; разделы со списком без выделения молчат.
+    /// Поведение не ломается, но AppKit обещает сделать из этого assert.
     private var trackList: some View {
         List(selection: $selection) {
             ForEach(rows) { row in

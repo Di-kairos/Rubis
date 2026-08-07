@@ -38,8 +38,12 @@ public struct PlaybackSnapshot: Equatable, Sendable {
         defaults.set(offset, forKey: Key.offset)
     }
 
-    /// Позиция обновляется раз в секунду отдельно от состава очереди.
-    public static func saveOffset(_ offset: TimeInterval, to defaults: UserDefaults) {
+    /// Прогресс обновляется чаще, чем состав очереди: индекс и позиция пишутся
+    /// вместе, иначе секунда одного трека ложится на снимок другого.
+    public static func saveProgress(
+        index: Int, offset: TimeInterval, to defaults: UserDefaults
+    ) {
+        defaults.set(max(index, 0), forKey: Key.index)
         defaults.set(max(offset, 0), forKey: Key.offset)
     }
 }

@@ -24,11 +24,14 @@ struct PlaybackSnapshotTests {
         #expect(PlaybackSnapshot.load(from: makeDefaults("empty")) == nil)
     }
 
-    @Test func offsetUpdatesWithoutRewritingQueue() {
+    @Test func progressUpdatesIndexAndOffsetTogetherWithoutRewritingQueue() {
         let defaults = makeDefaults("offset")
         PlaybackSnapshot(trackIds: [1, 2], index: 0, offset: 0).save(to: defaults)
-        PlaybackSnapshot.saveOffset(12.25, to: defaults)
+        // Перешли на второй трек: индекс и позиция обязаны меняться одной
+        // записью, иначе секунда одного трека ложится на снимок другого.
+        PlaybackSnapshot.saveProgress(index: 1, offset: 12.25, to: defaults)
         let loaded = PlaybackSnapshot.load(from: defaults)
+        #expect(loaded?.index == 1)
         #expect(loaded?.offset == 12.25)
         #expect(loaded?.trackIds == [1, 2])
     }

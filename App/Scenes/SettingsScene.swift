@@ -53,7 +53,7 @@ struct KeysSettings: View {
                             GlobalMediaKeys.requestTrust()
                             openAccessibilitySettings()
                         }
-                        Button("Recheck") { refreshTrust() }
+                        Button("Recheck") { apply() }
                     }
                 }
             }
@@ -86,18 +86,11 @@ struct KeysSettings: View {
         ("Settings", "⌘,"),
     ]
 
+    /// Само включение висит на приложении (оно же поднимает монитор при
+    /// запуске) — здесь только повторная попытка после выдачи разрешения.
     private func apply() {
-        refreshTrust()
-        // Включение без разрешения не притворяется успешным: тумблер
-        // возвращается назад, а рядом остаётся объяснение.
-        if globalMediaKeys, env.globalMediaKeys?.setEnabled(true) != true, !trusted {
-            return
-        }
-        if !globalMediaKeys { _ = env.globalMediaKeys?.setEnabled(false) }
-    }
-
-    private func refreshTrust() {
         trusted = GlobalMediaKeys.isTrusted
+        _ = env.globalMediaKeys?.setEnabled(globalMediaKeys)
     }
 
     private func openAccessibilitySettings() {

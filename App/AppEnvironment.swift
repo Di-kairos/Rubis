@@ -92,7 +92,7 @@ final class AppEnvironment {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
-                await self.saveTrackOffset()
+                await self.saveTrackProgress()
             }
         }
         Task { [player] in
@@ -201,10 +201,18 @@ final class AppEnvironment {
         snapshot.save(to: .standard)
     }
 
-    /// Только позиция внутри трека — раз в секунду во время игры.
-    private func saveTrackOffset() async {
-        guard isPlaying, let time = await player.playbackTime() else { return }
-        PlaybackSnapshot.saveOffset(time.current, to: .standard)
+    /// Прогресс — раз в секунду. Индекс идёт вместе с позицией, иначе они
+    /// разъезжаются на переходе трека. Пауза тоже сохраняется: закрыть плеер
+    /// на паузе и вернуться туда же — нормальное ожидание.
+    private func saveTrackProgress() async {
+        switch playbackState {
+        case .playing, .paused:
+            guard let time = await player.playbackTime() else { return }
+            PlaybackSnapshot.saveProgress(
+                index: await player.currentIndex(), offset: time.current, to: .standard)
+        default:
+            return
+        }
     }
 
     /// Восстановление очереди при запуске: состав, индекс и позиция — без звука.

@@ -33,6 +33,10 @@ final class GlobalMediaKeys {
 
     /// Включение без разрешения бессмысленно: монитор молча не получал бы
     /// событий. Возвращает, удалось ли включить.
+    ///
+    /// Снятие монитора — только отсюда: `deinit` под strict concurrency не
+    /// имеет права трогать это состояние. Объект живёт столько же, сколько
+    /// `AppEnvironment`, поэтому утечки монитора не возникает.
     @discardableResult
     func setEnabled(_ enabled: Bool) -> Bool {
         guard enabled else {

@@ -24,6 +24,10 @@ final class MenuBarPresence {
     }
 
     /// Идемпотентно: повторные вызовы с тем же значением ничего не делают.
+    ///
+    /// Снятие айтема — только отсюда: `deinit` под strict concurrency не имеет
+    /// права трогать MainActor-состояние. Дубликатов не будет, потому что
+    /// объект создаётся один раз за жизнь приложения (см. `EscapementApp`).
     func setEnabled(_ enabled: Bool) {
         guard enabled != (item != nil) else { return }
         if enabled {
