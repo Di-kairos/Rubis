@@ -31,27 +31,34 @@ struct Sidebar: View {
                     return .handled
                 }
 
-            DSSectionHeader("Library")
-            ForEach(LibrarySection.allCases) { item in
-                sidebarRow(item)
-            }
+            // Содержимое скроллится: десятки источников не должны распирать
+            // колонку и ломать layout окна (краш в NSViewUpdateConstraints).
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    DSSectionHeader("Library")
+                    ForEach(LibrarySection.allCases) { item in
+                        sidebarRow(item)
+                    }
 
-            Spacer(minLength: DS.Space.xl)
+                    Spacer(minLength: DS.Space.xl)
 
-            DSSectionHeader("Sources")
-            ForEach(sources) { source in
-                HStack(spacing: DS.Space.sm) {
-                    Image(systemName: source.kind == .local ? "folder" : "server.rack")
-                        .font(.system(size: 12))
-                        .foregroundStyle(DS.Color.textTertiary)
-                        .accessibilityHidden(true)
-                    DSText(
-                        source.displayName, style: .body,
-                        color: source.enabled ? DS.Color.textSecondary : DS.Color.textDisabled)
-                    Spacer()
+                    DSSectionHeader("Sources")
+                    ForEach(sources) { source in
+                        HStack(spacing: DS.Space.sm) {
+                            Image(systemName: source.kind == .local ? "folder" : "server.rack")
+                                .font(.system(size: 12))
+                                .foregroundStyle(DS.Color.textTertiary)
+                                .accessibilityHidden(true)
+                            DSText(
+                                source.displayName, style: .body,
+                                color: source.enabled
+                                    ? DS.Color.textSecondary : DS.Color.textDisabled)
+                            Spacer()
+                        }
+                        .padding(.horizontal, DS.Space.md)
+                        .frame(height: DS.Metrics.sidebarRow)
+                    }
                 }
-                .padding(.horizontal, DS.Space.md)
-                .frame(height: DS.Metrics.sidebarRow)
             }
 
             if case .reading(let done, let total) = env.scanProgress {
