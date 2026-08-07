@@ -173,11 +173,16 @@ struct TrackListHeader: View {
                     Image(systemName: ascending ? "chevron.up" : "chevron.down")
                         .font(.system(size: 7, weight: .semibold))
                         .foregroundStyle(DS.Color.textSecondary)
+                        .accessibilityHidden(true)
                 }
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Sort by \(target.label)")
+        // Стрелка спрятана от VoiceOver, поэтому направление проговаривает метка.
+        .accessibilityLabel(
+            column == target
+                ? "Sorted by \(target.label), \(ascending ? "ascending" : "descending")"
+                : "Sort by \(target.label)")
     }
 }
 

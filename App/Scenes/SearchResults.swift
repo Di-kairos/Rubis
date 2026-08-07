@@ -101,6 +101,7 @@ struct SearchResults: View {
                     .font(.system(size: 12))
                     .foregroundStyle(DS.Color.textTertiary)
                     .frame(width: 16)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     DSText(title(item), style: .headline)
                     if let subtitle = subtitle(item) {

@@ -18,6 +18,7 @@ public struct DSSearchField: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12))
                 .foregroundStyle(DS.Color.textTertiary)
+                .accessibilityHidden(true)
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
                 .font(DS.Font.body)
@@ -32,7 +33,7 @@ public struct DSSearchField: View {
             RoundedRectangle(cornerRadius: DS.Radius.small)
                 .strokeBorder(focused ? DS.Color.accent : .clear, lineWidth: 1)
         )
-        .animation(DS.Motion.hover, value: focused)
+        .dsAnimation(DS.Motion.hover, value: focused)
         .accessibilityLabel("Search")
     }
 }

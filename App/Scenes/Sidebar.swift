@@ -44,6 +44,7 @@ struct Sidebar: View {
                     Image(systemName: source.kind == .local ? "folder" : "server.rack")
                         .font(.system(size: 12))
                         .foregroundStyle(DS.Color.textTertiary)
+                        .accessibilityHidden(true)
                     DSText(
                         source.displayName, style: .body,
                         color: source.enabled ? DS.Color.textSecondary : DS.Color.textDisabled)
@@ -84,6 +85,7 @@ struct Sidebar: View {
                     .font(.system(size: 12))
                     .foregroundStyle(section == item ? DS.Color.accent : DS.Color.textTertiary)
                     .frame(width: 16)
+                    .accessibilityHidden(true)
                 DSText(
                     item.rawValue, style: .body,
                     color: section == item ? DS.Color.textPrimary : DS.Color.textSecondary)

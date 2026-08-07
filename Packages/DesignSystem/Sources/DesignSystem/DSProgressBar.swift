@@ -43,7 +43,7 @@ public struct DSProgressBar: View {
         }
         .frame(height: DS.Metrics.progressBarHeightHover + DS.Space.sm)
         .onHover { hovering = $0 }
-        .animation(DS.Motion.hover, value: hovering)
+        .dsAnimation(DS.Motion.hover, value: hovering)
         .accessibilityLabel("Playback position")
         .accessibilityValue("\(Int(progress * 100)) percent")
     }

@@ -45,6 +45,7 @@ struct KeysSettings: View {
                     HStack(spacing: DS.Space.sm) {
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundStyle(DS.Color.warning)
+                            .accessibilityHidden(true)
                         DSText(
                             "Needs Accessibility access", style: .caption,
                             color: DS.Color.textSecondary)
@@ -138,6 +139,7 @@ struct LibrarySettings: View {
                 HStack {
                     Image(systemName: source.kind == .local ? "folder" : "server.rack")
                         .foregroundStyle(DS.Color.textSecondary)
+                        .accessibilityHidden(true)
                     DSText(source.displayName, style: .body)
                     Spacer()
                     Button("Remove", role: .destructive) {

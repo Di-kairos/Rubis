@@ -87,6 +87,7 @@ struct TransportBar: View {
                 Image(systemName: "speaker.wave.2")
                     .font(.system(size: 11))
                     .foregroundStyle(DS.Color.textTertiary)
+                    .accessibilityHidden(true)
                 Slider(
                     value: Binding(
                         get: { volume },

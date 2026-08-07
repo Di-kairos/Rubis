@@ -23,9 +23,11 @@ public struct DSText: View {
         self.color = color
     }
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     public var body: some View {
         content
-            .foregroundStyle(color)
+            .foregroundStyle(DS.Contrast.text(color, increased: contrast == .increased))
             .truncationMode(.tail)
             .lineLimit(1)
     }
