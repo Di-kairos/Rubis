@@ -6,14 +6,15 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "6fae930"
-tests: 45/45 (swift test, 5 packages)
+head: "7ba870d"
+tests: 50/50 (swift test, 5 packages)
 last_session: 2
 last_reviewed: 2026-08-06
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "S03: вердикт владельца по дизайну Jewel Box (D-007) → шлифовка → релиз 0.2.1 в фид (проверка автообновления)"
-  - "Открытые чекбоксы фазы 5: сортировка/мультивыделение списков, группировка поиска с клавиатурной навигацией, аудит скролла 100k"
+  - "Открытые чекбоксы фазы 5: группировка поиска с клавиатурной навигацией, аудит скролла 100k"
+  - "Глазами проверить раздел Tracks: выделение — золотая дымка, не системный синий (скриншот из сессии снять не удалось — нет прав Screen Recording)"
   - "Acceptance фазы 5 → merge phase/05-interface → развилка: фаза 6 Navidrome (D-003) или фаза 7 — решает Di-kairos"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
 links:
@@ -37,7 +38,8 @@ Sparkle (v0.2.0 опубликован в `rubis-releases`), продукт пе
 дизайн **Jewel Box** (D-007). Три бага вылечены с репро-доказательствами (hog-SIGABRT,
 artwork-SIGTRAP, клик-играет-следующий). audio-verify **24/24 bit-perfect** на M5 Max,
 старт 208–219 мс. Детали — `docs/sessions/progress-report-session02.md`.
-HEAD: `6fae930` — feat(design): Jewel Box identity (D-007).
+HEAD: `7ba870d` — feat(ui): sortable track list with multi-selection
+(колонки #/Title/Artist/Album/Duration/Format, ⌘/⇧-клик, `TrackSort` под тестами).
 
 ## Фазы (из TASKS.md)
 
@@ -46,8 +48,8 @@ HEAD: `6fae930` — feat(design): Jewel Box identity (D-007).
 - Фаза 2 — БД и модель ✅ (100k FTS < 50 мс; v2_track_unavailable)
 - Фаза 3 — Аудио-движок ✅ (**verify 24/24 bit-perfect**; hog только для внешних устройств)
 - Фаза 4 — Локальная библиотека ✅ (обложки из папок, move-safe identity, unavailable)
-- **Фаза 5 — Интерфейс** ← почти закрыта; осталось: сортировка/мультивыделение,
-  группировка поиска, аудит скролла 100k → acceptance → merge
+- **Фаза 5 — Интерфейс** ← почти закрыта; осталось: группировка поиска,
+  аудит скролла 100k → acceptance → merge
 - Фаза 6 — Subsonic/Navidrome (отложена, D-003)
 - Фаза 7 — Системная интеграция и шлифовка (часть сделана в S02: медиа-клавиши,
   mini-player, восстановление очереди)
