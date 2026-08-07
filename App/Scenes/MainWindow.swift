@@ -29,7 +29,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 /// Main window: sidebar / content / detail + transport bar (SPEC §7.1).
 struct MainWindow: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var section: LibrarySection = .albums
+    @State private var section: LibrarySection = MainWindow.startSection
     @State private var selectedAlbum: Album?
 
     var body: some View {
@@ -86,6 +86,20 @@ struct MainWindow: View {
             }
             return true
         }
+    }
+
+    /// Раздел при запуске. В DEBUG его можно задать `RUBIS_START_SECTION=Tracks` —
+    /// нужно, чтобы замер скролла на синтетической 100k-библиотеке начинался
+    /// сразу на списке, а не с двух кликов мышью.
+    private static var startSection: LibrarySection {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["RUBIS_START_SECTION"],
+            let section = LibrarySection(rawValue: raw)
+        {
+            return section
+        }
+        #endif
+        return .albums
     }
 
     @ViewBuilder

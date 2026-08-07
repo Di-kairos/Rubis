@@ -127,8 +127,38 @@ struct PerformanceTests {
         }
     }
 
+    /// Не тест, а генератор фикстуры: пишет файловую библиотеку на 100k треков,
+    /// чтобы можно было руками померить fps скролла в Instruments (последний
+    /// пункт acceptance фазы 5). Приложение в DEBUG берёт её через `RUBIS_DB_PATH`.
+    ///
+    ///     RUBIS_GENERATE_LARGE_LIBRARY=/tmp/rubis-100k/library.sqlite \
+    ///       swift test --filter generateLargeLibraryFixture
+    ///
+    /// Размер задаётся `RUBIS_LARGE_LIBRARY_TRACKS` (по умолчанию 100 000) —
+    /// 50 000 нужны для проверки бюджета памяти из SPEC §12.
+    @Test(
+        .enabled(
+            if: ProcessInfo.processInfo.environment["RUBIS_GENERATE_LARGE_LIBRARY"] != nil),
+        .timeLimit(.minutes(5)))
+    func generateLargeLibraryFixture() throws {
+        let path = ProcessInfo.processInfo.environment["RUBIS_GENERATE_LARGE_LIBRARY"] ?? ""
+        let url = URL(fileURLWithPath: path)
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: url)
+
+        let count =
+            ProcessInfo.processInfo.environment["RUBIS_LARGE_LIBRARY_TRACKS"]
+            .flatMap(Int.init) ?? 100_000
+        let db = try AppDatabase(path: path)
+        try seedLibrary(db, tracks: count, artists: 2_000, albums: 10_000)
+        #expect(try TrackRepository(db: db).count() == count)
+    }
+
     /// Библиотека с настоящими связями artist/album — иначе join в запросе холостой.
-    private func seedLibrary(_ db: TestDatabase, tracks: Int, artists: Int, albums: Int) throws {
+    private func seedLibrary(
+        _ db: any DatabaseAccess, tracks: Int, artists: Int, albums: Int
+    ) throws {
         let source = Source(kind: .local, displayName: "Perf")
         try SourceRepository(db: db).upsert(source)
         let artistIds = try db.writer.write { database -> [Int64] in

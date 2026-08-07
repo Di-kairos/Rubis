@@ -57,7 +57,18 @@ final class AppEnvironment {
     var revealCurrentTrigger = 0
 
     init() throws {
+        #if DEBUG
+        // Прогон на синтетической библиотеке (замер скролла на 100k):
+        // RUBIS_DB_PATH=/tmp/rubis-100k/library.sqlite — фикстуру пишет
+        // тест `generateLargeLibraryFixture` в MusicLibrary.
+        if let path = ProcessInfo.processInfo.environment["RUBIS_DB_PATH"] {
+            db = try AppDatabase(path: path)
+        } else {
+            db = try AppDatabase.standard()
+        }
+        #else
         db = try AppDatabase.standard()
+        #endif
         devices = AudioDeviceController()
         player = Player(devices: devices)
         covers = try CoverCache()

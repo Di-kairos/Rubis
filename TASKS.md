@@ -141,12 +141,24 @@
 - [x] Пустые состояния и inline-ошибки (SPEC §9)
 - [ ] Проверка производительности скролла на 100k треков; переход на `NSTableView`,
       если SwiftUI не укладывается в бюджет
-      _(измерено автотестом `tracksSectionOn100kStaysWithinBudget`: загрузка списка
-      с именами 1.56 с, сортировка+индекс ≤ 0.4 с на 100k (release, M5 Max) — обе
-      операции уведены с MainActor. Строки виртуализует `List` (под ним NSTableView),
-      работа на строку O(1). **Не измерено:** fps живого скролла — нужен ручной прогон
-      Instruments на реальной 100k-библиотеке. Пока это не сделано, решение
-      «SwiftUI vs NSTableView» не принимается.)_
+      _(измерено: загрузка списка с именами 1.56 с, сортировка+индекс ≤ 0.4 с на 100k
+      (release, `tracksSectionOn100kStaysWithinBudget`) — обе операции уведены с
+      MainActor. Память с открытым списком (debug, худший случай): 50k → 221 МБ при
+      бюджете §12 250 МБ, 100k → 311 МБ. Строки виртуализует `List` (под ним
+      NSTableView), работа на строку O(1). **Не измерено:** fps живого скролла —
+      нужен Instruments, автоматизировать нечем. Пока не измерено, развилка
+      «SwiftUI vs NSTableView» не решается.)_
+
+      Как воспроизвести замер:
+      ```
+      cd Packages/MusicLibrary
+      RUBIS_GENERATE_LARGE_LIBRARY=/tmp/rubis-100k/library.sqlite \
+        swift test --filter generateLargeLibraryFixture
+      RUBIS_DB_PATH=/tmp/rubis-100k/library.sqlite RUBIS_START_SECTION=Tracks \
+        "<DerivedData>/Build/Products/Debug/Rubis Music.app/Contents/MacOS/Rubis Music"
+      ```
+      Обе переменные работают только в DEBUG. Размер фикстуры —
+      `RUBIS_LARGE_LIBRARY_TRACKS` (по умолчанию 100 000).
 
 **Acceptance:** бюджеты SPEC §12 по старту, скроллу и поиску измерены и выполнены;
 ни одного модального алерта вне двух разрешённых случаев;
@@ -156,9 +168,10 @@
 - ✅ старт — 208–219 мс при бюджете 800 мс (замер S02).
 - ✅ поиск — FTS по трекам и префиксные группы Artists/Albums на 100k: < 50 мс
   (`fts5SearchOn100kTracksUnder50ms`, `groupedSearchOn100kUnder50ms`).
-- ⏳ скролл — измерена только подготовка данных (загрузка 1.56 с, сортировка ≤ 0.4 с
-  на 100k, обе вне MainActor). **Fps живого скролла не измерен** — нужен ручной
-  прогон Instruments на 100k-библиотеке; до него развилка SwiftUI/NSTableView открыта.
+- ⏳ скролл — измерена подготовка данных (загрузка 1.56 с, сортировка ≤ 0.4 с на 100k,
+  обе вне MainActor) и память (50k → 221 МБ при бюджете 250 МБ, debug).
+  **Fps живого скролла не измерен** — нужен ручной прогон Instruments на
+  синтетической библиотеке (команды выше); до него развилка SwiftUI/NSTableView открыта.
 - ✅ модальные алерты — ровно один, удаление источника (`SettingsScene.removeSource`),
   это разрешённый случай SPEC §9.
 - ⏳ клавиатура — навигация есть во всех разделах (Tracks, поиск, сетка альбомов,
