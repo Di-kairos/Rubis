@@ -184,6 +184,72 @@ struct FTSTests {
         try seed(db)
         #expect(try TrackRepository(db: db).search("\"jo\"ga\"").count == 1)
     }
+
+    @Test func allWithNamesJoinsArtistAndAlbum() throws {
+        let db = try AppDatabase.inMemory()
+        try seed(db)
+        let rows = try TrackRepository(db: db).allWithNames()
+        #expect(rows.count == 2)
+        let joga = rows.first { $0.track.title == "Jóga" }
+        #expect(joga?.artistName == "Björk")
+        #expect(joga?.albumTitle == nil)
+        #expect(rows.first { $0.track.title == "Группа крови" }?.artistName == "Кино")
+    }
+}
+
+struct TrackSortTests {
+    private func hit(
+        _ title: String, _ artist: String?, _ album: String?, _ duration: Double,
+        _ codec: String
+    ) -> SearchHit {
+        SearchHit(
+            track: Track(
+                id: Int64(title.count), sourceId: "s", title: title, duration: duration,
+                codec: codec, sampleRate: 44_100),
+            artistName: artist, albumTitle: album)
+    }
+
+    private var rows: [SearchHit] {
+        [
+            hit("Track 10", "Björk", "Post", 120, "alac"),
+            hit("track 2", "bjork jr", nil, 300, "flac"),
+            hit("Ábc", nil, "Debut", 60, "dsf"),
+        ]
+    }
+
+    @Test func titleSortIsHumanAndCaseInsensitive() {
+        let asc = TrackSort.sorted(rows, by: .title, ascending: true).map(\.track.title)
+        #expect(asc == ["Ábc", "track 2", "Track 10"])
+    }
+
+    @Test func descendingReversesOrder() {
+        let desc = TrackSort.sorted(rows, by: .duration, ascending: false).map(\.track.duration)
+        #expect(desc == [300, 120, 60])
+    }
+
+    @Test func missingNamesSortFirst() {
+        let byArtist = TrackSort.sorted(rows, by: .artist, ascending: true).map { $0.artistName }
+        #expect(byArtist == [nil, "Björk", "bjork jr"])
+        let byAlbum = TrackSort.sorted(rows, by: .album, ascending: true).map { $0.albumTitle }
+        #expect(byAlbum == [nil, "Debut", "Post"])
+    }
+
+    @Test func equalKeysKeepIdOrderInBothDirections() {
+        let same = [
+            hit("B", "same", nil, 100, "flac"),
+            hit("AA", "same", nil, 100, "flac"),
+        ]
+        // id = длина названия: 1 («B») и 2 («AA»).
+        let asc = TrackSort.sorted(same, by: .artist, ascending: true).map(\.id)
+        let desc = TrackSort.sorted(same, by: .artist, ascending: false).map(\.id)
+        #expect(asc == [1, 2])
+        #expect(desc == asc, "равные ключи не должны переворачиваться вместе с направлением")
+    }
+
+    @Test func formatSortsByCodec() {
+        let byFormat = TrackSort.sorted(rows, by: .format, ascending: true).map(\.track.codec)
+        #expect(byFormat == ["alac", "dsf", "flac"])
+    }
 }
 
 struct ObservationTests {

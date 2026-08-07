@@ -2,11 +2,20 @@ import EscapementCore
 import Foundation
 import GRDB
 
-/// One row of FTS search output: track plus display names for grouping.
-public struct SearchHit: Sendable, Equatable {
+/// Track plus display names — строка списка и результат поиска.
+public struct SearchHit: Sendable, Equatable, Identifiable {
     public let track: Track
     public let artistName: String?
     public let albumTitle: String?
+
+    /// Строки всегда приходят из БД, где id есть; -1 — недостижимая заглушка.
+    public var id: Int64 { track.id ?? -1 }
+
+    public init(track: Track, artistName: String?, albumTitle: String?) {
+        self.track = track
+        self.artistName = artistName
+        self.albumTitle = albumTitle
+    }
 }
 
 public struct TrackRepository: Sendable {
@@ -46,9 +55,20 @@ public struct TrackRepository: Sendable {
         }
     }
 
-    /// Вся библиотека по алфавиту — раздел Tracks. Виртуализацию держит List.
-    public func all() throws -> [Track] {
-        try db.reader.read { try Track.order(Column("title")).fetchAll($0) }
+    /// Вся библиотека с именами артиста и альбома — колонки раздела Tracks.
+    /// Без ORDER BY: порядок всё равно задаёт `TrackSort` в UI.
+    public func allWithNames() throws -> [SearchHit] {
+        try db.reader.read { database in
+            let rows = try Row.fetchAll(
+                database,
+                sql: """
+                    SELECT track.*, artist.name AS artist_name, album.title AS album_title
+                    FROM track
+                    LEFT JOIN artist ON artist.id = track.artist_id
+                    LEFT JOIN album ON album.id = track.album_id
+                    """)
+            return try Self.hits(from: rows)
+        }
     }
 
     /// Треки по списку id с сохранением порядка запроса (порядок в плейлисте).
@@ -98,12 +118,16 @@ public struct TrackRepository: Sendable {
                     LIMIT ?
                     """,
                 arguments: [match, limit])
-            return try rows.map { row in
-                SearchHit(
-                    track: try Track(row: row),
-                    artistName: row["artist_name"],
-                    albumTitle: row["album_title"])
-            }
+            return try Self.hits(from: rows)
+        }
+    }
+
+    private static func hits(from rows: [Row]) throws -> [SearchHit] {
+        try rows.map { row in
+            SearchHit(
+                track: try Track(row: row),
+                artistName: row["artist_name"],
+                albumTitle: row["album_title"])
         }
     }
 }

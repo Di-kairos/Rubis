@@ -63,59 +63,6 @@ struct ArtistsList: View {
     }
 }
 
-/// Tracks section: the whole library alphabetically, double-click plays
-/// from that row. List keeps 100k rows virtualized (SPEC §7.4 check).
-struct TracksList: View {
-    @Environment(AppEnvironment.self) private var env
-    @State private var tracks: [Track] = []
-
-    var body: some View {
-        List {
-            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                DSListRow(isSelected: isCurrent(track)) {
-                    HStack(spacing: DS.Space.md) {
-                        UnavailableMark(track: track)
-                        PlayingMark(isPlaying: isCurrent(track))
-                        DSText(
-                            track.title, style: .headline,
-                            color: track.titleColor(isPlaying: isCurrent(track))
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        DSText(
-                            track.codec.uppercased(), style: .caption,
-                            color: DS.Color.textTertiary)
-                        DSText(
-                            AlbumDetail.format(duration: track.duration), style: .numeric,
-                            color: DS.Color.textTertiary)
-                    }
-                }
-                .onTapGesture(count: 2) { play(from: index) }
-                .draggable(track.dragPayload)
-                .trackQueueMenu(track, env: env)
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-                .listRowBackground(DS.Color.bgBase)
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.Color.bgBase)
-        .task {
-            tracks = (try? env.trackRepo.all()) ?? []
-        }
-    }
-
-    private func isCurrent(_ track: Track) -> Bool {
-        if case .playing(let current) = env.playbackState { return current.id == track.id }
-        if case .paused(let current) = env.playbackState { return current.id == track.id }
-        return false
-    }
-
-    private func play(from index: Int) {
-        env.play(tracks: tracks, startAt: index)
-    }
-}
-
 /// Recently Added: album grid ordered by newest tracks.
 struct RecentlyAddedGrid: View {
     @Binding var selectedAlbum: Album?
