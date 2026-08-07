@@ -145,6 +145,21 @@ final class AppEnvironment {
         Task { await player.enqueue(items: items) }
     }
 
+    /// Текущая очередь для экрана Now Playing: состав и индекс играющего.
+    func queueSnapshot() async -> (tracks: [Track], index: Int) {
+        let items = await player.queuedItems()
+        return (items.map(\.track), await player.currentIndex())
+    }
+
+    /// Прыжок на трек внутри текущей очереди (двойной клик в Now Playing).
+    func playQueueItem(at index: Int) {
+        Task {
+            let items = await player.queuedItems()
+            guard items.indices.contains(index) else { return }
+            await player.play(items: items, startAt: index)
+        }
+    }
+
     func cycleShuffleMode() {
         let modes = ShuffleMode.allCases
         let next = modes[(modes.firstIndex(of: shuffleMode).map { $0 + 1 } ?? 0) % modes.count]

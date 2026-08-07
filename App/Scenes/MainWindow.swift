@@ -124,8 +124,10 @@ struct MainWindow: View {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
             switch section.wrappedValue {
-            case .albums, .nowPlaying:
+            case .albums:
                 AlbumsGrid(selectedAlbum: $selectedAlbum)
+            case .nowPlaying:
+                NowPlayingQueue()
             case .artists:
                 ArtistsList(selectedAlbum: $selectedAlbum)
             case .tracks:
