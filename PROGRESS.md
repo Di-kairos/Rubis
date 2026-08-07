@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "88ee1aa"
+head: "c8352fb"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -94,6 +94,13 @@ default оставить на колонках. По решению владел
 Dock смотрелась мрачно) — все 10 размеров AppIcon.appiconset перегенерированы
 sips из исходника 1254×1254. Выпущен **0.3.5** (build 8), SHA256 сверен.
 HEAD: `57ba733` — chore(release): bump version to 0.3.5 (build 8).
+Дизайн-вердикт владельца: «симпатично, но не оригинально» — начало итерации D-007.
+Первые правки: Play на экране альбома — тонкое золотое кольцо вместо залитой
+плашки, дубль-Shuffle удалён (есть в транспорте); в транспортной панели вместо
+заглушки — обложка играющего альбома. Оба репо оформлены README с новым лого
+(бейджи, карта пакетов, download-гайд в rubis-releases). Выпущен **0.3.6**
+(build 9), SHA256 сверен.
+HEAD: `c8352fb` — chore(release): bump version to 0.3.6 (build 9).
 
 ## Фазы (из TASKS.md)
 
