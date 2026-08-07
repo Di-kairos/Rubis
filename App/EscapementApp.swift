@@ -20,6 +20,9 @@ struct EscapementApp: App {
 
     @State private var env = Self.makeEnvironment()
     @State private var media: MediaIntegration?
+    @State private var menuBar: MenuBarPresence?
+    @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
+    @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
     /// Sparkle (D-005): проверка и установка обновлений из rubis-releases.
     private let updater = SPUStandardUpdaterController(
         startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -44,11 +47,15 @@ struct EscapementApp: App {
                     }
                     media = MediaIntegration(env: env)
                     media?.update()
+                    let presence = MenuBarPresence(env: env)
+                    presence.setEnabled(menuBarIcon)
+                    menuBar = presence
                     #if DEBUG
                     DebugHarness.startIfRequested()
                     #endif
                 }
                 .onChange(of: env.playbackState) { media?.update() }
+                .onChange(of: menuBarIcon) { menuBar?.setEnabled(menuBarIcon) }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -95,6 +102,7 @@ struct EscapementApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .keyboardShortcut("m", modifiers: [.command, .shift])
+        .windowLevel(miniPlayerOnTop ? .floating : .normal)
 
         #if DEBUG
         Window("Design Gallery", id: "design-gallery") {

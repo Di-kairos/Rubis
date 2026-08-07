@@ -6,9 +6,13 @@ import PlaybackEngine
 import SwiftUI
 
 /// Settings (SPEC §8): Library / Audio / Server / Keys.
+/// ASSUMPTION: вкладка General добавлена сверх списка §8 — присутствие в системе
+/// (меню-бар, mini player поверх окон) не относится ни к одной из четырёх.
 struct SettingsScene: View {
     var body: some View {
         TabView {
+            GeneralSettings()
+                .tabItem { Label("General", systemImage: "gearshape") }
             LibrarySettings()
                 .tabItem { Label("Library", systemImage: "folder") }
             AudioSettings()
@@ -20,6 +24,23 @@ struct SettingsScene: View {
                 .frame(width: 480, height: 200)
                 .tabItem { Label("Keys", systemImage: "keyboard") }
         }
+        .frame(width: 520)
+    }
+}
+
+/// Присутствие приложения в системе (SPEC §7.5): обе опции выключены по
+/// умолчанию — ничего не лезет в меню-бар и поверх чужих окон без спроса.
+struct GeneralSettings: View {
+    @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
+    @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
+
+    var body: some View {
+        Form {
+            Toggle("Show icon in the menu bar", isOn: $menuBarIcon)
+                .help("Current track and transport without bringing the window up")
+            Toggle("Keep mini player above other windows", isOn: $miniPlayerOnTop)
+        }
+        .padding(DS.Space.xl)
         .frame(width: 520)
     }
 }
