@@ -20,11 +20,93 @@ struct SettingsScene: View {
             DSText("Server — phase 6", style: .body, color: DS.Color.textTertiary)
                 .frame(width: 480, height: 200)
                 .tabItem { Label("Server", systemImage: "server.rack") }
-            DSText("Keys — phase 7", style: .body, color: DS.Color.textTertiary)
-                .frame(width: 480, height: 200)
+            KeysSettings()
                 .tabItem { Label("Keys", systemImage: "keyboard") }
         }
         .frame(width: 520)
+    }
+}
+
+/// Keys (SPEC §8): глобальные медиа-клавиши и справка по горячим клавишам §7.6.
+/// Переопределение сочетаний — не в этой фазе, список только показывается.
+struct KeysSettings: View {
+    @Environment(AppEnvironment.self) private var env
+    @AppStorage(SettingsKey.globalMediaKeys) private var globalMediaKeys = false
+    @State private var trusted = GlobalMediaKeys.isTrusted
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Global media keys", isOn: $globalMediaKeys)
+                    .help("Play, next and previous work while another app is in front")
+                if globalMediaKeys && !trusted {
+                    // Разрешение выдаётся в System Settings и подхватывается
+                    // не мгновенно — поэтому статус с кнопкой, а не молчание.
+                    HStack(spacing: DS.Space.sm) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(DS.Color.warning)
+                        DSText(
+                            "Needs Accessibility access", style: .caption,
+                            color: DS.Color.textSecondary)
+                        Button("Grant…") {
+                            GlobalMediaKeys.requestTrust()
+                            openAccessibilitySettings()
+                        }
+                        Button("Recheck") { refreshTrust() }
+                    }
+                }
+            }
+            Section("Shortcuts") {
+                ForEach(Self.shortcuts, id: \.0) { name, keys in
+                    HStack {
+                        DSText(name, style: .body)
+                        Spacer()
+                        DSText(keys, style: .numeric, color: DS.Color.textSecondary)
+                    }
+                }
+            }
+        }
+        .padding(DS.Space.xl)
+        .frame(width: 520)
+        .onChange(of: globalMediaKeys) { apply() }
+        .task { apply() }
+    }
+
+    /// Список из SPEC §7.6 — справка, пока переопределения нет.
+    private static let shortcuts: [(String, String)] = [
+        ("Play / Pause", "Space"),
+        ("Next / previous track", "⌘→  ⌘←"),
+        ("Seek ±5 s", "→  ←"),
+        ("Search", "⌘F"),
+        ("Mini player", "⌘⇧M"),
+        ("Show current track", "⌘L"),
+        ("New playlist", "⌘⇧N"),
+        ("Rescan sources", "⌘R"),
+        ("Settings", "⌘,"),
+    ]
+
+    private func apply() {
+        refreshTrust()
+        // Включение без разрешения не притворяется успешным: тумблер
+        // возвращается назад, а рядом остаётся объяснение.
+        if globalMediaKeys, env.globalMediaKeys?.setEnabled(true) != true, !trusted {
+            return
+        }
+        if !globalMediaKeys { _ = env.globalMediaKeys?.setEnabled(false) }
+    }
+
+    private func refreshTrust() {
+        trusted = GlobalMediaKeys.isTrusted
+    }
+
+    private func openAccessibilitySettings() {
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            )
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

@@ -56,6 +56,10 @@ final class AppEnvironment {
     /// Инкремент по ⌘L — MainWindow открывает альбом играющего трека.
     var revealCurrentTrigger = 0
 
+    /// Глобальные медиа-клавиши. Объект инертен: монитор ставится только
+    /// когда функцию включили в настройках.
+    private(set) var globalMediaKeys: GlobalMediaKeys?
+
     init() throws {
         #if DEBUG
         // Прогон на синтетической библиотеке (замер скролла на 100k):
@@ -80,6 +84,7 @@ final class AppEnvironment {
                 if case .playing = state { await self.saveQueueSnapshot() }
             }
         }
+        globalMediaKeys = GlobalMediaKeys(env: self)
         Task { await restoreQueue() }
         // Позиция внутри трека нигде больше не хранится — пишем её раз в
         // секунду, чтобы ⌘Q в любой момент терял не больше секунды.
