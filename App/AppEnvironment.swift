@@ -85,6 +85,10 @@ final class AppEnvironment {
             }
         }
         globalMediaKeys = GlobalMediaKeys(env: self)
+        // Настройки Audio живут в UserDefaults, но до этого применялись только
+        // при открытии Settings — плеер стартовал с дефолтным конфигом и терял
+        // выбранный выход. Толкаем сохранённый конфиг сразу.
+        Task { [player] in await player.update(configuration: Self.storedAudioConfiguration()) }
         Task { await restoreQueue() }
         // Позиция внутри трека нигде больше не хранится — пишем её раз в
         // секунду, чтобы ⌘Q в любой момент терял не больше секунды.
@@ -158,6 +162,28 @@ final class AppEnvironment {
             guard items.indices.contains(index) else { return }
             await player.play(items: items, startAt: index)
         }
+    }
+
+    /// Конфиг аудио-тракта из UserDefaults — единственный маппинг ключей
+    /// настроек в AudioConfiguration (используют и старт, и вкладка Audio).
+    static func storedAudioConfiguration() -> AudioConfiguration {
+        let defaults = UserDefaults.standard
+        let uid = defaults.string(forKey: "preferredDeviceUID") ?? ""
+        return AudioConfiguration(
+            exclusiveAccess: defaults.object(forKey: "exclusiveAccess") as? Bool ?? true,
+            sampleRateChangeDelay: .milliseconds(
+                defaults.object(forKey: "rateChangeDelayMs") as? Int ?? 300),
+            rateFallback: .init(rawValue: defaults.string(forKey: "rateFallback") ?? "")
+                ?? .nearestFamilyMultiple,
+            dsdMode: .init(rawValue: defaults.string(forKey: "dsdMode") ?? "")
+                ?? .dopIfAvailable,
+            preferredDeviceUID: uid.isEmpty ? nil : uid)
+    }
+
+    /// Перечитать настройки и толкнуть в плеер (вкладка Audio дёргает на
+    /// каждом изменении; действует со следующего трека).
+    func applyStoredAudioConfiguration() {
+        Task { await player.update(configuration: Self.storedAudioConfiguration()) }
     }
 
     func cycleShuffleMode() {

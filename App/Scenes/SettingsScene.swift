@@ -188,9 +188,23 @@ struct AudioSettings: View {
     @AppStorage("rateChangeDelayMs") private var rateChangeDelayMs = 300
     @AppStorage("rateFallback") private var rateFallback = "nearestFamilyMultiple"
     @AppStorage("dsdMode") private var dsdMode = "dopIfAvailable"
+    /// Пустая строка — следовать системному default-выходу.
+    @AppStorage("preferredDeviceUID") private var preferredDeviceUID = ""
+    @State private var devices: [AudioDeviceController.DeviceInfo] = []
+
+    /// Свой экземпляр только для перечисления — HAL-запросы дёшевы,
+    /// трогать актор плеера ради списка не нужно.
+    private let enumerator = AudioDeviceController()
 
     var body: some View {
         Form {
+            Picker("Output device", selection: $preferredDeviceUID) {
+                Text("System default").tag("")
+                ForEach(devices) { device in
+                    Text(device.name).tag(device.uid)
+                }
+            }
+            .help("Takes effect from the next track. If the device is unplugged, pick System default.")
             Toggle("Exclusive access (hog mode)", isOn: $exclusiveAccess)
             Stepper(
                 "Sample-rate change delay: \(rateChangeDelayMs) ms",
@@ -216,15 +230,16 @@ struct AudioSettings: View {
         .onChange(of: rateChangeDelayMs) { pushConfig() }
         .onChange(of: rateFallback) { pushConfig() }
         .onChange(of: dsdMode) { pushConfig() }
-        .task { pushConfig() }
+        .onChange(of: preferredDeviceUID) { pushConfig() }
+        .task {
+            devices = (try? await enumerator.outputDevices()) ?? []
+            pushConfig()
+        }
     }
 
+    /// @AppStorage уже записал значение в UserDefaults — маппинг ключей
+    /// в конфиг один, в AppEnvironment.storedAudioConfiguration().
     private func pushConfig() {
-        let config = AudioConfiguration(
-            exclusiveAccess: exclusiveAccess,
-            sampleRateChangeDelay: .milliseconds(rateChangeDelayMs),
-            rateFallback: .init(rawValue: rateFallback) ?? .nearestFamilyMultiple,
-            dsdMode: .init(rawValue: dsdMode) ?? .dopIfAvailable)
-        Task { await env.player.update(configuration: config) }
+        env.applyStoredAudioConfiguration()
     }
 }
