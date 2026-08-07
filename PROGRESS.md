@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "cf4febe"
+head: "43ca082"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -56,7 +56,15 @@ MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и с�
 Session 5 (2026-08-07): `phase/07-integration` слита в main (`94b0320`, тесты 70/70
 перед merge), выпущен **Rubis Music 0.3.0** (build 3) в `rubis-releases` — DMG подписан
 EdDSA, appcast обновлён, опубликованный файл сверен по SHA256.
-HEAD: `cf4febe` — chore(release): bump version to 0.3.0 (build 3).
+Багрепорт владельца (78 папок-источников на живой библиотеке): сайдбар был VStack
+без скролла → контент ~2200 pt распирал NavigationSplitView, layout окна разваливался
+(тулбар/транспорт-бар выталкивало), AppKit падал исключением в NSViewUpdateConstraints
+(SIGTRAP). Диагноз доказан DEBUG-харнессом на копии живой БД (78 vs 3 источника).
+Фикс `9cacca9`: список сайдбара обёрнут в ScrollView. Выпущен **0.3.1** (build 4),
+SHA256 опубликованного DMG сверен. Замечено: снапшот харнесса на macOS 26 не
+захватывает NSScrollView-контент и vibrancy-сайдбар (белые области) — артефакт
+снапшота, не бага рендера.
+HEAD: `43ca082` — chore(release): bump version to 0.3.1 (build 4).
 
 ## Фазы (из TASKS.md)
 
