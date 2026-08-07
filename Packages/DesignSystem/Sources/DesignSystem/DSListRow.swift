@@ -26,7 +26,7 @@ public struct DSListRow<Content: View>: View {
             .background(background)
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
-            .animation(DS.Motion.hover, value: hovering)
+            .dsAnimation(DS.Motion.hover, value: hovering)
     }
 
     private var background: SwiftUI.Color {

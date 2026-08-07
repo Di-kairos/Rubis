@@ -50,6 +50,8 @@ public actor Player {
     private var gaplessDecoderID: ObjectIdentifier?
     /// Set by prepareDevice when the current track goes out as DoP packets.
     private var currentUsesDoP = false
+    /// Позиция из прошлого запуска: применяется к первому же старту и гасится.
+    private var pendingSeek: TimeInterval?
 
     private var stateContinuations: [UUID: AsyncStream<PlaybackState>.Continuation] = [:]
     private var statusContinuations: [UUID: AsyncStream<OutputStatus?>.Continuation] = [:]
@@ -98,6 +100,9 @@ public actor Player {
     public func play(items: [PlaybackItem], startAt position: Int = 0) async {
         installBridgeIfNeeded()
         sourceQueue = items
+        // Пользователь сам выбрал, что играть — позиция из прошлого запуска
+        // больше не относится ни к чему.
+        pendingSeek = nil
         let start = min(max(position, 0), max(items.count - 1, 0))
         if shuffleMode == .off {
             queue = items
@@ -112,20 +117,23 @@ public actor Player {
     }
 
     /// Восстановление очереди при запуске: состав и позиция без старта звука.
-    /// Первый Play играет восстановленный трек с начала.
-    /// ponytail: позиция внутри трека не восстанавливается — добавить seek
-    /// после play, если понадобится точное продолжение.
-    public func restore(items: [PlaybackItem], at position: Int) {
+    /// `offset` — секунды внутри трека, с которых продолжить: первый Play
+    /// стартует трек и сразу перематывает туда.
+    public func restore(items: [PlaybackItem], at position: Int, offset: TimeInterval = 0) {
         installBridgeIfNeeded()
         sourceQueue = items
         queue = items
         index = min(max(position, 0), max(items.count - 1, 0))
+        pendingSeek = offset > 0 ? offset : nil
     }
 
     /// Старт текущего элемента восстановленной очереди (Play из idle).
+    /// Единственный путь, который применяет позицию из прошлого запуска.
     public func playCurrent() async {
         guard !queue.isEmpty else { return }
-        await startCurrent()
+        let offset = pendingSeek
+        pendingSeek = nil
+        await startCurrent(seekTo: offset)
     }
 
     public func currentIndex() -> Int { index }
@@ -251,7 +259,9 @@ public actor Player {
 
     // MARK: - Engine internals
 
-    private func startCurrent() async {
+    /// `seekTo` заполняет только `playCurrent()` — продолжение с места остановки.
+    /// Любой другой старт (клик по треку, next, previous) играет с начала.
+    private func startCurrent(seekTo offset: TimeInterval? = nil) async {
         guard queue.indices.contains(index) else {
             stop()
             return
@@ -265,6 +275,7 @@ public actor Player {
             currentDecoderID = ObjectIdentifier(decoder as AnyObject)
             gaplessDecoderID = nil
             try engine.play(decoder)
+            if let offset { _ = engine.seek(time: offset) }
             state = .playing(item.track)
             armGapless()
         } catch let error as PlaybackError {

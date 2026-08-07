@@ -20,6 +20,10 @@ struct EscapementApp: App {
 
     @State private var env = Self.makeEnvironment()
     @State private var media: MediaIntegration?
+    @State private var menuBar: MenuBarPresence?
+    @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
+    @AppStorage(SettingsKey.globalMediaKeys) private var globalMediaKeys = false
+    @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
     /// Sparkle (D-005): проверка и установка обновлений из rubis-releases.
     private let updater = SPUStandardUpdaterController(
         startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -42,13 +46,25 @@ struct EscapementApp: App {
                         let ms = Int(Date().timeIntervalSince(start) * 1000)
                         Log.ui.info("launch to interactive window: \(ms, privacy: .public) ms")
                     }
-                    media = MediaIntegration(env: env)
+                    if media == nil { media = MediaIntegration(env: env) }
                     media?.update()
+                    // Окно может появиться повторно — второй статус-айтем
+                    // и второй монитор нам не нужны.
+                    if menuBar == nil {
+                        let presence = MenuBarPresence(env: env)
+                        presence.setEnabled(menuBarIcon)
+                        menuBar = presence
+                        env.globalMediaKeys?.setEnabled(globalMediaKeys)
+                    }
                     #if DEBUG
                     DebugHarness.startIfRequested()
                     #endif
                 }
                 .onChange(of: env.playbackState) { media?.update() }
+                .onChange(of: menuBarIcon) { menuBar?.setEnabled(menuBarIcon) }
+                .onChange(of: globalMediaKeys) {
+                    env.globalMediaKeys?.setEnabled(globalMediaKeys)
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -95,6 +111,7 @@ struct EscapementApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .keyboardShortcut("m", modifiers: [.command, .shift])
+        .windowLevel(miniPlayerOnTop ? .floating : .normal)
 
         #if DEBUG
         Window("Design Gallery", id: "design-gallery") {

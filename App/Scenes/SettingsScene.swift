@@ -6,9 +6,13 @@ import PlaybackEngine
 import SwiftUI
 
 /// Settings (SPEC §8): Library / Audio / Server / Keys.
+/// ASSUMPTION: вкладка General добавлена сверх списка §8 — присутствие в системе
+/// (меню-бар, mini player поверх окон) не относится ни к одной из четырёх.
 struct SettingsScene: View {
     var body: some View {
         TabView {
+            GeneralSettings()
+                .tabItem { Label("General", systemImage: "gearshape") }
             LibrarySettings()
                 .tabItem { Label("Library", systemImage: "folder") }
             AudioSettings()
@@ -16,10 +20,103 @@ struct SettingsScene: View {
             DSText("Server — phase 6", style: .body, color: DS.Color.textTertiary)
                 .frame(width: 480, height: 200)
                 .tabItem { Label("Server", systemImage: "server.rack") }
-            DSText("Keys — phase 7", style: .body, color: DS.Color.textTertiary)
-                .frame(width: 480, height: 200)
+            KeysSettings()
                 .tabItem { Label("Keys", systemImage: "keyboard") }
         }
+        .frame(width: 520)
+    }
+}
+
+/// Keys (SPEC §8): глобальные медиа-клавиши и справка по горячим клавишам §7.6.
+/// Переопределение сочетаний — не в этой фазе, список только показывается.
+struct KeysSettings: View {
+    @Environment(AppEnvironment.self) private var env
+    @AppStorage(SettingsKey.globalMediaKeys) private var globalMediaKeys = false
+    @State private var trusted = GlobalMediaKeys.isTrusted
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Global media keys", isOn: $globalMediaKeys)
+                    .help("Play, next and previous work while another app is in front")
+                if globalMediaKeys && !trusted {
+                    // Разрешение выдаётся в System Settings и подхватывается
+                    // не мгновенно — поэтому статус с кнопкой, а не молчание.
+                    HStack(spacing: DS.Space.sm) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(DS.Color.warning)
+                            .accessibilityHidden(true)
+                        DSText(
+                            "Needs Accessibility access", style: .caption,
+                            color: DS.Color.textSecondary)
+                        Button("Grant…") {
+                            GlobalMediaKeys.requestTrust()
+                            openAccessibilitySettings()
+                        }
+                        Button("Recheck") { apply() }
+                    }
+                }
+            }
+            Section("Shortcuts") {
+                ForEach(Self.shortcuts, id: \.0) { name, keys in
+                    HStack {
+                        DSText(name, style: .body)
+                        Spacer()
+                        DSText(keys, style: .numeric, color: DS.Color.textSecondary)
+                    }
+                }
+            }
+        }
+        .padding(DS.Space.xl)
+        .frame(width: 520)
+        .onChange(of: globalMediaKeys) { apply() }
+        .task { apply() }
+    }
+
+    /// Список из SPEC §7.6 — справка, пока переопределения нет.
+    private static let shortcuts: [(String, String)] = [
+        ("Play / Pause", "Space"),
+        ("Next / previous track", "⌘→  ⌘←"),
+        ("Seek ±5 s", "→  ←"),
+        ("Search", "⌘F"),
+        ("Mini player", "⌘⇧M"),
+        ("Show current track", "⌘L"),
+        ("New playlist", "⌘⇧N"),
+        ("Rescan sources", "⌘R"),
+        ("Settings", "⌘,"),
+    ]
+
+    /// Само включение висит на приложении (оно же поднимает монитор при
+    /// запуске) — здесь только повторная попытка после выдачи разрешения.
+    private func apply() {
+        trusted = GlobalMediaKeys.isTrusted
+        _ = env.globalMediaKeys?.setEnabled(globalMediaKeys)
+    }
+
+    private func openAccessibilitySettings() {
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            )
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+}
+
+/// Присутствие приложения в системе (SPEC §7.5): обе опции выключены по
+/// умолчанию — ничего не лезет в меню-бар и поверх чужих окон без спроса.
+struct GeneralSettings: View {
+    @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
+    @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
+
+    var body: some View {
+        Form {
+            Toggle("Show icon in the menu bar", isOn: $menuBarIcon)
+                .help("Current track and transport without bringing the window up")
+            Toggle("Keep mini player above other windows", isOn: $miniPlayerOnTop)
+        }
+        .padding(DS.Space.xl)
         .frame(width: 520)
     }
 }
@@ -35,6 +132,7 @@ struct LibrarySettings: View {
                 HStack {
                     Image(systemName: source.kind == .local ? "folder" : "server.rack")
                         .foregroundStyle(DS.Color.textSecondary)
+                        .accessibilityHidden(true)
                     DSText(source.displayName, style: .body)
                     Spacer()
                     Button("Remove", role: .destructive) {

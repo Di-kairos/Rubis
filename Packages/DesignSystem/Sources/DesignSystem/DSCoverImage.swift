@@ -26,6 +26,7 @@ public struct DSCoverImage: View {
                     Image(systemName: "music.note")
                         .font(.system(size: size * 0.28, weight: .light))
                         .foregroundStyle(DS.Color.textDisabled)
+                        .accessibilityHidden(true)
                 }
             }
         }

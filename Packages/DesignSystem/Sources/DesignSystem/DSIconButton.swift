@@ -32,7 +32,7 @@ public struct DSIconButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .animation(DS.Motion.hover, value: hovering)
+        .dsAnimation(DS.Motion.hover, value: hovering)
         .accessibilityLabel(accessibilityLabel)
     }
 }

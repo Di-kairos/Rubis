@@ -29,13 +29,27 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 /// Main window: sidebar / content / detail + transport bar (SPEC §7.1).
 struct MainWindow: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var section: LibrarySection = MainWindow.startSection
+    /// Раздел переживает перезапуск (фаза 7: восстановление состояния).
+    @AppStorage("ui.section") private var storedSection: LibrarySection = .albums
+    /// Раздел, навязанный замером. Живёт в памяти: DEBUG-прогон не должен
+    /// портить сохранённый выбор владельца.
+    @State private var forcedSection: LibrarySection? = MainWindow.debugStartSection
+
+    private var section: Binding<LibrarySection> {
+        Binding(
+            get: { forcedSection ?? storedSection },
+            set: { value in
+                forcedSection = nil
+                storedSection = value
+            })
+    }
     @State private var selectedAlbum: Album?
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         VStack(spacing: 0) {
             NavigationSplitView {
-                Sidebar(section: $section)
+                Sidebar(section: section)
                     .navigationSplitViewColumnWidth(
                         min: DS.Metrics.sidebarWidthMin,
                         ideal: DS.Metrics.sidebarWidth,
@@ -46,6 +60,9 @@ struct MainWindow: View {
             } detail: {
                 if let album = selectedAlbum {
                     AlbumDetail(album: album)
+                        // Ниже этого экран альбома нечитаем: обложка 200 pt
+                        // плюс поля не оставляют места под название.
+                        .navigationSplitViewColumnWidth(min: 460, ideal: 560)
                 } else {
                     DSText("Select an album", style: .body, color: DS.Color.textTertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -53,7 +70,7 @@ struct MainWindow: View {
                 }
             }
             Rectangle()
-                .fill(DS.Color.strokeHairline)
+                .fill(DS.Contrast.stroke(increased: contrast == .increased))
                 .frame(height: 1)
             TransportBar()
         }
@@ -64,7 +81,7 @@ struct MainWindow: View {
         )
         // ⌘⇧N создаёт плейлист из любого раздела — переключаемся к нему.
         .onChange(of: env.pendingPlaylistId) {
-            if env.pendingPlaylistId != nil { section = .playlists }
+            if env.pendingPlaylistId != nil { section.wrappedValue = .playlists }
         }
         // ⌘L: показать альбом играющего трека (SPEC §7.6).
         .onChange(of: env.revealCurrentTrigger) {
@@ -72,7 +89,7 @@ struct MainWindow: View {
                 let album = try? env.albumRepo.album(id: albumId)
             else { return }
             env.searchText = ""
-            section = .albums
+            section.wrappedValue = .albums
             selectedAlbum = album
         }
         // Папка из Finder на любое место окна → новый источник (SPEC §7.4 d&d)
@@ -88,18 +105,17 @@ struct MainWindow: View {
         }
     }
 
-    /// Раздел при запуске. В DEBUG его можно задать `RUBIS_START_SECTION=Tracks` —
-    /// нужно, чтобы замер скролла на синтетической 100k-библиотеке начинался
-    /// сразу на списке, а не с двух кликов мышью.
-    private static var startSection: LibrarySection {
+    /// Замеры перекрывают сохранённый раздел: `RUBIS_START_SECTION=Tracks`
+    /// открывает приложение сразу на списке. Только DEBUG.
+    private static var debugStartSection: LibrarySection? {
         #if DEBUG
-        if let raw = ProcessInfo.processInfo.environment["RUBIS_START_SECTION"],
-            let section = LibrarySection(rawValue: raw)
-        {
-            return section
+        guard let raw = ProcessInfo.processInfo.environment["RUBIS_START_SECTION"] else {
+            return nil
         }
+        return LibrarySection(rawValue: raw)
+        #else
+        return nil
         #endif
-        return .albums
     }
 
     @ViewBuilder
@@ -107,7 +123,7 @@ struct MainWindow: View {
         if !env.searchText.isEmpty {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
-            switch section {
+            switch section.wrappedValue {
             case .albums, .nowPlaying:
                 AlbumsGrid(selectedAlbum: $selectedAlbum)
             case .artists:

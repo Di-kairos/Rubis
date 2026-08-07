@@ -60,6 +60,15 @@ struct AlbumsGrid: View {
             do {
                 for try await list in LibraryObservation.albums(db: env.db) {
                     albums = list
+                    #if DEBUG
+                    // Снимок экрана альбома харнессом: выбрать первый, иначе
+                    // деталь показывает «Select an album».
+                    if ProcessInfo.processInfo.environment["RUBIS_DEBUG_SELECT"] != nil,
+                        selectedAlbum == nil
+                    {
+                        selectedAlbum = list.first
+                    }
+                    #endif
                 }
             } catch {
                 Log.ui.error("album observation failed: \(error, privacy: .public)")
@@ -72,6 +81,7 @@ struct AlbumCard: View {
     let album: Album
     let isSelected: Bool
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
 
     var body: some View {
@@ -101,8 +111,10 @@ struct AlbumCard: View {
                 RoundedRectangle(cornerRadius: DS.Radius.card)
                     .strokeBorder(isSelected ? DS.Color.accent : .clear, lineWidth: 1.5)
             )
-            .offset(y: hovering ? -2 : 0)
-            .animation(DS.Motion.hover, value: hovering)
+            // Приподнимание — тоже движение: с Reduce Motion не двигаем вовсе,
+            // а не «двигаем мгновенно».
+            .offset(y: hovering && !reduceMotion ? -2 : 0)
+            .dsAnimation(DS.Motion.hover, value: hovering)
             DSText(album.title, style: .body)
             DSText(
                 album.albumArtist ?? "", style: .caption,

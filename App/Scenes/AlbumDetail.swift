@@ -12,35 +12,18 @@ struct AlbumDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xl) {
-            HStack(alignment: .bottom, spacing: DS.Space.xl) {
-                DSCoverImage(image: coverImage, size: 200, radius: DS.Radius.card)
-                VStack(alignment: .leading, spacing: DS.Space.sm) {
-                    DSText(album.title, style: .display)
-                    Text(album.albumArtist ?? "")
-                        .font(DS.Font.displayArtist)
-                        .foregroundStyle(DS.Color.accent)
-                        .lineLimit(1)
-                    DSText(metaLine, style: .caption, color: DS.Color.textTertiary)
-                    HStack(spacing: DS.Space.md) {
-                        Button {
-                            env.play(album: album)
-                        } label: {
-                            Label("Play", systemImage: "play.fill")
-                                .font(DS.Font.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(DS.Color.accent)
-                        Button {
-                            playShuffled()
-                        } label: {
-                            Label("Shuffle", systemImage: "shuffle")
-                                .font(DS.Font.body)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.top, DS.Space.sm)
+            // Обложка рядом с метаданными, пока это влезает; в узкой колонке —
+            // друг под другом. Без этого название альбома схлопывалось в «Dea…».
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: DS.Space.xl) {
+                    DSCoverImage(image: coverImage, size: 200, radius: DS.Radius.card)
+                    metadata
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: DS.Space.lg) {
+                    DSCoverImage(image: coverImage, size: 140, radius: DS.Radius.card)
+                    metadata
+                }
             }
 
             ScrollView {
@@ -87,6 +70,39 @@ struct AlbumDetail: View {
             } catch {
                 Log.ui.error("track observation failed: \(error, privacy: .public)")
             }
+        }
+    }
+
+    /// Название, артист, техстрока и кнопки. Заголовки переносятся на вторую
+    /// строку, кнопки держат свою ширину — иначе «Play» обрезался до буквы.
+    private var metadata: some View {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
+            DSText(album.title, style: .display, lines: 2)
+            Text(album.albumArtist ?? "")
+                .font(DS.Font.displayArtist)
+                .foregroundStyle(DS.Color.accent)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            DSText(metaLine, style: .caption, color: DS.Color.textTertiary, lines: 2)
+            HStack(spacing: DS.Space.md) {
+                Button {
+                    env.play(album: album)
+                } label: {
+                    Label("Play", systemImage: "play.fill")
+                        .font(DS.Font.headline)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(DS.Color.accent)
+                Button {
+                    playShuffled()
+                } label: {
+                    Label("Shuffle", systemImage: "shuffle")
+                        .font(DS.Font.body)
+                }
+                .buttonStyle(.bordered)
+            }
+            .fixedSize()
+            .padding(.top, DS.Space.sm)
         }
     }
 

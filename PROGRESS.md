@@ -6,13 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "f3887e6"
-tests: 57/57 (swift test, 5 packages)
-last_session: 3
+head: "f3ca2f6"
+tests: 70/70 (swift test, 5 packages)
+last_session: 4
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "РАЗВИЛКА ЗА ВЛАДЕЛЬЦЕМ: фаза 6 Navidrome (D-003) или фаза 7 (глобальные шорткаты, меню-бар, manual checklist)"
+  - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: внешний ЦАП, gapless на живом альбоме, 8 часов без dropout, VoiceOver, Reduce Motion / Increase Contrast глазами"
+  - "Merge phase/07-integration в main (нужно явное согласие) → релиз 0.3.0"
   - "Дизайн Jewel Box (D-007): владелец смотрит на своей библиотеке и возвращается с правками"
   - "Нажать «Check for Updates…» на установленной 0.2.0 — живая проверка апдейта до 0.2.1 (фид и подпись проверены)"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
@@ -24,8 +25,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session03.md
-  latest_kickoff: docs/sessions/SESSION_04_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session04.md
+  latest_kickoff: docs/sessions/SESSION_05_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -45,7 +46,14 @@ MainActor (1.56 с / ≤ 0.4 с). Починен перехват `Space` и с�
 полей. Скролл на 100k измерен in-process харнессом: 59–60 fps при 60 Гц, 0–1.1%
 опозданий → **SwiftUI остаётся, NSTableView не нужен**. Снимки окна (light/dark)
 подтвердили золотое выделение и поймали два дефекта колонок.
-HEAD: `f3887e6` — docs(release): 0.2.1 published (merge 447a1a1 + фид).
+Фаза 7 (2026-08-07, та же сессия): опциональная иконка в меню-баре, mini player
+поверх окон, глобальные медиа-клавиши за явным Accessibility, восстановление
+позиции внутри трека и раздела сайдбара, Reduce Motion / Increase Contrast,
+чистка декоративных иконок от VoiceOver, docs/manual-checklist.md на 40 пунктов.
+Экран альбома починен по скриншоту владельца: название и артист больше не
+схлопываются в узкой колонке, кнопки не теряют подписи (`ViewThatFits`,
+`DSText(lines:)`, минимум 460 pt на detail-колонку).
+HEAD: `6129bdc` — fix(album): stop the album screen collapsing in a narrow detail column.
 
 ## Фазы (из TASKS.md)
 
@@ -58,9 +66,11 @@ HEAD: `f3887e6` — docs(release): 0.2.1 published (merge 447a1a1 + фид).
   скролл 100k 59–60 fps, память 50k 221 МБ, клавиатура во всех разделах;
   слита в main, выпущена как 0.2.1)
 - ← **Развилка: фаза 6 или фаза 7 — решает Di-kairos**
-- Фаза 6 — Subsonic/Navidrome (отложена, D-003)
-- Фаза 7 — Системная интеграция и шлифовка (часть сделана в S02: медиа-клавиши,
-  mini-player, восстановление очереди)
+- **Фаза 7 — Системная интеграция** ← код закрыт целиком (меню-бар, always-on-top,
+  глобальные медиа-клавиши, восстановление позиции и раздела, Reduce Motion /
+  Increase Contrast, a11y-метки, чек-лист). Осталось: ручной прогон чек-листа
+  на железе -> merge -> релиз 0.3.0
+- Фаза 6 — Subsonic/Navidrome (отложена, D-003) — развилка после фазы 7
 
 ## Дистрибуция
 

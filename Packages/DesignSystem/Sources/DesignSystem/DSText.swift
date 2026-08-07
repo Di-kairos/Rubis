@@ -16,18 +16,28 @@ public struct DSText: View {
     private let text: String
     private let style: Style
     private let color: SwiftUI.Color
+    private let lines: Int
 
-    public init(_ text: String, style: Style = .body, color: SwiftUI.Color = DS.Color.textPrimary) {
+    /// `lines` больше единицы — для заголовков, которым в узкой колонке лучше
+    /// перенестись, чем схлопнуться в «Dea…».
+    public init(
+        _ text: String, style: Style = .body, color: SwiftUI.Color = DS.Color.textPrimary,
+        lines: Int = 1
+    ) {
         self.text = text
         self.style = style
         self.color = color
+        self.lines = lines
     }
+
+    @Environment(\.colorSchemeContrast) private var contrast
 
     public var body: some View {
         content
-            .foregroundStyle(color)
+            .foregroundStyle(DS.Contrast.text(color, increased: contrast == .increased))
             .truncationMode(.tail)
-            .lineLimit(1)
+            .lineLimit(lines)
+            .fixedSize(horizontal: false, vertical: lines > 1)
     }
 
     @ViewBuilder
