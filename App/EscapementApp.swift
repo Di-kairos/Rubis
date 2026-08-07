@@ -44,6 +44,9 @@ struct EscapementApp: App {
                     }
                     media = MediaIntegration(env: env)
                     media?.update()
+                    #if DEBUG
+                    DebugHarness.startIfRequested()
+                    #endif
                 }
                 .onChange(of: env.playbackState) { media?.update() }
         }

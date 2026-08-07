@@ -8,8 +8,12 @@ import SwiftUI
 private enum Col {
     static let mark: CGFloat = 12
     static let index: CGFloat = 34
-    static let duration: CGFloat = 56
+    /// Хватает на слово DURATION в стиле `label` — иначе заголовок обрезается.
+    static let duration: CGFloat = 76
     static let format: CGFloat = 64
+    /// Артист и альбом ограничены, чтобы остаток ширины доставался названию:
+    /// при равных третях названия обрезались первыми.
+    static let secondary: CGFloat = 200
 }
 
 /// Tracks section: вся библиотека с сортировкой по колонкам и
@@ -51,6 +55,12 @@ struct TracksList: View {
             // во время загрузки не теряется.
             await resort(loading: loaded)
             isLoading = false
+            #if DEBUG
+            // Для снимка окна харнессом: показать, как выглядит выделение.
+            if ProcessInfo.processInfo.environment["RUBIS_DEBUG_SELECT"] != nil {
+                selection = Set(rows.prefix(2).map(\.id))
+            }
+            #endif
         }
         // Пока список грузится, сортировать нечего — порядок подхватит загрузка.
         .onChange(of: column) { if !isLoading { Task { await resort() } } }
@@ -137,8 +147,8 @@ struct TrackListHeader: View {
             DSText("#", style: .label, color: DS.Color.textTertiary)
                 .frame(width: Col.index, alignment: .trailing)
             button(.title).frame(maxWidth: .infinity, alignment: .leading)
-            button(.artist).frame(maxWidth: .infinity, alignment: .leading)
-            button(.album).frame(maxWidth: .infinity, alignment: .leading)
+            button(.artist).frame(maxWidth: Col.secondary, alignment: .leading)
+            button(.album).frame(maxWidth: Col.secondary, alignment: .leading)
             button(.duration).frame(width: Col.duration, alignment: .trailing)
             button(.format).frame(width: Col.format, alignment: .trailing)
         }
@@ -198,9 +208,9 @@ struct TrackListRow: View {
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
                 DSText(row.artistName ?? "—", style: .body, color: DS.Color.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: Col.secondary, alignment: .leading)
                 DSText(row.albumTitle ?? "—", style: .body, color: DS.Color.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: Col.secondary, alignment: .leading)
                 DSText(
                     AlbumDetail.format(duration: row.track.duration), style: .numeric,
                     color: DS.Color.textTertiary
