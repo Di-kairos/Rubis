@@ -23,8 +23,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session02.md
-  latest_kickoff: docs/sessions/SESSION_03_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session03.md
+  latest_kickoff: docs/sessions/SESSION_04_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
