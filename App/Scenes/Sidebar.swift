@@ -44,19 +44,31 @@ struct Sidebar: View {
 
                     DSSectionHeader("Sources")
                     ForEach(sources) { source in
-                        HStack(spacing: DS.Space.sm) {
-                            Image(systemName: source.kind == .local ? "folder" : "server.rack")
+                        // Клик по источнику ведёт в Albums — музыка источника
+                        // живёт в общих разделах библиотеки.
+                        Button {
+                            section = .albums
+                        } label: {
+                            HStack(spacing: DS.Space.sm) {
+                                Image(
+                                    systemName: source.kind == .local
+                                        ? "folder" : "server.rack"
+                                )
                                 .font(.system(size: 12))
                                 .foregroundStyle(DS.Color.textTertiary)
                                 .accessibilityHidden(true)
-                            DSText(
-                                source.displayName, style: .body,
-                                color: source.enabled
-                                    ? DS.Color.textSecondary : DS.Color.textDisabled)
-                            Spacer()
+                                DSText(
+                                    source.displayName, style: .body,
+                                    color: source.enabled
+                                        ? DS.Color.textSecondary : DS.Color.textDisabled)
+                                Spacer()
+                            }
+                            .padding(.horizontal, DS.Space.md)
+                            .frame(height: DS.Metrics.sidebarRow)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.horizontal, DS.Space.md)
-                        .frame(height: DS.Metrics.sidebarRow)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Source \(source.displayName), show albums")
                     }
                 }
             }
