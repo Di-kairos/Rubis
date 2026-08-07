@@ -1,14 +1,18 @@
+import AppKit
 import DesignSystem
 import EscapementCore
 import SwiftUI
 
-/// Now Playing (SPEC §7.2): текущая очередь воспроизведения.
-/// ◆ у играющего трека (D-007), двойной клик или Return — прыжок на трек.
+/// Now Playing (SPEC §7.2): фокусный экран на всю площадь окна — большая
+/// обложка играющего альбома слева, очередь воспроизведения справа
+/// (решение владельца, сессия 05). ◆ у играющего трека (D-007),
+/// двойной клик или Return — прыжок на трек.
 struct NowPlayingQueue: View {
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
     @State private var currentIndex = 0
     @State private var focused: Int?
+    @State private var album: Album?
 
     var body: some View {
         Group {
@@ -19,17 +23,20 @@ struct NowPlayingQueue: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                VStack(alignment: .leading, spacing: DS.Space.lg) {
-                    // Шапка, чтобы список не выглядел голым (жалоба владельца):
-                    // что это за список и сколько в нём.
-                    VStack(alignment: .leading, spacing: DS.Space.xs) {
-                        DSText("Now Playing", style: .display)
-                        DSText(summary, style: .caption, color: DS.Color.textSecondary)
+                // Широкое окно: обложка слева, очередь справа. Узкое — сверху вниз.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: DS.Space.xxl) {
+                        hero
+                        queueList
                     }
-                    .padding(.horizontal, DS.Space.xl)
-                    .padding(.top, DS.Space.xl)
-                    queueList
+                    .padding(DS.Space.xl)
+                    VStack(alignment: .leading, spacing: DS.Space.xl) {
+                        hero
+                        queueList
+                    }
+                    .padding(DS.Space.xl)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .background(DS.Color.bgBase)
@@ -39,6 +46,32 @@ struct NowPlayingQueue: View {
         // Перезагрузка на смене трека; enqueue без смены трека догонит
         // при следующем заходе в раздел.
         .task(id: env.currentTrack?.id) { await reload() }
+    }
+
+    /// Играющий альбом крупно — как на экране альбома (DESIGN §5.4),
+    /// только про «сейчас звучит».
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: DS.Space.lg) {
+            DSCoverImage(image: coverImage, size: 280, radius: DS.Radius.card)
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                if let track = env.currentTrack {
+                    DSText(track.title, style: .display)
+                }
+                if let album {
+                    DSText(album.albumArtist ?? "", style: .title, color: DS.Color.accent)
+                    DSText(album.title, style: .body, color: DS.Color.textSecondary)
+                }
+                DSText(summary, style: .caption, color: DS.Color.textTertiary)
+            }
+        }
+        .frame(width: 280, alignment: .leading)
+    }
+
+    private var coverImage: NSImage? {
+        guard let hash = album?.coverHash,
+            let url = env.covers.url(hash: hash, size: 256)
+        else { return nil }
+        return NSImage(contentsOf: url)
     }
 
     private var summary: String {
@@ -86,5 +119,10 @@ struct NowPlayingQueue: View {
         let snapshot = await env.queueSnapshot()
         tracks = snapshot.tracks
         currentIndex = snapshot.index
+        if let albumId = env.currentTrack?.albumId {
+            album = try? env.albumRepo.album(id: albumId)
+        } else {
+            album = nil
+        }
     }
 }

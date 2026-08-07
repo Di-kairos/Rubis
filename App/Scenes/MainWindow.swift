@@ -48,25 +48,39 @@ struct MainWindow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationSplitView {
-                Sidebar(section: section)
-                    .navigationSplitViewColumnWidth(
-                        min: DS.Metrics.sidebarWidthMin,
-                        ideal: DS.Metrics.sidebarWidth,
-                        max: DS.Metrics.sidebarWidthMax)
-            } content: {
-                sectionContent
-                    .navigationSplitViewColumnWidth(min: 240, ideal: 420)
-            } detail: {
-                if let album = selectedAlbum {
-                    AlbumDetail(album: album)
-                        // Ниже этого экран альбома нечитаем: обложка 200 pt
-                        // плюс поля не оставляют места под название.
-                        .navigationSplitViewColumnWidth(min: 460, ideal: 560)
-                } else {
-                    DSText("Select an album", style: .body, color: DS.Color.textTertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(DS.Color.bgBase)
+            // Now Playing — фокусный экран: две колонки, очередь занимает всю
+            // площадь окна (решение владельца). Остальные разделы — три колонки.
+            if section.wrappedValue == .nowPlaying, env.searchText.isEmpty {
+                NavigationSplitView {
+                    Sidebar(section: section)
+                        .navigationSplitViewColumnWidth(
+                            min: DS.Metrics.sidebarWidthMin,
+                            ideal: DS.Metrics.sidebarWidth,
+                            max: DS.Metrics.sidebarWidthMax)
+                } detail: {
+                    NowPlayingQueue()
+                }
+            } else {
+                NavigationSplitView {
+                    Sidebar(section: section)
+                        .navigationSplitViewColumnWidth(
+                            min: DS.Metrics.sidebarWidthMin,
+                            ideal: DS.Metrics.sidebarWidth,
+                            max: DS.Metrics.sidebarWidthMax)
+                } content: {
+                    sectionContent
+                        .navigationSplitViewColumnWidth(min: 240, ideal: 420)
+                } detail: {
+                    if let album = selectedAlbum {
+                        AlbumDetail(album: album)
+                            // Ниже этого экран альбома нечитаем: обложка 200 pt
+                            // плюс поля не оставляют места под название.
+                            .navigationSplitViewColumnWidth(min: 460, ideal: 560)
+                    } else {
+                        DSText("Select an album", style: .body, color: DS.Color.textTertiary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(DS.Color.bgBase)
+                    }
                 }
             }
             Rectangle()
