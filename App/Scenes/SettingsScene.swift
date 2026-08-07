@@ -204,7 +204,9 @@ struct AudioSettings: View {
                     Text(device.name).tag(device.uid)
                 }
             }
-            .help("Takes effect from the next track. If the device is unplugged, pick System default.")
+            .help(
+                "Takes effect from the next track. If the device is unplugged, pick System default."
+            )
             Toggle("Exclusive access (hog mode)", isOn: $exclusiveAccess)
             Stepper(
                 "Sample-rate change delay: \(rateChangeDelayMs) ms",
