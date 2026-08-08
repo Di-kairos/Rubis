@@ -4,18 +4,15 @@ import EscapementCore
 import MusicLibrary
 import SwiftUI
 
-/// Album grid (DESIGN §5.3): square covers, two lines, hover play.
-struct AlbumsGrid: View {
-    @Binding var selectedAlbum: Album?
+/// Витрина альбомов (DESIGN §5.3, Jewel Box II «Витрина»): featured-альбом
+/// крупно со «светом витрины» и его трек-лист, остальная коллекция — полкой
+/// внизу. Занимает всю площадь окна (двухколонный режим MainWindow).
+struct AlbumsShowcase: View {
+    /// Featured общий с MainWindow: ⌘L (reveal current) ставит сюда играющий.
+    @Binding var featured: Album?
     @Environment(AppEnvironment.self) private var env
     @State private var albums: [Album] = []
     @State private var focused: Int?
-
-    private let columns = [
-        GridItem(
-            .adaptive(minimum: DS.Metrics.albumGridCover),
-            spacing: DS.Metrics.albumGridGap)
-    ]
 
     var body: some View {
         Group {
@@ -27,27 +24,13 @@ struct AlbumsGrid: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: DS.Space.xl) {
-                            ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
-                                AlbumCard(
-                                    album: album, isSelected: selectedAlbum?.id == album.id
-                                )
-                                // Выбор идёт через focused — иначе выделение
-                                // назначалось бы дважды за клик.
-                                .id(album.id)
-                                .onTapGesture { focused = index }
-                            }
-                        }
-                        .padding(DS.Space.xl)
+                VStack(spacing: 0) {
+                    if let featured {
+                        AlbumDetail(album: featured, showcase: true)
+                            .id(featured.id)
+                            .frame(maxHeight: .infinity)
                     }
-                    .onChange(of: focused) {
-                        guard let focused, albums.indices.contains(focused) else { return }
-                        // Стрелки ведут выбор — деталь идёт следом за фокусом.
-                        selectedAlbum = albums[focused]
-                        proxy.scrollTo(albums[focused].id, anchor: .center)
-                    }
+                    shelf
                 }
             }
         }
@@ -56,24 +39,76 @@ struct AlbumsGrid: View {
             env.play(album: albums[index])
         }
         .task {
-            // Живое наблюдение: сетка обновляется по мере скана
+            // Живое наблюдение: витрина обновляется по мере скана.
             do {
                 for try await list in LibraryObservation.albums(db: env.db) {
                     albums = list
-                    #if DEBUG
-                    // Снимок экрана альбома харнессом: выбрать первый, иначе
-                    // деталь показывает «Select an album».
-                    if ProcessInfo.processInfo.environment["RUBIS_DEBUG_SELECT"] != nil,
-                        selectedAlbum == nil
-                    {
-                        selectedAlbum = list.first
-                    }
-                    #endif
+                    ensureFeatured()
                 }
             } catch {
                 Log.ui.error("album observation failed: \(error, privacy: .public)")
             }
         }
+    }
+
+    /// Полка коллекции: горизонтальный ряд обложек на волосяной кромке.
+    private var shelf: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .bottom, spacing: DS.Space.lg) {
+                        ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
+                            shelfCover(album, index: index)
+                                .id(album.id)
+                        }
+                    }
+                    .padding(.horizontal, DS.Space.xl)
+                    .padding(.vertical, DS.Space.lg)
+                }
+                .onChange(of: focused) {
+                    guard let focused, albums.indices.contains(focused) else { return }
+                    featured = albums[focused]
+                    proxy.scrollTo(albums[focused].id, anchor: .center)
+                }
+            }
+            // Кромка полки — чуть плотнее фоновой линии.
+            Rectangle().fill(DS.Color.strokeStrong).frame(height: 1)
+        }
+    }
+
+    private func shelfCover(_ album: Album, index: Int) -> some View {
+        let isFeatured = featured?.id == album.id
+        return DSCoverImage(image: shelfImage(album), size: 108, radius: DS.Radius.small)
+            // Непроигрываемое приглушено, featured — золотое кольцо (D-007).
+            .opacity(isFeatured ? 1 : 0.78)
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .strokeBorder(isFeatured ? DS.Color.accent : .clear, lineWidth: 1.5)
+            )
+            .onTapGesture(count: 2) { env.play(album: album) }
+            .onTapGesture { focused = index }
+            .help("\(album.title) — \(album.albumArtist ?? "")")
+            .accessibilityLabel("\(album.title), \(album.albumArtist ?? "")")
+    }
+
+    private func shelfImage(_ album: Album) -> NSImage? {
+        guard let hash = album.coverHash,
+            let url = env.covers.url(hash: hash, size: 256)
+        else { return nil }
+        return NSImage(contentsOf: url)
+    }
+
+    /// Featured всегда указывает на живой альбом: играющий → прежний → первый.
+    private func ensureFeatured() {
+        if let current = featured, albums.contains(where: { $0.id == current.id }) { return }
+        if let playingId = env.currentTrack?.albumId,
+            let playing = albums.first(where: { $0.id == playingId })
+        {
+            featured = playing
+            return
+        }
+        featured = albums.first
     }
 }
 

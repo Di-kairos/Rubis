@@ -114,10 +114,15 @@ extension DS {
         public static let progress = Animation.linear(duration: 0.1)
     }
 
-    /// The single allowed shadow (DESIGN.md §2.3): popovers and overlays only.
+    /// Exactly two allowed shadows (DESIGN.md §2.3): popovers/overlays and
+    /// the Albums showcase "display light".
     public enum Shadow {
         public static let overlayColor = adaptive(Palette.overlayShadow)
         public static let overlayRadius: CGFloat = 16
         public static let overlayY: CGFloat = 8
+        /// Jewel Box II «Витрина»: только под featured-обложкой раздела Albums.
+        public static let showcaseColor = SwiftUI.Color.black.opacity(0.35)
+        public static let showcaseRadius: CGFloat = 24
+        public static let showcaseY: CGFloat = 12
     }
 }

@@ -5,8 +5,11 @@ import MusicLibrary
 import SwiftUI
 
 /// Album screen (DESIGN §5.4): cover + metadata left, track list right.
+/// `showcase` — режим витрины (Jewel Box II): крупная обложка со «светом
+/// витрины» — единственная тень вне поповеров (DESIGN §2.3).
 struct AlbumDetail: View {
     let album: Album
+    var showcase = false
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
 
@@ -16,12 +19,12 @@ struct AlbumDetail: View {
             // друг под другом. Без этого название альбома схлопывалось в «Dea…».
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom, spacing: DS.Space.xl) {
-                    DSCoverImage(image: coverImage, size: 200, radius: DS.Radius.card)
+                    cover(size: showcase ? 300 : 200)
                     metadata
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: DS.Space.lg) {
-                    DSCoverImage(image: coverImage, size: 140, radius: DS.Radius.card)
+                    cover(size: 140)
                     metadata
                 }
             }
@@ -166,6 +169,19 @@ struct AlbumDetail: View {
         return hours > 0
             ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
             : String(format: "%d:%02d", minutes, seconds)
+    }
+
+    @ViewBuilder
+    private func cover(size: CGFloat) -> some View {
+        if showcase {
+            DSCoverImage(image: coverImage, size: size, radius: DS.Radius.card)
+                .shadow(
+                    color: DS.Shadow.showcaseColor,
+                    radius: DS.Shadow.showcaseRadius,
+                    y: DS.Shadow.showcaseY)
+        } else {
+            DSCoverImage(image: coverImage, size: size, radius: DS.Radius.card)
+        }
     }
 
     private var coverImage: NSImage? {

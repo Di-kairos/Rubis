@@ -35,6 +35,11 @@ struct MainWindow: View {
     /// портить сохранённый выбор владельца.
     @State private var forcedSection: LibrarySection? = MainWindow.debugStartSection
 
+    /// Разделы, занимающие всю площадь окна (двухколонный режим, Jewel Box II).
+    private var fullBleedSection: Bool {
+        section.wrappedValue == .nowPlaying || section.wrappedValue == .albums
+    }
+
     private var section: Binding<LibrarySection> {
         Binding(
             get: { forcedSection ?? storedSection },
@@ -48,9 +53,10 @@ struct MainWindow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Now Playing — фокусный экран: две колонки, очередь занимает всю
-            // площадь окна (решение владельца). Остальные разделы — три колонки.
-            if section.wrappedValue == .nowPlaying, env.searchText.isEmpty {
+            // Now Playing и Albums — фокусные экраны: две колонки, контент
+            // занимает всю площадь окна (Jewel Box II). Остальные разделы —
+            // три колонки.
+            if fullBleedSection, env.searchText.isEmpty {
                 NavigationSplitView {
                     Sidebar(section: section)
                         .navigationSplitViewColumnWidth(
@@ -58,7 +64,11 @@ struct MainWindow: View {
                             ideal: DS.Metrics.sidebarWidth,
                             max: DS.Metrics.sidebarWidthMax)
                 } detail: {
-                    NowPlayingQueue()
+                    if section.wrappedValue == .nowPlaying {
+                        NowPlayingQueue()
+                    } else {
+                        AlbumsShowcase(featured: $selectedAlbum)
+                    }
                 }
             } else {
                 NavigationSplitView {
@@ -138,10 +148,10 @@ struct MainWindow: View {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
             switch section.wrappedValue {
-            case .albums:
-                AlbumsGrid(selectedAlbum: $selectedAlbum)
-            case .nowPlaying:
-                NowPlayingQueue()
+            case .albums, .nowPlaying:
+                // Недостижимо: оба раздела живут в двухколонном режиме выше;
+                // сюда попадает только активный поиск (ветка выше).
+                DS.Color.bgBase
             case .artists:
                 ArtistsList(selectedAlbum: $selectedAlbum)
             case .tracks:
