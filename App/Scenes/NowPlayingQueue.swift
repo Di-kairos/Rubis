@@ -27,19 +27,22 @@ struct NowPlayingQueue: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // Широкое окно: обложка слева, очередь справа. Узкое — сверху вниз.
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: DS.Space.xxl) {
-                        hero
-                        queueList
+                // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
+                // Низ: liner notes широкой полосой под обеими колонками.
+                VStack(alignment: .leading, spacing: DS.Space.lg) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: DS.Space.xxl) {
+                            hero
+                            queueList
+                        }
+                        VStack(alignment: .leading, spacing: DS.Space.xl) {
+                            hero
+                            queueList
+                        }
                     }
-                    .padding(DS.Space.xl)
-                    VStack(alignment: .leading, spacing: DS.Space.xl) {
-                        hero
-                        queueList
-                    }
-                    .padding(DS.Space.xl)
+                    notesSection
                 }
+                .padding(DS.Space.xl)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
@@ -82,24 +85,29 @@ struct NowPlayingQueue: View {
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    /// Liner notes на всю ширину колонки очереди, сразу под трек-листом —
-    /// скроллятся вместе с ним (вердикт владельца: узкая колонка читалась
-    /// «пятном», текст должен идти широко и органично).
+    /// Liner notes широкой полосой внизу, под обложкой и очередью сразу —
+    /// как текст на обороте конверта (вердикт владельца). Свой скролл с
+    /// потолком высоты: без потолка текст съедает вертикальный бюджет
+    /// очереди (урок 0.6.1).
     @ViewBuilder
     private var notesSection: some View {
         if let notes {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                    .padding(.top, DS.Space.lg)
-                Text(notes.text.replacingOccurrences(of: "*", with: ""))
-                    .font(DS.Font.prose)
-                    .foregroundStyle(DS.Color.textSecondary)
-                    .lineSpacing(DS.Font.LineSpacing.multiline * 3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-                DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DS.Space.sm) {
+                        Text(notes.text.replacingOccurrences(of: "*", with: ""))
+                            .font(DS.Font.prose)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .lineSpacing(DS.Font.LineSpacing.multiline * 3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                        DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            .padding(.top, DS.Space.sm)
+            .frame(maxHeight: 260)
         }
     }
 
