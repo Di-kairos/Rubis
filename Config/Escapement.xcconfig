@@ -18,4 +18,4 @@ CODE_SIGN_ENTITLEMENTS = App/Escapement.entitlements
 // Self-signed local identity (X10 .claude/codesign): stable signature
 // between builds so the Keychain "Always Allow" for API keys survives
 // updates (ad-hoc changed identity every build).
-CODE_SIGN_IDENTITY = Rubis Dev
+CODE_SIGN_IDENTITY = Rubis Dev 2
