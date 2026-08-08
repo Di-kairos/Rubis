@@ -43,7 +43,7 @@ struct AlbumsShowcase: View {
             }
         }
         .background(DS.Color.bgBase)
-        .keyboardNavigable(count: albums.count, index: $focused) { index in
+        .keyboardNavigable(count: albums.count, horizontal: true, index: $focused) { index in
             env.play(album: albums[index])
         }
         // id: source.id — смена фильтра перезапускает наблюдение.
@@ -66,7 +66,9 @@ struct AlbumsShowcase: View {
         VStack(spacing: 0) {
             Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
             ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
+                // Индикатор видим: без него у полки не было ни одного
+                // намёка, что она скроллится (жалоба владельца).
+                ScrollView(.horizontal, showsIndicators: true) {
                     LazyHStack(alignment: .bottom, spacing: DS.Space.lg) {
                         ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
                             shelfCover(album, index: index)

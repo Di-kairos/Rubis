@@ -299,8 +299,13 @@ enum KeychainStore {
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-            let data = item as? Data
+            let data = item as? Data,
+            let value = String(data: data, encoding: .utf8)
         else { return nil }
-        return String(data: data, encoding: .utf8)
+        // Пересохранение делает текущую сборку создателем записи: записи от
+        // старых ad-hoc-сборок «чужие», и macOS спрашивала пароль на каждое
+        // чтение. После первого удачного чтения — тишина навсегда.
+        save(value, account: account)
+        return value
     }
 }
