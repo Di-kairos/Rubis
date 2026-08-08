@@ -93,8 +93,8 @@ actor AlbumInfoService {
         if let year { prompt += " (\(year))" }
         prompt +=
             ". Cover why the record matters, who plays on it, and what to listen for. "
-            + "Plain prose only — no headings, no lists. If you don't know this album, "
-            + "reply with exactly UNKNOWN."
+            + "Plain prose only — no markdown, no asterisks, no headings, no lists. "
+            + "If you don't know this album, reply with exactly UNKNOWN."
 
         let body: [String: Any] = [
             "model": "claude-opus-5",

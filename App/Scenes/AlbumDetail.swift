@@ -12,9 +12,6 @@ struct AlbumDetail: View {
     var showcase = false
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
-    /// Аннотация (D-008): opt-in, кешируется навсегда.
-    @AppStorage("albumNotes") private var albumNotes = false
-    @State private var info: AlbumInfo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xl) {
@@ -50,7 +47,6 @@ struct AlbumDetail: View {
                             trackRow(track, at: index)
                         }
                     }
-                    aboutSection
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -67,36 +63,6 @@ struct AlbumDetail: View {
             } catch {
                 Log.ui.error("track observation failed: \(error, privacy: .public)")
             }
-        }
-        // Аннотация отдельной задачей: сеть не должна задерживать трек-лист.
-        .task(id: "\(album.id ?? 0)-\(albumNotes)") {
-            guard albumNotes else {
-                info = nil
-                return
-            }
-            info = await env.albumInfo.info(for: album)
-        }
-    }
-
-    /// Liner notes под трек-листом (Jewel Box II + D-008): читальный serif
-    /// между волосяными линейками, источник честно подписан.
-    @ViewBuilder
-    private var aboutSection: some View {
-        if let info {
-            VStack(alignment: .leading, spacing: DS.Space.sm) {
-                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                    .padding(.top, DS.Space.lg)
-                Text(info.text)
-                    .font(DS.Font.prose)
-                    .foregroundStyle(DS.Color.textSecondary)
-                    .lineSpacing(DS.Font.LineSpacing.multiline * 3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-                DSText(
-                    info.source == .wikipedia ? "From Wikipedia" : "Notes by Claude",
-                    style: .label, color: DS.Color.textTertiary)
-            }
-            .padding(.top, DS.Space.sm)
         }
     }
 

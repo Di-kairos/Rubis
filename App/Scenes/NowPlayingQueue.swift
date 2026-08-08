@@ -13,6 +13,10 @@ struct NowPlayingQueue: View {
     @State private var currentIndex = 0
     @State private var focused: Int?
     @State private var album: Album?
+    /// Liner notes (D-008): живут здесь — под hero им самое место
+    /// (вердикт владельца: на экране альбома внизу неуместно).
+    @AppStorage("albumNotes") private var albumNotes = false
+    @State private var notes: AlbumInfo?
 
     var body: some View {
         Group {
@@ -72,9 +76,35 @@ struct NowPlayingQueue: View {
                     Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
                 }
                 .padding(.top, DS.Space.xs)
+                notesSection
             }
         }
+        // maxHeight: внутренний скролл заметок должен получить границу,
+        // а не растягивать колонку (урок 0.6.1 с нулевой высотой).
         .frame(width: 280, alignment: .leading)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    /// Liner notes в колонке hero: читальный serif, скроллятся сами —
+    /// длинный текст не должен распирать колонку (урок 0.6.1).
+    @ViewBuilder
+    private var notesSection: some View {
+        if let notes {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: DS.Space.sm) {
+                    Text(notes.text.replacingOccurrences(of: "*", with: ""))
+                        .font(DS.Font.prose)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .lineSpacing(DS.Font.LineSpacing.multiline * 3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    DSText(
+                        notes.source == .wikipedia ? "From Wikipedia" : "Notes by Claude",
+                        style: .label, color: DS.Color.textTertiary)
+                }
+            }
+            .padding(.top, DS.Space.sm)
+        }
     }
 
     private var coverImage: NSImage? {
@@ -134,6 +164,10 @@ struct NowPlayingQueue: View {
             album = try? env.albumRepo.album(id: albumId)
         } else {
             album = nil
+        }
+        notes = nil
+        if albumNotes, let album {
+            notes = await env.albumInfo.info(for: album)
         }
     }
 }
