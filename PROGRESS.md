@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "c8352fb"
+head: "2668aa2"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -101,6 +101,15 @@ HEAD: `57ba733` — chore(release): bump version to 0.3.5 (build 8).
 (бейджи, карта пакетов, download-гайд в rubis-releases). Выпущен **0.3.6**
 (build 9), SHA256 сверен.
 HEAD: `c8352fb` — chore(release): bump version to 0.3.6 (build 9).
+Дизайн-итерация «Jewel Box II» одобрена владельцем (артефакт-предложение:
+диагноз Apple Music-подобия + три направления A/B/C, план тремя pack'ами).
+**Pack 1 «Liner notes» выпущен как 0.4.0** (build 10): экран альбома как разворот
+конверта — точечные лидеры (`DSDottedLeader` в DesignSystem, с Preview),
+каталожная строка `numeric` между волосяными линейками, артист курсивным serif
+(токен `displayArtist.italic`), секции Disc N для многодисковых, Now Playing тем
+же языком. DESIGN.md §3/§5.4 обновлены. Впереди: Pack 2 «Прибор» (транспорт:
+шкала с рисками, крупный тракт), Pack 3 «Витрина» (Albums, featured + полка).
+HEAD: `2668aa2` — chore(release): bump version to 0.4.0 (build 10).
 
 ## Фазы (из TASKS.md)
 
