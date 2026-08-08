@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d8cb4f2"
-tests: 71/71 (swift test, 5 packages)
+head: "bbd11c6"
+tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -156,6 +156,16 @@ HEAD: `4551912` — chore(release): bump version to 0.7.1 (build 15).
 вместе с ним (как текст на обороте конверта). Выпущен **0.7.2** (build 16),
 SHA256 сверен.
 HEAD: `d8cb4f2` — chore(release): bump version to 0.7.2 (build 16).
+Два запроса владельца (2026-08-08): (1) DeepSeek как выбираемый писатель заметок —
+Picker «Notes writer» в Settings → General (Claude / DeepSeek), ключ каждого
+провайдера в Keychain под своим account, `fetchDeepSeek` (OpenAI-совместимый
+chat/completions, `deepseek-chat`), подпись «Notes by DeepSeek»; (2) источники
+как «направления музыки» — клик по источнику в сайдбаре фильтрует Albums до его
+альбомов (`LibraryObservation.albums(sourceId:)`, EXISTS по track.source_id,
++тест — MusicLibrary 39/39, всего 72), активный источник с золотой нитью,
+клик по разделу Library сбрасывает фильтр. Выпущен **0.8.0** (build 17),
+SHA256 сверен.
+HEAD: `bbd11c6` — chore(release): bump version to 0.8.0 (17).
 
 ## Фазы (из TASKS.md)
 

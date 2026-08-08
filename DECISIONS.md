@@ -88,3 +88,8 @@ Subsonic (когда появится) + фид обновлений.
 (файл на альбом) — сеть трогается один раз. Источник честно подписан в UI
 («From Wikipedia» / «Notes by Claude»). Язык аннотаций — английский, как весь UI
 (ASSUMPTION; меняется одной строкой промпта). Ошибки сети тихие: секции просто нет.
+
+**Дополнение (0.8.0, решение владельца):** fallback-писатель выбирается —
+Claude или DeepSeek (`deepseek-chat`, OpenAI-совместимый chat/completions).
+Picker в Settings → General, ключ каждого провайдера в Keychain под своим
+account (`claude-api-key` / `deepseek-api-key`). Промпт и правило UNKNOWN общие.
