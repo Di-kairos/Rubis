@@ -5,6 +5,8 @@ import SwiftUI
 
 struct Sidebar: View {
     @Binding var section: LibrarySection
+    /// Активный источник-фильтр раздела Albums (сессия 05).
+    @Binding var sourceFilter: Source?
     @Environment(AppEnvironment.self) private var env
     @State private var sources: [Source] = []
 
@@ -44,31 +46,7 @@ struct Sidebar: View {
 
                     DSSectionHeader("Sources")
                     ForEach(sources) { source in
-                        // Клик по источнику ведёт в Albums — музыка источника
-                        // живёт в общих разделах библиотеки.
-                        Button {
-                            section = .albums
-                        } label: {
-                            HStack(spacing: DS.Space.sm) {
-                                Image(
-                                    systemName: source.kind == .local
-                                        ? "folder" : "server.rack"
-                                )
-                                .font(.system(size: 12))
-                                .foregroundStyle(DS.Color.textTertiary)
-                                .accessibilityHidden(true)
-                                DSText(
-                                    source.displayName, style: .body,
-                                    color: source.enabled
-                                        ? DS.Color.textSecondary : DS.Color.textDisabled)
-                                Spacer()
-                            }
-                            .padding(.horizontal, DS.Space.md)
-                            .frame(height: DS.Metrics.sidebarRow)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Source \(source.displayName), show albums")
+                        sourceRow(source)
                     }
                 }
             }
@@ -91,34 +69,74 @@ struct Sidebar: View {
         .onChange(of: env.scanProgress == nil) { reloadSources() }
     }
 
-    private func sidebarRow(_ item: LibrarySection) -> some View {
-        Button {
-            section = item
+    /// Источник как фильтр Albums: клик показывает только его альбомы,
+    /// активный отмечен золотой нитью — как разделы Library (D-007).
+    private func sourceRow(_ source: Source) -> some View {
+        let isActive = sourceFilter?.id == source.id && section == .albums
+        return Button {
+            sourceFilter = source
+            section = .albums
         } label: {
             HStack(spacing: DS.Space.sm) {
-                // Активный раздел — золотая нить слева, не заливная пилюля (D-007).
                 Rectangle()
-                    .fill(section == item ? DS.Color.accent : .clear)
+                    .fill(isActive ? DS.Color.accent : .clear)
                     .frame(width: 2)
-                Image(systemName: item.icon)
+                Image(systemName: source.kind == .local ? "folder" : "server.rack")
                     .font(.system(size: 12))
-                    .foregroundStyle(section == item ? DS.Color.accent : DS.Color.textTertiary)
+                    .foregroundStyle(isActive ? DS.Color.accent : DS.Color.textTertiary)
                     .frame(width: 16)
                     .accessibilityHidden(true)
                 DSText(
-                    item.rawValue, style: .body,
-                    color: section == item ? DS.Color.textPrimary : DS.Color.textSecondary)
+                    source.displayName, style: .body,
+                    color: isActive
+                        ? DS.Color.textPrimary
+                        : source.enabled ? DS.Color.textSecondary : DS.Color.textDisabled)
                 Spacer()
             }
             .padding(.leading, DS.Space.md - 2)
             .padding(.trailing, DS.Space.md)
             .frame(height: DS.Metrics.sidebarRow)
-            .background(section == item ? DS.Color.bgSelected : .clear)
+            .background(isActive ? DS.Color.bgSelected : .clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Source \(source.displayName), show its albums")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    private func sidebarRow(_ item: LibrarySection) -> some View {
+        // Albums с активным фильтром источника не подсвечивается —
+        // золотая нить в этот момент у источника.
+        let isActive = section == item && (item != .albums || sourceFilter == nil)
+        return Button {
+            // Раздел Library показывает всю библиотеку — фильтр источника долой.
+            sourceFilter = nil
+            section = item
+        } label: {
+            HStack(spacing: DS.Space.sm) {
+                // Активный раздел — золотая нить слева, не заливная пилюля (D-007).
+                Rectangle()
+                    .fill(isActive ? DS.Color.accent : .clear)
+                    .frame(width: 2)
+                Image(systemName: item.icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(isActive ? DS.Color.accent : DS.Color.textTertiary)
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+                DSText(
+                    item.rawValue, style: .body,
+                    color: isActive ? DS.Color.textPrimary : DS.Color.textSecondary)
+                Spacer()
+            }
+            .padding(.leading, DS.Space.md - 2)
+            .padding(.trailing, DS.Space.md)
+            .frame(height: DS.Metrics.sidebarRow)
+            .background(isActive ? DS.Color.bgSelected : .clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.rawValue)
-        .accessibilityAddTraits(section == item ? .isSelected : [])
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     private func reloadSources() {

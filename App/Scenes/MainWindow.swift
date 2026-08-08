@@ -49,6 +49,10 @@ struct MainWindow: View {
             })
     }
     @State private var selectedAlbum: Album?
+    /// Активный источник-фильтр (сессия 05): клик по источнику в сайдбаре
+    /// показывает в Albums только его альбомы — источники как «направления»
+    /// музыки. Клик по разделу Library сбрасывает фильтр.
+    @State private var sourceFilter: Source?
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
@@ -58,7 +62,7 @@ struct MainWindow: View {
             // три колонки.
             if fullBleedSection, env.searchText.isEmpty {
                 NavigationSplitView {
-                    Sidebar(section: section)
+                    Sidebar(section: section, sourceFilter: $sourceFilter)
                         .navigationSplitViewColumnWidth(
                             min: DS.Metrics.sidebarWidthMin,
                             ideal: DS.Metrics.sidebarWidth,
@@ -67,12 +71,12 @@ struct MainWindow: View {
                     if section.wrappedValue == .nowPlaying {
                         NowPlayingQueue()
                     } else {
-                        AlbumsShowcase(featured: $selectedAlbum)
+                        AlbumsShowcase(featured: $selectedAlbum, source: sourceFilter)
                     }
                 }
             } else {
                 NavigationSplitView {
-                    Sidebar(section: section)
+                    Sidebar(section: section, sourceFilter: $sourceFilter)
                         .navigationSplitViewColumnWidth(
                             min: DS.Metrics.sidebarWidthMin,
                             ideal: DS.Metrics.sidebarWidth,
@@ -113,6 +117,8 @@ struct MainWindow: View {
                 let album = try? env.albumRepo.album(id: albumId)
             else { return }
             env.searchText = ""
+            // Фильтр источника мог бы спрятать играющий альбом — сбрасываем.
+            sourceFilter = nil
             section.wrappedValue = .albums
             selectedAlbum = album
         }

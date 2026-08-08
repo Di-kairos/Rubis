@@ -353,4 +353,33 @@ struct ObservationTests {
         let emitted = try await iterator.next()
         #expect(emitted == [])
     }
+
+    @Test func albumObservationFiltersBySource() async throws {
+        let db = try AppDatabase.inMemory()
+        let sourceRepo = SourceRepository(db: db)
+        let ambient = Source(kind: .local, displayName: "Ambient")
+        let jazz = Source(kind: .local, displayName: "Jazz")
+        try sourceRepo.upsert(ambient)
+        try sourceRepo.upsert(jazz)
+
+        let albums = AlbumRepository(db: db)
+        let trackRepo = TrackRepository(db: db)
+        let discreet = try albums.insert(Album(title: "Discreet Music", sortTitle: "discreet"))
+        let blue = try albums.insert(Album(title: "Kind of Blue", sortTitle: "kind of blue"))
+        _ = try trackRepo.insert([
+            Track(
+                sourceId: ambient.id, relativePath: "eno/01.flac", title: "Discreet Music",
+                albumId: discreet.id, trackNo: 1, duration: 1800.0,
+                codec: "flac", sampleRate: 44_100, bitDepth: 16),
+            Track(
+                sourceId: jazz.id, relativePath: "davis/01.flac", title: "So What",
+                albumId: blue.id, trackNo: 1, duration: 545.0,
+                codec: "flac", sampleRate: 44_100, bitDepth: 16),
+        ])
+
+        var iterator = LibraryObservation.albums(db: db, sourceId: ambient.id)
+            .makeAsyncIterator()
+        let filtered = try await iterator.next()
+        #expect(filtered?.map(\.title) == ["Discreet Music"])
+    }
 }

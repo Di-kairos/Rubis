@@ -10,6 +10,9 @@ import SwiftUI
 struct AlbumsShowcase: View {
     /// Featured общий с MainWindow: ⌘L (reveal current) ставит сюда играющий.
     @Binding var featured: Album?
+    /// Не-nil — витрина показывает только альбомы этого источника
+    /// (клик по источнику в сайдбаре, сессия 05).
+    var source: Source?
     @Environment(AppEnvironment.self) private var env
     @State private var albums: [Album] = []
     @State private var focused: Int?
@@ -18,7 +21,9 @@ struct AlbumsShowcase: View {
         Group {
             if albums.isEmpty {
                 DSText(
-                    "Drop a music folder here, or add one in Settings (⌘,) → Library",
+                    source == nil
+                        ? "Drop a music folder here, or add one in Settings (⌘,) → Library"
+                        : "No albums in “\(source?.displayName ?? "")” yet — rescan or add music",
                     style: .body,
                     color: DS.Color.textTertiary
                 )
@@ -41,10 +46,12 @@ struct AlbumsShowcase: View {
         .keyboardNavigable(count: albums.count, index: $focused) { index in
             env.play(album: albums[index])
         }
-        .task {
-            // Живое наблюдение: витрина обновляется по мере скана.
+        // id: source.id — смена фильтра перезапускает наблюдение.
+        .task(id: source?.id) {
             do {
-                for try await list in LibraryObservation.albums(db: env.db) {
+                // Живое наблюдение: витрина обновляется по мере скана.
+                let stream = LibraryObservation.albums(db: env.db, sourceId: source?.id)
+                for try await list in stream {
                     albums = list
                     ensureFeatured()
                 }
