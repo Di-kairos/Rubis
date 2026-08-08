@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d4014b3"
-tests: 70/70 (swift test, 5 packages)
+head: "2e836b2"
+tests: 71/71 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -128,6 +128,15 @@ featured — золотое кольцо). Клик = featured, двойной =
 Artists/Recently Added). DESIGN.md §2.3/§5.3 обновлены. Jewel Box II: все три
 pack'а выпущены (0.4.0 / 0.5.0 / 0.6.0) — итерация ждёт общего вердикта владельца.
 HEAD: `d4014b3` — chore(release): bump version to 0.6.0 (build 12).
+Живой прогон витрины владельцем: трек-лист не отображался — дамп NSScrollView
+(новый инструмент харнесса `RUBIS_DUMP_SCROLL=1`) показал высоту 0: полка без
+явной высоты раздувалась до 320 pt и вместе с обложкой 300 pt отжимала весь
+вертикальный бюджет. Фикс: полке фиксированная высота (108 + 2·lg), showcase-
+обложка 240. Второй баг: пустой альбом-сирота после скана (0 треков) висел
+анонимной плиткой — наблюдение albums теперь прячет альбомы без треков
+(EXISTS-фильтр в Observation.swift, +тест; MusicLibrary 38/38, всего 71).
+Выпущен **0.6.1** (build 13), SHA256 сверен. Тесты: 71/71.
+HEAD: `2e836b2` — chore(release): bump version to 0.6.1 (build 13).
 
 ## Фазы (из TASKS.md)
 
