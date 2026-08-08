@@ -16,10 +16,10 @@ next_actions:
   - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
   - "Починить LibrarySettings: список источников без скролла (та же болезнь, что была в сайдбаре)"
   - "Развилка после дизайн-итерации: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
-links_extra:
-  design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
+links_extra:
+  design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
   decisions: DECISIONS.md
   spec: SPEC.md
