@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "3256db9"
+head: "1f7b815"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -179,6 +179,16 @@ keychain-запрос при каждом обновлении — из-за ad-
 alive, library validation не убила). Выпущен **0.8.1** (build 18), SHA256 сверен.
 Для друзей self-signed не решение: нужен Developer ID + нотаризация ($99/год).
 HEAD: `3256db9` — chore(release): bump version to 0.8.1 (18).
+Импортированный через openssl ключ «Rubis Dev» спамил codesign-диалогами
+(partition list у импортированных ключей; set-key-partition-list не прошёл —
+`!`-режим не даёт ввести пароль интерактивно). Решение: владелец создал
+**Rubis Dev 2** в Certificate Assistant (ключ keychain-native → подписывает
+тихо, проверено 3× codesign + Release-билд без единого диалога), доверие
+codeSign выставлено CLI. Старая identity удалена, экспорт для второй машины —
+`.claude/codesign/rubis-dev-2.p12` (пароль rubis-local). 0.8.1 остаётся
+подписанным старым «Rubis Dev» — при обновлении на следующий релиз будет один
+финальный keychain-запрос (Always Allow), дальше подпись стабильна.
+HEAD: `1f7b815` — chore(build): switch signing to keychain-native Rubis Dev 2.
 
 ## Фазы (из TASKS.md)
 
