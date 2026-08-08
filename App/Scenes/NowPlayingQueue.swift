@@ -76,32 +76,30 @@ struct NowPlayingQueue: View {
                     Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
                 }
                 .padding(.top, DS.Space.xs)
-                notesSection
             }
         }
-        // maxHeight: внутренний скролл заметок должен получить границу,
-        // а не растягивать колонку (урок 0.6.1 с нулевой высотой).
         .frame(width: 280, alignment: .leading)
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    /// Liner notes в колонке hero: читальный serif, скроллятся сами —
-    /// длинный текст не должен распирать колонку (урок 0.6.1).
+    /// Liner notes на всю ширину колонки очереди, сразу под трек-листом —
+    /// скроллятся вместе с ним (вердикт владельца: узкая колонка читалась
+    /// «пятном», текст должен идти широко и органично).
     @ViewBuilder
     private var notesSection: some View {
         if let notes {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: DS.Space.sm) {
-                    Text(notes.text.replacingOccurrences(of: "*", with: ""))
-                        .font(DS.Font.prose)
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .lineSpacing(DS.Font.LineSpacing.multiline * 3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                    DSText(
-                        notes.source == .wikipedia ? "From Wikipedia" : "Notes by Claude",
-                        style: .label, color: DS.Color.textTertiary)
-                }
+            VStack(alignment: .leading, spacing: DS.Space.sm) {
+                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+                    .padding(.top, DS.Space.lg)
+                Text(notes.text.replacingOccurrences(of: "*", with: ""))
+                    .font(DS.Font.prose)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .lineSpacing(DS.Font.LineSpacing.multiline * 3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                DSText(
+                    notes.source == .wikipedia ? "From Wikipedia" : "Notes by Claude",
+                    style: .label, color: DS.Color.textTertiary)
             }
             .padding(.top, DS.Space.sm)
         }
@@ -151,6 +149,7 @@ struct NowPlayingQueue: View {
                         .trackQueueMenu(track, env: env)
                     }
                 }
+                notesSection
             }
             .onAppear { proxy.scrollTo(currentIndex, anchor: .center) }
         }
