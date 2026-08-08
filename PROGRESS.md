@@ -6,15 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "3726b90"
+head: "2d6b924"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Вердикт владельца по Pack 1 «Liner notes» (0.4.0) → правки → Pack 2 «Прибор» (транспорт-шкала), затем Pack 3 «Витрина»"
+  - "Вердикт владельца по Pack 1 «Liner notes» (0.4.0) и Pack 2 «Прибор» (0.5.0) → правки → Pack 3 «Витрина» (Albums: featured + полка, токен тени)"
   - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
-  - "Починить LibrarySettings: список источников без скролла (та же болезнь, что была в сайдбаре)"
   - "Развилка после дизайн-итерации: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
@@ -112,6 +111,13 @@ HEAD: `c8352fb` — chore(release): bump version to 0.3.6 (build 9).
 же языком. DESIGN.md §3/§5.4 обновлены. Впереди: Pack 2 «Прибор» (транспорт:
 шкала с рисками, крупный тракт), Pack 3 «Витрина» (Albums, featured + полка).
 HEAD: `2668aa2` — chore(release): bump version to 0.4.0 (build 10).
+Session 05 продолжение (2026-08-08): **Pack 2 «Прибор» выпущен как 0.5.0** (build 11):
+транспорт — шкала-линейка `DSRulerScale` (Canvas: риски шагом 8 pt, полотно, золотое
+заполнение, игла) вместо слайдера; бейдж тракта — numeric капителью с разрядкой
+(приборное чтение). Попутно вылечен LibrarySettings: список источников обёрнут
+в ScrollView (та же болезнь, что была у сайдбара). DESIGN.md §5.1 обновлён.
+Остался Pack 3 «Витрина» (Albums: featured + полка) — после вердикта владельца.
+HEAD: `2d6b924` — chore(release): bump version to 0.5.0 (build 11).
 
 ## Фазы (из TASKS.md)
 
