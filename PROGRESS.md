@@ -6,13 +6,13 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "2d6b924"
+head: "d4014b3"
 tests: 70/70 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Вердикт владельца по Pack 1 «Liner notes» (0.4.0) и Pack 2 «Прибор» (0.5.0) → правки → Pack 3 «Витрина» (Albums: featured + полка, токен тени)"
+  - "Общий вердикт владельца по Jewel Box II (0.4.0 liner notes / 0.5.0 прибор / 0.6.0 витрина) → правки"
   - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
   - "Развилка после дизайн-итерации: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
@@ -118,6 +118,16 @@ Session 05 продолжение (2026-08-08): **Pack 2 «Прибор» вып
 в ScrollView (та же болезнь, что была у сайдбара). DESIGN.md §5.1 обновлён.
 Остался Pack 3 «Витрина» (Albums: featured + полка) — после вердикта владельца.
 HEAD: `2d6b924` — chore(release): bump version to 0.5.0 (build 11).
+По команде владельца («давай») **Pack 3 «Витрина» выпущен как 0.6.0** (build 12):
+Albums — фокусный экран на всю площадь (двухколонный режим, как Now Playing):
+featured-альбом 300 pt со «светом витрины» (`DS.Shadow.showcase*`, вторая
+разрешённая тень §2.3) + его liner-notes трек-лист (AlbumDetail showcase-режим),
+коллекция — горизонтальной полкой 108 pt на волосяной кромке (не-featured 0.78,
+featured — золотое кольцо). Клик = featured, двойной = играть, ⌘L ставит
+играющий. `AlbumsShowcase` заменил `AlbumsGrid` (AlbumCard остался для
+Artists/Recently Added). DESIGN.md §2.3/§5.3 обновлены. Jewel Box II: все три
+pack'а выпущены (0.4.0 / 0.5.0 / 0.6.0) — итерация ждёт общего вердикта владельца.
+HEAD: `d4014b3` — chore(release): bump version to 0.6.0 (build 12).
 
 ## Фазы (из TASKS.md)
 
