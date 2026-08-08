@@ -1,8 +1,8 @@
 // Single place for product identity (SPEC §14). Renaming the product = editing this file.
 PRODUCT_NAME = Rubis Music
 PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement
-MARKETING_VERSION = 0.8.0
-CURRENT_PROJECT_VERSION = 17
+MARKETING_VERSION = 0.8.1
+CURRENT_PROJECT_VERSION = 18
 DEVELOPMENT_TEAM =
 
 MACOSX_DEPLOYMENT_TARGET = 15.0
@@ -15,4 +15,7 @@ ENABLE_HARDENED_RUNTIME = YES
 LM_SKIP_METADATA_EXTRACTION = YES
 ENABLE_APP_SANDBOX = NO
 CODE_SIGN_ENTITLEMENTS = App/Escapement.entitlements
-CODE_SIGN_IDENTITY = -
+// Self-signed local identity (X10 .claude/codesign): stable signature
+// between builds so the Keychain "Always Allow" for API keys survives
+// updates (ad-hoc changed identity every build).
+CODE_SIGN_IDENTITY = Rubis Dev
