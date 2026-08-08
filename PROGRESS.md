@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "82e890a"
+head: "8e9211a"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -203,6 +203,13 @@ HEAD: `df2112d` — chore(release): bump version to 0.8.2 (19).
 витрину (перемотка ±5 с в фокусе витрины уступает, транспорт на медиа-клавишах).
 Выпущен **0.8.3** (build 20), SHA256 сверен.
 HEAD: `82e890a` — chore(release): bump version to 0.8.3 (20).
+Скриншот владельца: правая половина Now Playing пустовала — трек-лист и заметки
+шли одной колонкой под обложкой. Причина: текст заметок жил внутри колонки
+очереди с неограниченной «идеальной» шириной, поэтому `ViewThatFits` всегда
+выбирал вертикальный вариант. Фикс `8e9211a`: liner notes вынесены под обе
+колонки широкой полосой (свой скролл, потолок 260 pt) → горизонтальный вариант
+снова помещается: обложка слева, очередь справа, текст лентой внизу.
+HEAD: `8e9211a` — fix(now-playing): keep two columns, move liner notes to a full-width band.
 
 ## Фазы (из TASKS.md)
 
