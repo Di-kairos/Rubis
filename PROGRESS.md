@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "df2112d"
+head: "82e890a"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -194,6 +194,15 @@ HEAD: `1f7b815` — chore(build): switch signing to keychain-native Rubis Dev 2.
 обновления один финальный «Always Allow» на каждый из двух ключей
 (claude-api-key, deepseek-api-key — у каждого свой ACL), дальше тишина.
 HEAD: `df2112d` — chore(release): bump version to 0.8.2 (19).
+Диалоги не ушли и на 0.8.2 — истинная причина: keychain-записи ключей созданы
+старой ad-hoc-сборкой, для macOS их «владелец» — другая программа, ACL не
+совпадает. Фикс `3521224`: KeychainStore.load после удачного чтения
+пересохраняет запись → текущая сборка становится создателем → тишина навсегда
+без Always Allow. Плюс жалоба «полку не прокрутить»: у полки виден скроллбар
+(showsIndicators), keyboardNavigable получил horizontal-режим — ←→ листают
+витрину (перемотка ±5 с в фокусе витрины уступает, транспорт на медиа-клавишах).
+Выпущен **0.8.3** (build 20), SHA256 сверен.
+HEAD: `82e890a` — chore(release): bump version to 0.8.3 (20).
 
 ## Фазы (из TASKS.md)
 
