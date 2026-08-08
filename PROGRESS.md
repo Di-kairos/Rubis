@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "33198fb"
+head: "4551912"
 tests: 71/71 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -145,6 +145,12 @@ opt-in в Settings → General → Album notes, ключ в Keychain (`KeychainS
 Выпущен **0.7.0** (build 14), SHA256 сверен. Владельцу: включить тумблер и
 вставить ключ — Wikipedia работает и без ключа.
 HEAD: `33198fb` — chore(release): bump version to 0.7.0 (build 14).
+Вердикт владельца по месту заметок: на экране альбома внизу неуместно, в Now
+Playing — самое то. Liner notes перенесены в hero-колонку Now Playing (свой
+скролл, granica maxHeight — урок 0.6.1), с экрана альбома убраны; из
+Claude-заметок вычищен markdown (звёздочки: промпт + strip при показе).
+Выпущен **0.7.1** (build 15), SHA256 сверен.
+HEAD: `4551912` — chore(release): bump version to 0.7.1 (build 15).
 
 ## Фазы (из TASKS.md)
 
