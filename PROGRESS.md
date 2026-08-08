@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "1f7b815"
+head: "df2112d"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -189,6 +189,11 @@ codeSign выставлено CLI. Старая identity удалена, экс�
 подписанным старым «Rubis Dev» — при обновлении на следующий релиз будет один
 финальный keychain-запрос (Always Allow), дальше подпись стабильна.
 HEAD: `1f7b815` — chore(build): switch signing to keychain-native Rubis Dev 2.
+Выпущен **0.8.2** (build 19) — только перепідпис на Rubis Dev 2
+(Authority=Rubis Dev 2 проверен в DMG), SHA256 сверен. Владельцу: после
+обновления один финальный «Always Allow» на каждый из двух ключей
+(claude-api-key, deepseek-api-key — у каждого свой ACL), дальше тишина.
+HEAD: `df2112d` — chore(release): bump version to 0.8.2 (19).
 
 ## Фазы (из TASKS.md)
 
