@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "4551912"
+head: "d8cb4f2"
 tests: 71/71 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -151,6 +151,11 @@ Playing — самое то. Liner notes перенесены в hero-колон
 Claude-заметок вычищен markdown (звёздочки: промпт + strip при показе).
 Выпущен **0.7.1** (build 15), SHA256 сверен.
 HEAD: `4551912` — chore(release): bump version to 0.7.1 (build 15).
+Ещё одна правка владельца: узкая колонка заметок читалась «пятном» — liner notes
+теперь идут на всю ширину колонки очереди сразу под трек-листом и скроллятся
+вместе с ним (как текст на обороте конверта). Выпущен **0.7.2** (build 16),
+SHA256 сверен.
+HEAD: `d8cb4f2` — chore(release): bump version to 0.7.2 (build 16).
 
 ## Фазы (из TASKS.md)
 
