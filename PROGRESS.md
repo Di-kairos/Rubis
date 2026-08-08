@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "2e836b2"
+head: "33198fb"
 tests: 71/71 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -137,6 +137,14 @@ HEAD: `d4014b3` — chore(release): bump version to 0.6.0 (build 12).
 (EXISTS-фильтр в Observation.swift, +тест; MusicLibrary 38/38, всего 71).
 Выпущен **0.6.1** (build 13), SHA256 сверен. Тесты: 71/71.
 HEAD: `2e836b2` — chore(release): bump version to 0.6.1 (build 13).
+**D-008 (запрос владельца): аннотации альбомов.** Wikipedia (search/title →
+page/summary, без ключа) как база, Claude API (`claude-opus-5`) как fallback;
+opt-in в Settings → General → Album notes, ключ в Keychain (`KeychainStore`),
+кеш навсегда в `Application Support/Escapement/album-info/`. UI: liner notes
+читальным serif (новый токен `prose`) под трек-листом, источник подписан.
+Выпущен **0.7.0** (build 14), SHA256 сверен. Владельцу: включить тумблер и
+вставить ключ — Wikipedia работает и без ключа.
+HEAD: `33198fb` — chore(release): bump version to 0.7.0 (build 14).
 
 ## Фазы (из TASKS.md)
 
