@@ -24,7 +24,13 @@ public struct DSTechBadge: View {
     }
 
     public var body: some View {
-        DSText(segments.joined(separator: "  ·  "), style: .caption, color: color)
+        // Приборное чтение (Jewel Box II «Прибор»): моноширинный, капителью,
+        // с разрядкой — тракт как на панели измерительного устройства.
+        Text(segments.joined(separator: "  ·  ").uppercased())
+            .font(DS.Font.numeric)
+            .tracking(1.2)
+            .lineLimit(1)
+            .foregroundStyle(color)
             .accessibilityLabel("Output status: \(segments.joined(separator: ", "))")
     }
 

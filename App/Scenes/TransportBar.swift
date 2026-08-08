@@ -54,7 +54,8 @@ struct TransportBar: View {
             }
 
             VStack(spacing: 2) {
-                DSProgressBar(progress: progress) { fraction in
+                // Jewel Box II «Прибор»: шкала с рисками вместо слайдера.
+                DSRulerScale(progress: progress) { fraction in
                     env.seek(to: fraction)
                 }
                 HStack {
