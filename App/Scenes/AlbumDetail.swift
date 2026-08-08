@@ -28,31 +28,19 @@ struct AlbumDetail: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(tracks.enumerated()), id: \.offset) { index, track in
-                        DSListRow(isSelected: isPlaying(track)) {
-                            HStack(spacing: DS.Space.md) {
-                                DSText(
-                                    "\(track.trackNo ?? index + 1)", style: .numeric,
-                                    color: DS.Color.textTertiary
-                                )
-                                .frame(width: 24, alignment: .trailing)
-                                UnavailableMark(track: track)
-                                PlayingMark(isPlaying: isPlaying(track))
-                                DSText(
-                                    track.title, style: .headline,
-                                    color: track.titleColor(isPlaying: isPlaying(track))
-                                )
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                DSText(
-                                    Self.format(duration: track.duration), style: .numeric,
-                                    color: DS.Color.textTertiary)
-                            }
+                    // Liner notes (Jewel Box II): многодисковый альбом делится
+                    // на секции, трек-лист — с точечными лидерами.
+                    ForEach(discs, id: \.no) { disc in
+                        if let no = disc.no {
+                            DSText(
+                                "Disc \(no)", style: .label, color: DS.Color.accent
+                            )
+                            .padding(.top, DS.Space.lg)
+                            .padding(.bottom, DS.Space.xs)
                         }
-                        .onTapGesture(count: 2) {
-                            env.play(album: album, startAt: index)
+                        ForEach(disc.rows, id: \.offset) { index, track in
+                            trackRow(track, at: index)
                         }
-                        .draggable(track.dragPayload)
-                        .trackQueueMenu(track, env: env)
                     }
                 }
             }
@@ -73,6 +61,46 @@ struct AlbumDetail: View {
         }
     }
 
+    /// Строка секции: диск (nil у однодискового альбома) и его треки
+    /// с исходными индексами очереди.
+    private var discs: [(no: Int?, rows: [(offset: Int, element: Track)])] {
+        let indexed = Array(tracks.enumerated())
+        let groups = Dictionary(grouping: indexed) { $0.element.discNo ?? 1 }
+        guard groups.count > 1 else { return [(no: nil, rows: indexed)] }
+        return groups.keys.sorted().map { key in
+            (no: key, rows: groups[key] ?? [])
+        }
+    }
+
+    private func trackRow(_ track: Track, at index: Int) -> some View {
+        DSListRow(isSelected: isPlaying(track)) {
+            HStack(spacing: DS.Space.md) {
+                DSText(
+                    "\(track.trackNo ?? index + 1)", style: .numeric,
+                    color: DS.Color.textTertiary
+                )
+                .frame(width: 24, alignment: .trailing)
+                UnavailableMark(track: track)
+                PlayingMark(isPlaying: isPlaying(track))
+                DSText(
+                    track.title, style: .headline,
+                    color: track.titleColor(isPlaying: isPlaying(track))
+                )
+                // Лидер сжимается первым: название не обрезается, пока есть место.
+                .layoutPriority(1)
+                DSDottedLeader()
+                DSText(
+                    Self.format(duration: track.duration), style: .numeric,
+                    color: DS.Color.textTertiary)
+            }
+        }
+        .onTapGesture(count: 2) {
+            env.play(album: album, startAt: index)
+        }
+        .draggable(track.dragPayload)
+        .trackQueueMenu(track, env: env)
+    }
+
     /// Название, артист, техстрока и кнопки. Заголовки переносятся на вторую
     /// строку, кнопки держат свою ширину — иначе «Play» обрезался до буквы.
     private var metadata: some View {
@@ -83,7 +111,15 @@ struct AlbumDetail: View {
                 .foregroundStyle(DS.Color.accent)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-            DSText(metaLine, style: .caption, color: DS.Color.textTertiary, lines: 2)
+            // Каталожная строка между волосяными линейками — как техпаспорт
+            // на конверте (Jewel Box II).
+            VStack(alignment: .leading, spacing: 0) {
+                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+                DSText(metaLine, style: .numeric, color: DS.Color.textTertiary, lines: 2)
+                    .padding(.vertical, DS.Space.sm)
+                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+            }
+            .padding(.vertical, DS.Space.xs)
             // Одна тихая кнопка в языке Jewel Box: тонкое золотое кольцо,
             // не залитая плашка (вердикт владельца: заливные кнопки грубые,
             // Shuffle дублировал транспортную панель и удалён).

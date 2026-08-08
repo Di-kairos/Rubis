@@ -58,10 +58,20 @@ struct NowPlayingQueue: View {
                     DSText(track.title, style: .display)
                 }
                 if let album {
-                    DSText(album.albumArtist ?? "", style: .title, color: DS.Color.accent)
+                    Text(album.albumArtist ?? "")
+                        .font(DS.Font.displayArtist)
+                        .foregroundStyle(DS.Color.accent)
+                        .lineLimit(2)
                     DSText(album.title, style: .body, color: DS.Color.textSecondary)
                 }
-                DSText(summary, style: .caption, color: DS.Color.textTertiary)
+                // Сводка очереди между линейками — язык liner notes.
+                VStack(alignment: .leading, spacing: 0) {
+                    Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+                    DSText(summary, style: .numeric, color: DS.Color.textTertiary)
+                        .padding(.vertical, DS.Space.sm)
+                    Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+                }
+                .padding(.top, DS.Space.xs)
             }
         }
         .frame(width: 280, alignment: .leading)
@@ -98,7 +108,8 @@ struct NowPlayingQueue: View {
                                     color: track.titleColor(
                                         isPlaying: index == currentIndex)
                                 )
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .layoutPriority(1)
+                                DSDottedLeader()
                                 DSText(
                                     AlbumDetail.format(duration: track.duration),
                                     style: .numeric, color: DS.Color.textTertiary)

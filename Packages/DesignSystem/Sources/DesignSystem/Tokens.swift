@@ -38,9 +38,11 @@ extension DS {
     public enum Font {
         // D-007: serif (New York) — фирменный знак Rubis, отказ от SF-подобия Apple Music.
         public static let display = SwiftUI.Font.system(size: 28, weight: .semibold, design: .serif)
-        /// Артист под названием альбома — акцентным цветом (DESIGN §3).
+        /// Артист под названием альбома — акцентным цветом, курсивом
+        /// (DESIGN §3, Jewel Box II: язык liner notes).
         public static let displayArtist = SwiftUI.Font.system(
-            size: 22, weight: .regular, design: .serif)
+            size: 22, weight: .regular, design: .serif
+        ).italic()
         public static let title = SwiftUI.Font.system(size: 20, weight: .medium, design: .serif)
         public static let headline = SwiftUI.Font.system(size: 14, weight: .semibold)
         public static let body = SwiftUI.Font.system(size: 13, weight: .regular)
