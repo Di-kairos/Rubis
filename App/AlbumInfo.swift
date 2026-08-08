@@ -9,10 +9,34 @@ struct AlbumInfo: Codable, Sendable, Equatable {
     enum Source: String, Codable, Sendable {
         case wikipedia
         case claude
+        case deepseek
     }
 
     let source: Source
     let text: String
+}
+
+/// Писатель fallback-заметок — выбор владельца (Settings → General).
+enum NotesProvider: String, CaseIterable, Identifiable {
+    case claude
+    case deepseek
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .claude: return "Claude"
+        case .deepseek: return "DeepSeek"
+        }
+    }
+
+    /// Отдельный ключ в Keychain на провайдера.
+    var keychainAccount: String {
+        switch self {
+        case .claude: return "claude-api-key"
+        case .deepseek: return "deepseek-api-key"
+        }
+    }
 }
 
 /// Актор: сериализует сетевые походы и файловый кеш.
@@ -37,8 +61,18 @@ actor AlbumInfoService {
 
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
         if result == nil {
-            result = await fetchClaude(
-                title: title, artist: album.albumArtist, year: album.year)
+            let provider =
+                NotesProvider(
+                    rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
+                ) ?? .claude
+            switch provider {
+            case .claude:
+                result = await fetchClaude(
+                    title: title, artist: album.albumArtist, year: album.year)
+            case .deepseek:
+                result = await fetchDeepSeek(
+                    title: title, artist: album.albumArtist, year: album.year)
+            }
         }
         if let result { writeCache(albumId: id, info: result) }
         return result
@@ -81,13 +115,9 @@ actor AlbumInfoService {
         let extract: String?
     }
 
-    // MARK: - Claude API (fallback)
+    // MARK: - LLM fallback (Claude / DeepSeek — выбор владельца)
 
-    private func fetchClaude(title: String, artist: String?, year: Int?) async -> AlbumInfo? {
-        guard let apiKey = KeychainStore.load(), !apiKey.isEmpty,
-            let url = URL(string: "https://api.anthropic.com/v1/messages")
-        else { return nil }
-
+    private func linerNotesPrompt(title: String, artist: String?, year: Int?) -> String {
         var prompt = "Write 2-3 short paragraphs of liner notes about the album \"\(title)\""
         if let artist { prompt += " by \(artist)" }
         if let year { prompt += " (\(year))" }
@@ -95,12 +125,23 @@ actor AlbumInfoService {
             ". Cover why the record matters, who plays on it, and what to listen for. "
             + "Plain prose only — no markdown, no asterisks, no headings, no lists. "
             + "If you don't know this album, reply with exactly UNKNOWN."
+        return prompt
+    }
+
+    private let systemPrompt =
+        "You write concise, knowledgeable liner notes for a personal hi-fi music player."
+
+    private func fetchClaude(title: String, artist: String?, year: Int?) async -> AlbumInfo? {
+        guard let apiKey = KeychainStore.load(account: NotesProvider.claude.keychainAccount),
+            !apiKey.isEmpty,
+            let url = URL(string: "https://api.anthropic.com/v1/messages")
+        else { return nil }
+        let prompt = linerNotesPrompt(title: title, artist: artist, year: year)
 
         let body: [String: Any] = [
             "model": "claude-opus-5",
             "max_tokens": 1024,
-            "system":
-                "You write concise, knowledgeable liner notes for a personal hi-fi music player.",
+            "system": systemPrompt,
             "messages": [["role": "user", "content": prompt]],
         ]
         var request = URLRequest(url: url)
@@ -117,6 +158,45 @@ actor AlbumInfoService {
             let clean = nonEmpty(text), clean != "UNKNOWN"
         else { return nil }
         return AlbumInfo(source: .claude, text: clean)
+    }
+
+    /// DeepSeek: OpenAI-совместимый chat/completions, Bearer-авторизация.
+    private func fetchDeepSeek(title: String, artist: String?, year: Int?) async -> AlbumInfo? {
+        guard let apiKey = KeychainStore.load(account: NotesProvider.deepseek.keychainAccount),
+            !apiKey.isEmpty,
+            let url = URL(string: "https://api.deepseek.com/chat/completions")
+        else { return nil }
+        let prompt = linerNotesPrompt(title: title, artist: artist, year: year)
+
+        let body: [String: Any] = [
+            "model": "deepseek-chat",
+            "max_tokens": 1024,
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": prompt],
+            ],
+        ]
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        guard let responseData = try? await data(from: request),
+            let completion = try? JSONDecoder().decode(
+                DeepSeekCompletion.self, from: responseData),
+            let text = completion.choices.first?.message.content,
+            let clean = nonEmpty(text), clean != "UNKNOWN"
+        else { return nil }
+        return AlbumInfo(source: .deepseek, text: clean)
+    }
+
+    private struct DeepSeekCompletion: Decodable {
+        struct Choice: Decodable {
+            struct Message: Decodable { let content: String? }
+            let message: Message
+        }
+        let choices: [Choice]
     }
 
     private struct ClaudeMessage: Decodable {
@@ -168,12 +248,12 @@ actor AlbumInfoService {
     }
 }
 
-/// Ключ Claude API — только в Keychain (§7: секреты не в UserDefaults и не в git).
+/// API-ключи — только в Keychain (§7: секреты не в UserDefaults и не в git).
+/// `account` — ключ провайдера (NotesProvider.keychainAccount).
 enum KeychainStore {
     private static let service = "com.dikairos.escapement"
-    private static let account = "claude-api-key"
 
-    static func save(_ value: String) {
+    static func save(_ value: String, account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -186,7 +266,7 @@ enum KeychainStore {
         SecItemAdd(add as CFDictionary, nil)
     }
 
-    static func load() -> String? {
+    static func load(account: String) -> String? {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

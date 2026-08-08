@@ -97,11 +97,17 @@ struct NowPlayingQueue: View {
                     .lineSpacing(DS.Font.LineSpacing.multiline * 3)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
-                DSText(
-                    notes.source == .wikipedia ? "From Wikipedia" : "Notes by Claude",
-                    style: .label, color: DS.Color.textTertiary)
+                DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
             }
             .padding(.top, DS.Space.sm)
+        }
+    }
+
+    private var notesAttribution: String {
+        switch notes?.source {
+        case .claude: return "Notes by Claude"
+        case .deepseek: return "Notes by DeepSeek"
+        default: return "From Wikipedia"
         }
     }
 

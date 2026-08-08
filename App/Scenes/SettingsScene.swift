@@ -111,7 +111,15 @@ struct GeneralSettings: View {
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
     /// D-008: аннотации альбомов — opt-in, сеть только по явному включению.
     @AppStorage("albumNotes") private var albumNotes = false
-    @State private var apiKey = KeychainStore.load() ?? ""
+    /// Писатель fallback-заметок (D-008): Claude или DeepSeek, ключ каждого
+    /// хранится в Keychain под своим account.
+    @AppStorage("notesProvider") private var notesProvider = NotesProvider.claude.rawValue
+    @State private var apiKey =
+        KeychainStore.load(account: NotesProvider.claude.keychainAccount) ?? ""
+
+    private var provider: NotesProvider {
+        NotesProvider(rawValue: notesProvider) ?? .claude
+    }
 
     var body: some View {
         Form {
@@ -121,15 +129,26 @@ struct GeneralSettings: View {
             Section("Album notes") {
                 Toggle("Show liner notes on the album screen", isOn: $albumNotes)
                     .help(
-                        "Fetched once per album from Wikipedia; Claude writes them "
-                            + "when Wikipedia has nothing. Cached forever.")
-                SecureField("Claude API key (for the fallback)", text: $apiKey)
-                    .onChange(of: apiKey) { KeychainStore.save(apiKey) }
-                    .help("Stored in the Keychain, never leaves this Mac except to Anthropic")
+                        "Fetched once per album from Wikipedia; the selected writer "
+                            + "steps in when Wikipedia has nothing. Cached forever.")
+                Picker("Notes writer", selection: $notesProvider) {
+                    ForEach(NotesProvider.allCases) { provider in
+                        Text(provider.displayName).tag(provider.rawValue)
+                    }
+                }
+                SecureField("\(provider.displayName) API key (for the fallback)", text: $apiKey)
+                    .onChange(of: apiKey) {
+                        KeychainStore.save(apiKey, account: provider.keychainAccount)
+                    }
+                    .help("Stored in the Keychain, sent only to the selected provider")
             }
         }
         .padding(DS.Space.xl)
         .frame(width: 520)
+        // Смена писателя — поле показывает ключ выбранного провайдера.
+        .onChange(of: notesProvider) {
+            apiKey = KeychainStore.load(account: provider.keychainAccount) ?? ""
+        }
     }
 }
 
