@@ -7,9 +7,9 @@
 https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 
 ## Состояние
-- Ветка `main`, head `2668aa2` (+docs). Тесты **70/70**, Debug/Release без warnings.
-- Выпущено: **0.4.0** (build 10) — Jewel Box II Pack 1 «Liner notes».
-  Вся серия сессии 05: 0.3.0…0.3.6, 0.4.0 (см. progress-report-session05).
+- Ветка `main`, head `2d6b924` (+docs). Тесты **70/70**, Debug/Release без warnings.
+- Выпущено: **0.5.0** (build 11) — Jewel Box II Pack 2 «Прибор» (Pack 1 = 0.4.0).
+  Вся серия сессии 05: 0.3.0…0.3.6, 0.4.0, 0.5.0 (см. progress-report-session05).
 - Библиотека владельца: 1 источник (бокс-сет Blue Note), ЦАП FiiO QX13,
   выход прибит в Settings → Audio.
 
