@@ -6,7 +6,7 @@
   отчёт `docs/sessions/progress-report-session05.md`
 - Следующая: **06** — kickoff `docs/sessions/SESSION_06_KICKOFF.md`
 - Ветка: `main` (фазы 0–7 по коду); `phase/07-integration` слита merge-коммитом `94b0320`
-- Статус продукта: **Rubis Music 0.3.3** (build 6) в фиде `rubis-releases`
+- Статус продукта: **Rubis Music 0.6.0** (build 12) в фиде `rubis-releases`
   (DMG подписан EdDSA, опубликованный файл сверен по SHA256); 0.3.1 = фикс
   сайдбара (много источников ломали layout окна и роняли приложение);
   0.3.2 = очередь в Now Playing + focus ring/слайдер на macOS 26;
