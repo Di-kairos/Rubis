@@ -12,10 +12,12 @@ last_session: 5
 last_reviewed: 2026-08-07
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: внешний ЦАП, gapless на живом альбоме, 8 часов без dropout, VoiceOver, Reduce Motion / Increase Contrast глазами"
-  - "Дизайн Jewel Box (D-007): владелец смотрит на своей библиотеке и возвращается с правками"
-  - "Нажать «Check for Updates…» на установленной 0.2.x — живая проверка апдейта до 0.3.0 (фид и подпись проверены)"
-  - "Развилка после фазы 7: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
+  - "Вердикт владельца по Pack 1 «Liner notes» (0.4.0) → правки → Pack 2 «Прибор» (транспорт-шкала), затем Pack 3 «Витрина»"
+  - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
+  - "Починить LibrarySettings: список источников без скролла (та же болезнь, что была в сайдбаре)"
+  - "Развилка после дизайн-итерации: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
+links_extra:
+  design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
 links:
@@ -25,8 +27,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session04.md
-  latest_kickoff: docs/sessions/SESSION_05_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session05.md
+  latest_kickoff: docs/sessions/SESSION_06_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music

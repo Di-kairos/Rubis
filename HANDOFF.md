@@ -2,7 +2,9 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **05** (2026-08-07, merge + релиз) — kickoff `docs/sessions/SESSION_05_KICKOFF.md`
+- Последняя сессия: **05** (2026-08-07/08, merge + 7 релизов + Jewel Box II pack 1) —
+  отчёт `docs/sessions/progress-report-session05.md`
+- Следующая: **06** — kickoff `docs/sessions/SESSION_06_KICKOFF.md`
 - Ветка: `main` (фазы 0–7 по коду); `phase/07-integration` слита merge-коммитом `94b0320`
 - Статус продукта: **Rubis Music 0.3.3** (build 6) в фиде `rubis-releases`
   (DMG подписан EdDSA, опубликованный файл сверен по SHA256); 0.3.1 = фикс
