@@ -138,9 +138,10 @@ actor AlbumInfoService {
         else { return nil }
         let prompt = linerNotesPrompt(title: title, artist: artist, year: year)
 
+        // 4096: с 1024 ответ обрезался на полуслове и попадал в кеш (0.8.0).
         let body: [String: Any] = [
             "model": "claude-opus-5",
-            "max_tokens": 1024,
+            "max_tokens": 4096,
             "system": systemPrompt,
             "messages": [["role": "user", "content": prompt]],
         ]
@@ -151,9 +152,10 @@ actor AlbumInfoService {
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
+        // end_turn строго: обрезанный max_tokens'ом текст в кеш не пускаем.
         guard let responseData = try? await data(from: request),
             let message = try? JSONDecoder().decode(ClaudeMessage.self, from: responseData),
-            message.stopReason != "refusal",
+            message.stopReason == "end_turn",
             let text = message.content.first(where: { $0.type == "text" })?.text,
             let clean = nonEmpty(text), clean != "UNKNOWN"
         else { return nil }
@@ -170,7 +172,7 @@ actor AlbumInfoService {
 
         let body: [String: Any] = [
             "model": "deepseek-chat",
-            "max_tokens": 1024,
+            "max_tokens": 4096,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": prompt],
@@ -185,7 +187,9 @@ actor AlbumInfoService {
         guard let responseData = try? await data(from: request),
             let completion = try? JSONDecoder().decode(
                 DeepSeekCompletion.self, from: responseData),
-            let text = completion.choices.first?.message.content,
+            let choice = completion.choices.first,
+            choice.finishReason == "stop",
+            let text = choice.message.content,
             let clean = nonEmpty(text), clean != "UNKNOWN"
         else { return nil }
         return AlbumInfo(source: .deepseek, text: clean)
@@ -195,6 +199,12 @@ actor AlbumInfoService {
         struct Choice: Decodable {
             struct Message: Decodable { let content: String? }
             let message: Message
+            let finishReason: String?
+
+            enum CodingKeys: String, CodingKey {
+                case message
+                case finishReason = "finish_reason"
+            }
         }
         let choices: [Choice]
     }
@@ -220,8 +230,21 @@ actor AlbumInfoService {
     }
 
     private func readCache(albumId: Int64) -> AlbumInfo? {
-        guard let data = try? Data(contentsOf: cacheURL(albumId: albumId)) else { return nil }
-        return try? JSONDecoder().decode(AlbumInfo.self, from: data)
+        guard let data = try? Data(contentsOf: cacheURL(albumId: albumId)),
+            let info = try? JSONDecoder().decode(AlbumInfo.self, from: data)
+        else { return nil }
+        // Самолечение кеша: до 0.8.1 обрезанный max_tokens'ом ответ LLM
+        // кешировался навсегда. Заметка без конца предложения — перезапросить.
+        if info.source != .wikipedia, !endsAsSentence(info.text) { return nil }
+        return info
+    }
+
+    /// ponytail: эвристика конца предложения — ловит обрезку max_tokens,
+    /// точной проверки завершённости у кешированного текста нет.
+    private func endsAsSentence(_ text: String) -> Bool {
+        guard let last = text.trimmingCharacters(in: .whitespacesAndNewlines).last
+        else { return false }
+        return ".!?…\"'»)".contains(last)
     }
 
     private func writeCache(albumId: Int64, info: AlbumInfo) {
