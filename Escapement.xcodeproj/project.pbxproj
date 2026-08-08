@@ -33,6 +33,7 @@
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
 		B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4654C15A6867CBA18211295 /* MediaIntegration.swift */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
+		D06458A2DFC3495C3B2BC16A /* AlbumInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */; };
 		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
 		FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = D61AF376BFE2E74CC999958E /* DesignSystem */; };
 /* End PBXBuildFile section */
@@ -46,6 +47,7 @@
 		2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResults.swift; sourceTree = "<group>"; };
 		31C5349F10DD785A914D3073 /* Escapement.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Escapement.xcconfig; sourceTree = "<group>"; };
 		3381F8269F03E8595BAFB27C /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumInfo.swift; sourceTree = "<group>"; };
 		470192454F34299CE626000F /* ArtistsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtistsList.swift; sourceTree = "<group>"; };
 		4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		50F9F0833B17181AC9CC3A98 /* TracksList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracksList.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 		2CDE4D07DE91E2F89D56CAD8 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */,
 				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
 				A0F4C769CDF187F104033B37 /* DebugHarness.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
@@ -278,6 +281,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */,
+				D06458A2DFC3495C3B2BC16A /* AlbumInfo.swift in Sources */,
 				059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */,
 				6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */,
 				2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */,

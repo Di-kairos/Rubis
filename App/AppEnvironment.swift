@@ -14,6 +14,8 @@ final class AppEnvironment {
     let devices: AudioDeviceController
     let scanner: LibraryScanner
     let covers: CoverCache
+    /// Аннотации альбомов (D-008): Wikipedia → Claude, кеш на диске.
+    let albumInfo = AlbumInfoService()
 
     var trackRepo: TrackRepository { TrackRepository(db: db) }
     var albumRepo: AlbumRepository { AlbumRepository(db: db) }

@@ -50,6 +50,8 @@ extension DS {
         public static let label = SwiftUI.Font.system(size: 10, weight: .medium)
         /// Tabular numerals for timings, rates and bit depth — never proportional.
         public static let numeric = SwiftUI.Font.system(size: 12, design: .monospaced)
+        /// Читальный serif для длинного текста liner notes (D-008, DESIGN §3).
+        public static let prose = SwiftUI.Font.system(size: 13, design: .serif)
             .monospacedDigit()
 
         public enum Tracking {

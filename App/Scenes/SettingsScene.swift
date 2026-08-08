@@ -109,12 +109,24 @@ struct KeysSettings: View {
 struct GeneralSettings: View {
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
+    /// D-008: аннотации альбомов — opt-in, сеть только по явному включению.
+    @AppStorage("albumNotes") private var albumNotes = false
+    @State private var apiKey = KeychainStore.load() ?? ""
 
     var body: some View {
         Form {
             Toggle("Show icon in the menu bar", isOn: $menuBarIcon)
                 .help("Current track and transport without bringing the window up")
             Toggle("Keep mini player above other windows", isOn: $miniPlayerOnTop)
+            Section("Album notes") {
+                Toggle("Show liner notes on the album screen", isOn: $albumNotes)
+                    .help(
+                        "Fetched once per album from Wikipedia; Claude writes them "
+                            + "when Wikipedia has nothing. Cached forever.")
+                SecureField("Claude API key (for the fallback)", text: $apiKey)
+                    .onChange(of: apiKey) { KeychainStore.save(apiKey) }
+                    .help("Stored in the Keychain, never leaves this Mac except to Anthropic")
+            }
         }
         .padding(DS.Space.xl)
         .frame(width: 520)

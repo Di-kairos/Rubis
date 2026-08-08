@@ -105,6 +105,7 @@
 | `caption` | SF Pro Text | 11 / Regular, tracking +0.2 | метаданные, подписи |
 | `label` | SF Pro Text | 10 / Medium, uppercase, tracking +0.8 | заголовки колонок, секции сайдбара |
 | `numeric` | SF Mono | 12 / Regular, tabular | тайминги, частоты, разрядность |
+| `prose` | New York (serif) | 13 / Regular, межстрочный 1.35 | длинный читальный текст: liner notes альбома (D-008) |
 
 Правила:
 
@@ -212,6 +213,10 @@
 
 Now Playing говорит тем же языком: hero-обложка, курсивный артист, сводка очереди
 между линейками, лидеры в списке.
+
+Под трек-листом — **liner notes** (D-008, opt-in): аннотация альбома читальным
+serif (`prose`) между волосяными линейками, источник подписан `label`
+(«From Wikipedia» / «Notes by Claude»).
 
 ### 5.5 Сайдбар
 
