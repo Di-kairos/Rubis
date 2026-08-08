@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "bbd11c6"
+head: "3256db9"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -166,6 +166,19 @@ chat/completions, `deepseek-chat`), подпись «Notes by DeepSeek»; (2) и
 клик по разделу Library сбрасывает фильтр. Выпущен **0.8.0** (build 17),
 SHA256 сверен.
 HEAD: `bbd11c6` — chore(release): bump version to 0.8.0 (17).
+Видео владельца: заметки Claude обрывались на полуслове — max_tokens 1024
+съедался, обрезок кешировался навсегда. Фикс `adee8ef`: max_tokens 4096,
+строгий stop_reason=end_turn (Claude) / finish_reason=stop (DeepSeek),
+самолечение кеша (заметка без конца предложения → перезапрос). Второе:
+keychain-запрос при каждом обновлении — из-за ad-hoc подписи (новая «личность»
+каждый билд). Создан self-signed сертификат **Rubis Dev** (ключи на X10:
+`.claude/codesign/rubis-dev.p12`, пароль rubis-local; на второй машине —
+`security import` + `add-trusted-cert -p codeSign` + `set-key-partition-list`),
+`CODE_SIGN_IDENTITY = Rubis Dev` в xcconfig — подпись стабильна между билдами,
+«Always Allow» переживает обновления. Запуск подписанного билда проверен (4 s
+alive, library validation не убила). Выпущен **0.8.1** (build 18), SHA256 сверен.
+Для друзей self-signed не решение: нужен Developer ID + нотаризация ($99/год).
+HEAD: `3256db9` — chore(release): bump version to 0.8.1 (18).
 
 ## Фазы (из TASKS.md)
 
