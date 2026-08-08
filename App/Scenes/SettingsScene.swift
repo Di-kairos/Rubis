@@ -128,19 +128,28 @@ struct LibrarySettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.lg) {
             DSText("Sources", style: .title)
-            ForEach(sources) { source in
-                HStack {
-                    Image(systemName: source.kind == .local ? "folder" : "server.rack")
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .accessibilityHidden(true)
-                    DSText(source.displayName, style: .body)
-                    Spacer()
-                    Button("Remove", role: .destructive) {
-                        removeSource(source)
+            // Скроллится: десятки источников не должны распирать окно Settings
+            // (та же болезнь, что была у сайдбара до 0.3.1).
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Space.sm) {
+                    ForEach(sources) { source in
+                        HStack {
+                            Image(
+                                systemName: source.kind == .local ? "folder" : "server.rack"
+                            )
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .accessibilityHidden(true)
+                            DSText(source.displayName, style: .body)
+                            Spacer()
+                            Button("Remove", role: .destructive) {
+                                removeSource(source)
+                            }
+                            .font(DS.Font.caption)
+                        }
                     }
-                    .font(DS.Font.caption)
                 }
             }
+            .frame(maxHeight: 240)
             HStack {
                 Button("Add Folder…") { addFolder() }
                 Spacer()
