@@ -309,6 +309,12 @@ struct TrackSortTests {
 }
 
 struct ObservationTests {
+    private func makeSource(_ db: TestDatabase) throws -> Source {
+        let source = Source(kind: .local, displayName: "Test Library")
+        try SourceRepository(db: db).upsert(source)
+        return source
+    }
+
     @Test func albumObservationEmitsOnChange() async throws {
         let db = try AppDatabase.inMemory()
         var iterator = LibraryObservation.albums(db: db).makeAsyncIterator()
@@ -316,9 +322,35 @@ struct ObservationTests {
         let initial = try await iterator.next()
         #expect(initial == [])
 
-        _ = try AlbumRepository(db: db).insert(Album(title: "Low", sortTitle: "low"))
-        let updated = try await iterator.next()
-        #expect(updated?.count == 1)
-        #expect(updated?[0].title == "Low")
+        // Альбом без треков наблюдение прячет (пустая строка после скана
+        // не должна показываться анонимной плиткой) — вставка альбома даёт
+        // промежуточную эмиссию [], поэтому ждём первую непустую.
+        let source = try makeSource(db)
+        let album = try AlbumRepository(db: db).insert(Album(title: "Low", sortTitle: "low"))
+        _ = try TrackRepository(db: db).insert([
+            Track(
+                sourceId: source.id, relativePath: "low/01.flac", title: "Speed of Life",
+                albumId: album.id, trackNo: 1, duration: 166.0,
+                codec: "flac", sampleRate: 44_100, bitDepth: 16)
+        ])
+        var updated: [Album] = []
+        while let emission = try await iterator.next() {
+            if !emission.isEmpty {
+                updated = emission
+                break
+            }
+        }
+        #expect(updated.count == 1)
+        #expect(updated.first?.title == "Low")
+    }
+
+    @Test func albumObservationHidesTracklessAlbums() async throws {
+        let db = try AppDatabase.inMemory()
+        var iterator = LibraryObservation.albums(db: db).makeAsyncIterator()
+        _ = try await iterator.next()
+
+        _ = try AlbumRepository(db: db).insert(Album(title: "Empty", sortTitle: "empty"))
+        let emitted = try await iterator.next()
+        #expect(emitted == [])
     }
 }

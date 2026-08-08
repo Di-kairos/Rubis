@@ -45,8 +45,29 @@ enum DebugHarness {
     }
 
     private static func finish(_ env: [String: String]) {
+        if env["RUBIS_DUMP_SCROLL"] != nil { dumpScrollViews() }
         guard env["RUBIS_HARNESS_EXIT"] != nil else { return }
         exit(0)
+    }
+
+    /// Печатает все NSScrollView окна: frame и размер документа —
+    /// для диагностики «скроллер есть, но контент не виден».
+    private static func dumpScrollViews() {
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }),
+            let root = window.contentView
+        else { return }
+        var stack: [(NSView, Int)] = [(root, 0)]
+        while let (view, depth) = stack.popLast() {
+            if let scroll = view as? NSScrollView {
+                let doc = scroll.documentView
+                print(
+                    "[dump] NSScrollView depth=\(depth) frame=\(scroll.frame) "
+                        + "doc=\(doc.map { "\($0.frame)" } ?? "nil") "
+                        + "hidden=\(scroll.isHiddenOrHasHiddenAncestor) alpha=\(scroll.alphaValue)"
+                )
+            }
+            stack.append(contentsOf: view.subviews.map { ($0, depth + 1) })
+        }
     }
 
     /// Снимок содержимого окна средствами самого окна — TCC здесь ни при чём.

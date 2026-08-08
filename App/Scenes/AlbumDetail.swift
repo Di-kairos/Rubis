@@ -19,7 +19,9 @@ struct AlbumDetail: View {
             // друг под другом. Без этого название альбома схлопывалось в «Dea…».
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom, spacing: DS.Space.xl) {
-                    cover(size: showcase ? 300 : 200)
+                    // 240 в витрине: 300 вместе с полкой отжимали у трек-листа
+                    // всю высоту на невысоких окнах.
+                    cover(size: showcase ? 240 : 200)
                     metadata
                     Spacer(minLength: 0)
                 }

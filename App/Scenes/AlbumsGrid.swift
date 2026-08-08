@@ -28,7 +28,10 @@ struct AlbumsShowcase: View {
                     if let featured {
                         AlbumDetail(album: featured, showcase: true)
                             .id(featured.id)
-                            .frame(maxHeight: .infinity)
+                            // Явный top: дефолтное центрирование обрезало
+                            // обложку сверху и выталкивало трек-лист под полку.
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .clipped()
                     }
                     shelf
                 }
@@ -66,6 +69,9 @@ struct AlbumsShowcase: View {
                     .padding(.horizontal, DS.Space.xl)
                     .padding(.vertical, DS.Space.lg)
                 }
+                // Фиксированная высота: без неё горизонтальный скроллер
+                // раздувался и отжимал у трек-листа всю высоту (frame=0).
+                .frame(height: 108 + DS.Space.lg * 2)
                 .onChange(of: focused) {
                     guard let focused, albums.indices.contains(focused) else { return }
                     featured = albums[focused]
