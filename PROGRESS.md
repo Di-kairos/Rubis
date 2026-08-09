@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "76090d4"
+head: "bb0b16a"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -246,6 +246,29 @@ HEAD: `80ca485` — feat(notes): writer first, plain shelf indicator, stop wipin
 решению до конца UI-правок; сертификат на этой машине ещё не установлен
 (`security find-identity` видит только `Rubis Dev 2`), профиль notarytool не создан.
 HEAD: `76090d4` — chore(release): bump version to 0.8.4 (21).
+**Developer ID + нотаризация (0.8.5, build 22).** У владельца появился Developer
+ID; самодельная `Rubis Dev 2` заменена на `Developer ID Application: Daniel
+Diamant (TA24A89R8H)`, `DEVELOPMENT_TEAM` и `--timestamp` прописаны в xcconfig.
+Apple дважды вернула `Invalid`, лог назвал обе причины: (1) Sparkle держит
+внутри фреймворка `Updater.app`, `Autoupdate` и XPC-сервисы — подпись
+фреймворка снаружи до них не достаёт, пост-скрипт теперь подписывает изнутри
+наружу (Mach-O → вложенные бандлы → фреймворк, скрипт переведён на bash ради
+process substitution); (2) Xcode подмешивает отладочный `get-task-allow` в любую
+не-archive сборку — `CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO` только для Release.
+Костыль `disable-library-validation` из энтайтлментов убран: Team ID теперь
+сходятся. Третий заход — `Accepted`, тикет пристеплен, приложение внутри DMG
+даёт `accepted / source=Notarized Developer ID`. Сам образ тоже подписывается
+Developer ID до отправки (иначе `spctl` видит «no usable signature»), а его
+вердикт больше не роняет скрипт. `Tools/make-dmg.sh` стал самодостаточным:
+собирает → подписывает → нотаризует → степлит → печатает EdDSA-подпись и SHA256,
+причём `sign_update` берётся из SPM-артефактов, а ключ EdDSA — из связки машины,
+так что релиз выпускается из клона с GitHub без X10.
+Профиль нотаризации `rubis` создан ключом App Store Connect API (app-specific
+password давал 401 при любом Apple ID; ключ эту ветку обходит). Key ID
+`25NSY2864Q`, Issuer `bcc8941b-…`, копия `.p8` — `.claude/codesign/` (вне git).
+Выпущена **0.8.5** (build 22), SHA256 опубликованного DMG сверён
+(`d2de650b…`), appcast запушен.
+HEAD: `bb0b16a` — build(release): sign the disk image and keep going past the Gatekeeper check.
 
 ## Фазы (из TASKS.md)
 
@@ -266,8 +289,12 @@ HEAD: `76090d4` — chore(release): bump version to 0.8.4 (21).
 ## Дистрибуция
 
 - DMG: `Tools/make-dmg.sh`; релизы + appcast: `Di-kairos/rubis-releases` (публичный).
-- Sparkle EdDSA: приватный ключ `Rubis/.claude/sparkle/ed25519-private.pem` (X10, вне git).
-- Ad-hoc подпись: первый запуск на чужой машине — right-click → Open.
+- Sparkle EdDSA: ключ в связке ключей машины (`sign_update` берёт его сам);
+  резервная копия `Rubis/.claude/sparkle/ed25519-private.pem` (X10, вне git).
+- Подпись: Developer ID Application: Daniel Diamant (TA24A89R8H), DMG нотаризован
+  Apple и пристеплен — на чужой машине открывается двойным кликом.
+- Нотаризация: профиль связки `rubis` (ключ App Store Connect API, копия .p8 в
+  `.claude/codesign/`); `Tools/make-dmg.sh` делает всё сам, X10 не нужен.
 
 ## Env Vars
 
