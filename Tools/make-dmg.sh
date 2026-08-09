@@ -52,3 +52,15 @@ echo "==> Staple"
 xcrun stapler staple "$dmg"
 # Финальная проверка глазами Gatekeeper: так пакет увидит чужой Mac.
 spctl --assess --type open --context context:primary-signature -v "$dmg"
+
+# Подпись обновления для Sparkle. Утилита приезжает из SPM вместе с пакетом,
+# приватный ключ EdDSA лежит в связке ключей машины — ни внешний диск, ни
+# файлы репозитория для этого не нужны (клон с GitHub выпускает релиз сам).
+echo "==> Appcast enclosure"
+sign_update="$derived/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update"
+if [[ -x "$sign_update" ]]; then
+    "$sign_update" "$dmg"
+    echo "sha256: $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+else
+    echo "sign_update not found in SPM artifacts — sign the DMG manually"
+fi
