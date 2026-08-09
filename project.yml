@@ -55,26 +55,31 @@ targets:
         SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     postBuildScripts:
-      # Бинарные фреймворки декодеров приезжают из SPM уже подписанными чужим
-      # Team ID. С ad-hoc подписью приложения и hardened runtime dyld отказывается
-      # их грузить («different Team IDs») и приложение падает на старте.
-      # Переподписываем всё одной идентичностью после сборки.
-      - name: Re-sign embedded frameworks ad-hoc
+      # Бинарные фреймворки декодеров приезжают из SPM подписанными чужим
+      # Team ID: с hardened runtime dyld отказывается их грузить («different
+      # Team IDs») и приложение падает на старте. Переподписываем их той же
+      # идентичностью, что и приложение — тогда Team ID сходится, а нотаризация
+      # видит Developer ID на КАЖДОМ вложенном бинаре (ad-hoc она отвергает).
+      # Сам бандл подписывает Xcode штатной фазой, она идёт после скриптов.
+      - name: Re-sign embedded frameworks with the app identity
         basedOnDependencyAnalysis: false
         script: |
           set -e
+          identity="${EXPANDED_CODE_SIGN_IDENTITY:-$CODE_SIGN_IDENTITY}"
+          # Штамп времени нужен только дистрибутиву: в Debug это лишний поход
+          # к серверу Apple на каждый фреймворк.
+          stamp=()
+          [ "$CONFIGURATION" = "Release" ] && stamp=(--timestamp)
           frameworks="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
-          [ -d "$frameworks" ] || exit 0
-          for framework in "$frameworks"/*.framework; do
-            [ -e "$framework" ] || continue
-            codesign --force --sign - --options runtime "$framework"
-          done
+          if [ -d "$frameworks" ]; then
+            for framework in "$frameworks"/*.framework; do
+              [ -e "$framework" ] || continue
+              codesign --force --sign "$identity" --options runtime "${stamp[@]}" "$framework"
+            done
+          fi
           # Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —
           # без подписи он валит codesign всего бандла.
           for dylib in "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH"/*.dylib; do
             [ -e "$dylib" ] || continue
-            codesign --force --sign - "$dylib"
+            codesign --force --sign "$identity" "${stamp[@]}" "$dylib"
           done
-          codesign --force --sign - --options runtime \
-            --entitlements "$SRCROOT/$CODE_SIGN_ENTITLEMENTS" \
-            "$TARGET_BUILD_DIR/$WRAPPER_NAME"

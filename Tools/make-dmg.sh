@@ -30,3 +30,25 @@ hdiutil create -volname "Rubis Music $version" -srcfolder "$stage" \
 
 echo "==> Verify"
 hdiutil verify -quiet "$dmg" && echo "DMG OK: $dmg"
+
+# Нотаризация: Apple заверяет пакет, Gatekeeper открывает его на чужой машине
+# двойным кликом (без right-click → Open). Профиль ключницы создаётся один раз:
+#   xcrun notarytool store-credentials rubis --apple-id <id> --team-id <team> --password <app-specific>
+# Профиля нет — выходим с готовым, но не заверенным DMG (RUBIS_SKIP_NOTARIZE=1
+# пропускает шаг осознанно).
+if [[ -n "${RUBIS_SKIP_NOTARIZE:-}" ]]; then
+    echo "==> Notarization skipped (RUBIS_SKIP_NOTARIZE)"
+    exit 0
+fi
+if ! xcrun notarytool history --keychain-profile rubis >/dev/null 2>&1; then
+    echo "==> No 'rubis' notary profile — DMG is signed but NOT notarized"
+    exit 0
+fi
+
+echo "==> Notarize (submitting to Apple, takes a few minutes)"
+xcrun notarytool submit "$dmg" --keychain-profile rubis --wait
+
+echo "==> Staple"
+xcrun stapler staple "$dmg"
+# Финальная проверка глазами Gatekeeper: так пакет увидит чужой Mac.
+spctl --assess --type open --context context:primary-signature -v "$dmg"

@@ -5,12 +5,9 @@
 	<!-- Sandbox intentionally off (SPEC §13): arbitrary disk access incl. external SSD.
 	     Hardened runtime is enabled via ENABLE_HARDENED_RUNTIME in Config/Escapement.xcconfig. -->
 
-	<!-- Hardened runtime turns on library validation, which demands that every
-	     embedded framework carry the same Team ID as the app. Ad-hoc signing has
-	     no Team ID at all, so dyld refuses the decoder frameworks that SPM brings
-	     in ("different Team IDs") and the app dies at launch. Local development
-	     signing (SPEC §14) leaves no other option than opting out of validation. -->
-	<key>com.apple.security.cs.disable-library-validation</key>
-	<true/>
+	<!-- Library validation stays ON: the post-build script re-signs every embedded
+	     framework with the app's own Developer ID, so all Team IDs match and dyld
+	     is satisfied. The opt-out this file used to carry was only needed while the
+	     app was signed ad-hoc (no Team ID at all). -->
 </dict>
 </plist>

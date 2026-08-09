@@ -3,7 +3,7 @@ PRODUCT_NAME = Rubis Music
 PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement
 MARKETING_VERSION = 0.8.4
 CURRENT_PROJECT_VERSION = 21
-DEVELOPMENT_TEAM =
+DEVELOPMENT_TEAM = TA24A89R8H
 
 MACOSX_DEPLOYMENT_TARGET = 15.0
 ARCHS = arm64
@@ -15,7 +15,10 @@ ENABLE_HARDENED_RUNTIME = YES
 LM_SKIP_METADATA_EXTRACTION = YES
 ENABLE_APP_SANDBOX = NO
 CODE_SIGN_ENTITLEMENTS = App/Escapement.entitlements
-// Self-signed local identity (X10 .claude/codesign): stable signature
-// between builds so the Keychain "Always Allow" for API keys survives
-// updates (ad-hoc changed identity every build).
-CODE_SIGN_IDENTITY = Rubis Dev 2
+// Developer ID: the build is distributed outside the App Store and notarized,
+// so Gatekeeper opens it on any Mac without the right-click dance. Replaces
+// the self-signed "Rubis Dev 2" used until 0.8.4.
+CODE_SIGN_IDENTITY = Developer ID Application
+CODE_SIGN_STYLE = Manual
+// Secure timestamp is mandatory for notarization.
+OTHER_CODE_SIGN_FLAGS = --timestamp

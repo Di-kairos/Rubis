@@ -185,7 +185,7 @@
 				85FBAC58AA6FED180C27B66F /* Sources */,
 				FCF30F936E30D57862EC40D1 /* Resources */,
 				A094D214FB3AA2EC3AE15CBD /* Frameworks */,
-				2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */,
+				E465358035038FFA7A28BB50 /* Re-sign embedded frameworks with the app identity */,
 			);
 			buildRules = (
 			);
@@ -214,7 +214,8 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					72131EFA7B59920F47E1BD39 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = TA24A89R8H;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -257,7 +258,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		2E5DF9D3D6E4A5F6BF6135D3 /* Re-sign embedded frameworks ad-hoc */ = {
+		E465358035038FFA7A28BB50 /* Re-sign embedded frameworks with the app identity */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -267,14 +268,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Re-sign embedded frameworks ad-hoc";
+			name = "Re-sign embedded frameworks with the app identity";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\n[ -d \"$frameworks\" ] || exit 0\nfor framework in \"$frameworks\"/*.framework; do\n  [ -e \"$framework\" ] || continue\n  codesign --force --sign - --options runtime \"$framework\"\ndone\n# Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —\n# без подписи он валит codesign всего бандла.\nfor dylib in \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH\"/*.dylib; do\n  [ -e \"$dylib\" ] || continue\n  codesign --force --sign - \"$dylib\"\ndone\ncodesign --force --sign - --options runtime \\\n  --entitlements \"$SRCROOT/$CODE_SIGN_ENTITLEMENTS\" \\\n  \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
+			shellScript = "set -e\nidentity=\"${EXPANDED_CODE_SIGN_IDENTITY:-$CODE_SIGN_IDENTITY}\"\n# Штамп времени нужен только дистрибутиву: в Debug это лишний поход\n# к серверу Apple на каждый фреймворк.\nstamp=()\n[ \"$CONFIGURATION\" = \"Release\" ] && stamp=(--timestamp)\nframeworks=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\nif [ -d \"$frameworks\" ]; then\n  for framework in \"$frameworks\"/*.framework; do\n    [ -e \"$framework\" ] || continue\n    codesign --force --sign \"$identity\" --options runtime \"${stamp[@]}\" \"$framework\"\n  done\nfi\n# Debug-сборки кладут рядом с бинарём Escapement.debug.dylib —\n# без подписи он валит codesign всего бандла.\nfor dylib in \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH\"/*.dylib; do\n  [ -e \"$dylib\" ] || continue\n  codesign --force --sign \"$identity\" \"${stamp[@]}\" \"$dylib\"\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
