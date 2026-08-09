@@ -17,6 +17,12 @@ struct NowPlayingQueue: View {
     /// (вердикт владельца: на экране альбома внизу неуместно).
     @AppStorage("albumNotes") private var albumNotes = false
     @State private var notes: AlbumInfo?
+    /// Свои указатели прокрутки вместо системных скроллбаров — тот же язык,
+    /// что у полки альбомов (золотой ползунок в рубиновой оправе).
+    @State private var queueScroll = ScrollTrack()
+    @State private var queuePosition = ScrollPosition()
+    @State private var notesScroll = ScrollTrack()
+    @State private var notesPosition = ScrollPosition()
 
     var body: some View {
         Group {
@@ -39,12 +45,18 @@ struct NowPlayingQueue: View {
                             if geo.size.width >= 640 {
                                 HStack(alignment: .top, spacing: DS.Space.xxl) {
                                     hero
-                                    queueList
+                                    HStack(spacing: DS.Space.sm) {
+                                        queueList
+                                        verticalIndicator(queueScroll, position: $queuePosition)
+                                    }
                                 }
                             } else {
                                 VStack(alignment: .leading, spacing: DS.Space.xl) {
                                     hero
-                                    queueList
+                                    HStack(spacing: DS.Space.sm) {
+                                        queueList
+                                        verticalIndicator(queueScroll, position: $queuePosition)
+                                    }
                                 }
                             }
                         }
@@ -105,17 +117,25 @@ struct NowPlayingQueue: View {
         if let notes {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: DS.Space.sm) {
-                        Text(notes.text.replacingOccurrences(of: "*", with: ""))
-                            .font(DS.Font.prose)
-                            .foregroundStyle(DS.Color.textSecondary)
-                            .lineSpacing(DS.Font.LineSpacing.multiline * 3)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                        DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
+                HStack(spacing: DS.Space.sm) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: DS.Space.sm) {
+                            Text(notes.text.replacingOccurrences(of: "*", with: ""))
+                                .font(DS.Font.prose)
+                                .foregroundStyle(DS.Color.textSecondary)
+                                .lineSpacing(DS.Font.LineSpacing.multiline * 3)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
+                            DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onScrollGeometryChange(for: ScrollTrack.self, of: ScrollTrack.vertical) {
+                        _, new in
+                        notesScroll = new
+                    }
+                    .scrollPosition($notesPosition)
+                    verticalIndicator(notesScroll, position: $notesPosition)
                 }
             }
             .frame(height: Self.notesHeight)
@@ -146,7 +166,7 @@ struct NowPlayingQueue: View {
 
     private var queueList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(tracks.enumerated()), id: \.offset) { index, track in
                         DSListRow(isSelected: focused == index) {
@@ -177,7 +197,28 @@ struct NowPlayingQueue: View {
                     }
                 }
             }
+            .onScrollGeometryChange(for: ScrollTrack.self, of: ScrollTrack.vertical) { _, new in
+                queueScroll = new
+            }
+            .scrollPosition($queuePosition)
             .onAppear { proxy.scrollTo(currentIndex, anchor: .center) }
+        }
+    }
+
+    /// Указатель справа от списка — только когда содержимое не влезло.
+    @ViewBuilder
+    private func verticalIndicator(
+        _ track: ScrollTrack, position: Binding<ScrollPosition>
+    ) -> some View {
+        if track.visible < 1 {
+            DSScrollIndicator(axis: .vertical, progress: track.progress, visible: track.visible) {
+                target in
+                position.wrappedValue.scrollTo(y: track.offset(forProgress: target))
+            }
+        } else {
+            // Место под указатель держим всегда: иначе текст дёргается вбок,
+            // стоит содержимому перевалить за высоту колонки.
+            Color.clear.frame(width: DSScrollIndicator.thickness)
         }
     }
 

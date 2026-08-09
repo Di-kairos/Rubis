@@ -16,7 +16,7 @@ struct AlbumsShowcase: View {
     @Environment(AppEnvironment.self) private var env
     @State private var albums: [Album] = []
     @State private var focused: Int?
-    @State private var scroll = ShelfScroll()
+    @State private var scroll = ScrollTrack()
     @State private var shelfPosition = ScrollPosition()
 
     var body: some View {
@@ -69,7 +69,7 @@ struct AlbumsShowcase: View {
             Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
             ScrollViewReader { proxy in
                 // Системный скроллбар выключен: у полки свой указатель
-                // (DSShelfIndicator) — золотой ползунок с рубиновыми ◆.
+                // (DSScrollIndicator) — золотой ползунок с рубиновыми ◆.
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .bottom, spacing: DS.Space.lg) {
                         ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
@@ -82,12 +82,8 @@ struct AlbumsShowcase: View {
                 }
                 // Модификатор висит прямо на ScrollView (не поверх .frame) —
                 // иначе геометрия не доходит и указатель стоит на месте.
-                .onScrollGeometryChange(for: ShelfScroll.self) { geometry in
-                    ShelfScroll(
-                        offset: geometry.contentOffset.x,
-                        content: geometry.contentSize.width,
-                        container: geometry.containerSize.width)
-                } action: { _, new in
+                .onScrollGeometryChange(for: ScrollTrack.self, of: ScrollTrack.horizontal) {
+                    _, new in
                     scroll = new
                 }
                 .scrollPosition($shelfPosition)
@@ -101,7 +97,7 @@ struct AlbumsShowcase: View {
                 }
             }
             if scroll.visible < 1 {
-                DSShelfIndicator(progress: scroll.progress, visible: scroll.visible) { target in
+                DSScrollIndicator(progress: scroll.progress, visible: scroll.visible) { target in
                     shelfPosition.scrollTo(x: scroll.offset(forProgress: target))
                 }
                 .padding(.horizontal, DS.Space.xl)
@@ -202,29 +198,4 @@ struct AlbumCard: View {
         else { return nil }
         return NSImage(contentsOf: url)
     }
-}
-
-/// Геометрия горизонтального скролла полки — питает `DSShelfIndicator`.
-struct ShelfScroll: Equatable {
-    var offset: CGFloat = 0
-    var content: CGFloat = 0
-    var container: CGFloat = 0
-
-    /// Доля видимой части полки (1 — влезла целиком, указатель не нужен).
-    var visible: Double {
-        guard content > 0 else { return 1 }
-        return min(1, Double(container / content))
-    }
-
-    var progress: Double {
-        guard scrollable > 0 else { return 0 }
-        return min(1, max(0, Double(offset / scrollable)))
-    }
-
-    /// Обратное к `progress`: куда увести полку, когда тянут указатель.
-    func offset(forProgress progress: Double) -> CGFloat {
-        scrollable * CGFloat(min(max(progress, 0), 1))
-    }
-
-    private var scrollable: CGFloat { max(0, content - container) }
 }

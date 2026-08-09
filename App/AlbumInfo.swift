@@ -73,18 +73,26 @@ actor AlbumInfoService {
             NotesProvider(
                 rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
             ) ?? .claude
+        // Ключа нет (не введён или доступ к связке не дали) — писателя вообще
+        // не спрашивали, и помечать альбом нельзя: иначе справка Wikipedia
+        // залипнет в кеше навсегда и после ввода ключа.
+        let asked = apiKey(for: provider) != nil
         var result: AlbumInfo?
-        switch provider {
-        case .claude:
-            result = await fetchClaude(title: title, artist: album.albumArtist, year: album.year)
-        case .deepseek:
-            result = await fetchDeepSeek(title: title, artist: album.albumArtist, year: album.year)
+        if asked {
+            switch provider {
+            case .claude:
+                result = await fetchClaude(
+                    title: title, artist: album.albumArtist, year: album.year)
+            case .deepseek:
+                result = await fetchDeepSeek(
+                    title: title, artist: album.albumArtist, year: album.year)
+            }
         }
         if result == nil {
-            // Писателя спросили и он не ответил — помечаем, чтобы справка
-            // Wikipedia не тянула за собой запрос к API на каждом заходе.
             result = await fetchWikipedia(title: title, artist: album.albumArtist)
-            result?.llmTried = true
+            // Помечаем только когда писателя реально спросили и он не ответил —
+            // тогда справка Wikipedia не тянет за собой запрос к API на каждом заходе.
+            result?.llmTried = asked
         }
         if let result { writeCache(albumId: id, info: result) }
         return result
