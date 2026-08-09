@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "8e9211a"
+head: "80ca485"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -210,6 +210,24 @@ HEAD: `82e890a` — chore(release): bump version to 0.8.3 (20).
 колонки широкой полосой (свой скролл, потолок 260 pt) → горизонтальный вариант
 снова помещается: обложка слева, очередь справа, текст лентой внизу.
 HEAD: `8e9211a` — fix(now-playing): keep two columns, move liner notes to a full-width band.
+Живой прогон владельца добил ещё четыре вещи (`80ca485`). (1) Очередь всё равно
+схлопывалась, стоило прийти заметке: два гибких скролла в одном VStack SwiftUI
+делит по-своему. Высоты заданы числом через GeometryReader — верхний ряд
+`height − 216`, полоса заметок ровно 200 pt; дубль заметок внутри скролла очереди
+убран. (2) «Изящная» полоса полки не работала, потому что была картинкой —
+теперь `DSShelfIndicator` тянется (`DragGesture` → `ScrollPosition.scrollTo(x:)`),
+рубиновые ◆ стали оправой ползунка и едут с ним. (3) Wikipedia молчала на
+половине альбомов: запрос шёл в `search/title` (поиск по заголовку статьи) —
+заменён на `search/page` с выбором кандидата по описанию «album». По решению
+владельца порядок перевёрнут: писатель (Claude/DeepSeek) основной, Wikipedia
+подстраховывает; подпись под liner notes — «Rubis Music» независимо от писателя,
+названа только цитата из Wikipedia. Старые wikipedia-заметки перечитываются один
+раз (флаг `llmTried`). (4) Keychain-диалог возвращался из-за «фикса» 0.8.3:
+`load` пересохранял запись после чтения, а «Always Allow» выдаётся на конкретную
+запись — приложение своими руками стирало собственное разрешение. Чтение больше
+ничего не меняет, ключ читается раз за запуск (кеш в акторе AlbumInfoService).
+Тесты 72/72, Debug без warnings.
+HEAD: `80ca485` — feat(notes): writer first, plain shelf indicator, stop wiping keychain grants.
 
 ## Фазы (из TASKS.md)
 
