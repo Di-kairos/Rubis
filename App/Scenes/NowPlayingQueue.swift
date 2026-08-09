@@ -17,6 +17,9 @@ struct NowPlayingQueue: View {
     /// (вердикт владельца: на экране альбома внизу неуместно).
     @AppStorage("albumNotes") private var albumNotes = false
     @State private var notes: AlbumInfo?
+    /// Пока писатель сочиняет (10–40 с на новый альбом), полоса не должна
+    /// выглядеть пустой — иначе читается как «зависло».
+    @State private var notesLoading = false
     /// Свои указатели прокрутки вместо системных скроллбаров — тот же язык,
     /// что у полки альбомов (золотой ползунок в рубиновой оправе).
     @State private var queueScroll = ScrollTrack()
@@ -114,7 +117,16 @@ struct NowPlayingQueue: View {
     /// заметке появиться (та же болезнь, что в 0.6.1).
     @ViewBuilder
     private var notesSection: some View {
-        if let notes {
+        if notes == nil, notesLoading {
+            VStack(alignment: .leading, spacing: DS.Space.sm) {
+                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+                DSText(
+                    "Writing liner notes…", style: .label, color: DS.Color.textTertiary
+                )
+                .padding(.top, DS.Space.sm)
+            }
+            .frame(height: Self.notesHeight, alignment: .top)
+        } else if let notes {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
                 HStack(spacing: DS.Space.sm) {
@@ -233,7 +245,9 @@ struct NowPlayingQueue: View {
         }
         notes = nil
         if albumNotes, let album {
+            notesLoading = true
             notes = await env.albumInfo.info(for: album)
+            notesLoading = false
         }
     }
 }

@@ -12,7 +12,19 @@
   <img src="https://img.shields.io/badge/macOS-15%2B-black" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Swift-6-F05138" alt="Swift 6">
   <img src="https://img.shields.io/badge/arch-arm64-blue" alt="arm64">
-  <img src="https://img.shields.io/badge/tests-70%2F70-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/tests-72%2F72-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/bit--perfect-24%2F24-brightgreen" alt="bit-perfect 24/24">
+  <img src="https://img.shields.io/badge/notarized-Apple-blue" alt="notarized">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Di-kairos/rubis-releases/releases/latest"><b>Download the latest build</b></a>
+  ·
+  <a href="SPEC.md">Spec</a>
+  ·
+  <a href="DESIGN.md">Design</a>
+  ·
+  <a href="DECISIONS.md">Decisions</a>
 </p>
 
 ---
@@ -44,9 +56,23 @@ any engine change lands.
 - **Self-updating** — Sparkle 2, EdDSA-signed feed in
   [rubis-releases](https://github.com/Di-kairos/rubis-releases).
 
+- **Liner notes** — an optional note about the playing album, from Wikipedia and,
+  where Wikipedia has nothing, from Claude or DeepSeek with your own API key.
+  Off by default: the app makes no network call you did not ask for.
+
 Design is its own thing: **Jewel Box** — warm near-black, serif display type,
 a golden thread for selection, and a single garnet ◆ on the playing track.
 No aggressive red anywhere.
+
+## Install
+
+Grab the DMG from
+[releases](https://github.com/Di-kairos/rubis-releases/releases/latest), drag
+**Rubis Music** to Applications, launch it. The build is signed with a Developer
+ID certificate and notarized by Apple, so it opens with a double click — no
+right-click → Open, no Gatekeeper warning. Updates arrive in-app through Sparkle.
+
+Requires macOS 15 or newer on Apple silicon.
 
 ## Architecture
 
@@ -69,7 +95,7 @@ Swift 6, strict concurrency complete, zero warnings.
 ./Tools/test.sh          # swift test for all five packages
 ./Tools/format.sh        # swift-format in-place (run before commit)
 ./Tools/audio-verify     # bit-perfect proof — required for engine changes
-./Tools/make-dmg.sh      # Release build → installable DMG
+./Tools/make-dmg.sh      # Release build → signed, notarized, stapled DMG
 
 # App target (requires full Xcode, not Command Line Tools):
 xcodebuild -scheme Escapement -configuration Release
@@ -88,9 +114,22 @@ xcodebuild -scheme Escapement -configuration Release
 ## Status
 
 Phases 0–7 shipped: scaffold, design system, database, audio engine, local
-library, full UI, system integration. Current releases live in
+library, full UI, system integration. Releases live in
 [rubis-releases](https://github.com/Di-kairos/rubis-releases). Next fork in the
 road: phase 6 (Navidrome/Subsonic).
 
-Personal project, single user, not for the App Store. Source is private;
-binaries are ad-hoc signed — first launch on a new machine is right-click → Open.
+Measured, not assumed: cold start 208–219 ms, search under 50 ms on 100k tracks,
+scrolling 59–60 fps, 221 MB on a 50k-track library, and 24/24 bit-perfect
+fixtures. Numbers that are not measured are not claimed.
+
+## About this repository
+
+A personal player built for one listener, published because the audio path,
+the layout math and the release pipeline may be useful to read. It is not a
+product: there is no support, no roadmap for feature requests, and no promise
+of compatibility between versions. Issues and pull requests are welcome but
+answered when time allows.
+
+The audio contract is the part worth reading: `SPEC.md` §4 states what
+bit-perfect means here, and `Tools/audio-verify` is the proof that has to pass
+before any engine change is committed.

@@ -14,10 +14,6 @@ struct AlbumInfo: Codable, Sendable, Equatable {
 
     let source: Source
     let text: String
-    /// Отметка «к писателю уже ходили»: заметка Wikipedia без неё осталась
-    /// от старого порядка (Wikipedia → LLM) и подлежит перезапросу, с ней —
-    /// LLM этот альбом не знает, второй раз не спрашиваем.
-    var llmTried: Bool?
 }
 
 /// Писатель fallback-заметок — выбор владельца (Settings → General).
@@ -61,24 +57,22 @@ actor AlbumInfoService {
         session = URLSession(configuration: config)
     }
 
-    /// Кеш → писатель (Claude/DeepSeek) → Wikipedia. Порядок именно такой
-    /// (решение владельца, 0.8.4): liner notes — основной текст, Wikipedia
-    /// подстраховывает, когда ключа нет или альбом писателю незнаком.
+    /// Кеш → Wikipedia → писатель (Claude/DeepSeek). Порядок вернулся к D-008
+    /// (решение владельца): справка приходит за доли секунды, а модель сочиняет
+    /// liner notes десятками секунд — платить этим ожиданием за каждый альбом,
+    /// у которого статья и так есть, незачем. Писатель берётся за то, чего в
+    /// Wikipedia нет.
     /// nil — не нашлось ни там, ни там; секция в UI тогда не показывается.
     func info(for album: Album) async -> AlbumInfo? {
         guard let id = album.id, let title = nonEmpty(album.title) else { return nil }
         if let cached = readCache(albumId: id) { return cached }
 
-        let provider =
-            NotesProvider(
-                rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
-            ) ?? .claude
-        // Ключа нет (не введён или доступ к связке не дали) — писателя вообще
-        // не спрашивали, и помечать альбом нельзя: иначе справка Wikipedia
-        // залипнет в кеше навсегда и после ввода ключа.
-        let asked = apiKey(for: provider) != nil
-        var result: AlbumInfo?
-        if asked {
+        var result = await fetchWikipedia(title: title, artist: album.albumArtist)
+        if result == nil {
+            let provider =
+                NotesProvider(
+                    rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
+                ) ?? .claude
             switch provider {
             case .claude:
                 result = await fetchClaude(
@@ -87,12 +81,6 @@ actor AlbumInfoService {
                 result = await fetchDeepSeek(
                     title: title, artist: album.albumArtist, year: album.year)
             }
-        }
-        if result == nil {
-            result = await fetchWikipedia(title: title, artist: album.albumArtist)
-            // Помечаем только когда писателя реально спросили и он не ответил —
-            // тогда справка Wikipedia не тянет за собой запрос к API на каждом заходе.
-            result?.llmTried = asked
         }
         if let result { writeCache(albumId: id, info: result) }
         return result
@@ -281,9 +269,6 @@ actor AlbumInfoService {
         // Самолечение кеша: до 0.8.1 обрезанный max_tokens'ом ответ LLM
         // кешировался навсегда. Заметка без конца предложения — перезапросить.
         if info.source != .wikipedia, !endsAsSentence(info.text) { return nil }
-        // Справка Wikipedia, добытая при старом порядке (до 0.8.4): писателя
-        // по этому альбому ещё не спрашивали — спросить один раз.
-        if info.source == .wikipedia, info.llmTried != true { return nil }
         return info
     }
 

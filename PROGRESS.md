@@ -265,7 +265,7 @@ Developer ID до отправки (иначе `spctl` видит «no usable si
 так что релиз выпускается из клона с GitHub без X10.
 Профиль нотаризации `rubis` создан ключом App Store Connect API (app-specific
 password давал 401 при любом Apple ID; ключ эту ветку обходит). Key ID
-`25NSY2864Q`, Issuer `bcc8941b-…`, копия `.p8` — `.claude/codesign/` (вне git).
+Key ID и Issuer — в `.claude/codesign/` рядом с копией `.p8` (вне git).
 Выпущена **0.8.5** (build 22), SHA256 опубликованного DMG сверён
 (`d2de650b…`), appcast запушен.
 HEAD: `bb0b16a` — build(release): sign the disk image and keep going past the Gatekeeper check.
