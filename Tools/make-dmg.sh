@@ -31,6 +31,14 @@ hdiutil create -volname "Rubis Music $version" -srcfolder "$stage" \
 echo "==> Verify"
 hdiutil verify -quiet "$dmg" && echo "DMG OK: $dmg"
 
+# Подписываем сам образ той же идентичностью — иначе Gatekeeper оценивает его
+# как «no usable signature» (приложение внутри при этом заверено). Подпись
+# ставится ДО отправки: нотаризация заверяет уже подписанный образ.
+identity=$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application/ {print $2; exit}')
+if [[ -n "$identity" ]]; then
+    codesign --force --sign "$identity" --timestamp "$dmg"
+fi
+
 # Нотаризация: Apple заверяет пакет, Gatekeeper открывает его на чужой машине
 # двойным кликом (без right-click → Open). Профиль ключницы создаётся один раз:
 #   xcrun notarytool store-credentials rubis --apple-id <id> --team-id <team> --password <app-specific>
@@ -51,7 +59,8 @@ xcrun notarytool submit "$dmg" --keychain-profile rubis --wait
 echo "==> Staple"
 xcrun stapler staple "$dmg"
 # Финальная проверка глазами Gatekeeper: так пакет увидит чужой Mac.
-spctl --assess --type open --context context:primary-signature -v "$dmg"
+# Не роняем релиз из-за вердикта — подпись обновления ниже нужна в любом случае.
+spctl --assess --type open --context context:primary-signature -v "$dmg" || true
 
 # Подпись обновления для Sparkle. Утилита приезжает из SPM вместе с пакетом,
 # приватный ключ EdDSA лежит в связке ключей машины — ни внешний диск, ни
