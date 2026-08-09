@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "80ca485"
+head: "76090d4"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -228,6 +228,24 @@ HEAD: `8e9211a` — fix(now-playing): keep two columns, move liner notes to a fu
 ничего не меняет, ключ читается раз за запуск (кеш в акторе AlbumInfoService).
 Тесты 72/72, Debug без warnings.
 HEAD: `80ca485` — feat(notes): writer first, plain shelf indicator, stop wiping keychain grants.
+Ещё два захода по живым замечаниям. Флаг `llmTried` ставился и когда писателя
+вообще не спрашивали (ключа нет / доступ к связке не дали) — справка Wikipedia
+залипала в кеше навсегда даже после ввода ключа; теперь помечаем только реально
+заданный вопрос, старый кеш вычищен. По просьбе владельца указатель прокрутки
+стал общим языком: `DSShelfIndicator` → **`DSScrollIndicator`** с осью в
+параметре — полка (горизонталь), очередь и заметки (вертикаль), системные
+скроллбары выключены везде, все три тянутся мышью; арифметика вынесена в
+`ScrollTrack` (`App/Scenes/ScrollTrack.swift`, обе оси из одного места).
+Место под вертикальный указатель держится всегда — иначе текст дёргается вбок
+в момент переполнения. Выпущен **0.8.4** (build 21), SHA256 опубликованного DMG
+сверён (`b18dfab1…`), appcast запушен. Тесты 72/72.
+Владельцу разъяснено про бейдж `192 → 96.0`: это частота дискретизации, а не
+битрейт — файл 192 кГц против устройства на 96 кГц, то есть ресемплинг из-за
+встроенных динамиков; на FiiO в exclusive будет `24/192` без стрелки.
+**У владельца появился Developer ID** — подпись и нотаризация отложены по его
+решению до конца UI-правок; сертификат на этой машине ещё не установлен
+(`security find-identity` видит только `Rubis Dev 2`), профиль notarytool не создан.
+HEAD: `76090d4` — chore(release): bump version to 0.8.4 (21).
 
 ## Фазы (из TASKS.md)
 
