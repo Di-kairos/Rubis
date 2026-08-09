@@ -107,6 +107,7 @@ struct KeysSettings: View {
 /// Присутствие приложения в системе (SPEC §7.5): обе опции выключены по
 /// умолчанию — ничего не лезет в меню-бар и поверх чужих окон без спроса.
 struct GeneralSettings: View {
+    @Environment(AppEnvironment.self) private var env
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
     /// D-008: аннотации альбомов — opt-in, сеть только по явному включению.
@@ -127,18 +128,22 @@ struct GeneralSettings: View {
                 .help("Current track and transport without bringing the window up")
             Toggle("Keep mini player above other windows", isOn: $miniPlayerOnTop)
             Section("Album notes") {
-                Toggle("Show liner notes on the album screen", isOn: $albumNotes)
+                Toggle("Show liner notes while a track is playing", isOn: $albumNotes)
                     .help(
-                        "Fetched once per album from Wikipedia; the selected writer "
-                            + "steps in when Wikipedia has nothing. Cached forever.")
+                        "Written once per album by the selected writer; Wikipedia "
+                            + "steps in when there is no key or the album is unknown. "
+                            + "Cached forever.")
                 Picker("Notes writer", selection: $notesProvider) {
                     ForEach(NotesProvider.allCases) { provider in
                         Text(provider.displayName).tag(provider.rawValue)
                     }
                 }
-                SecureField("\(provider.displayName) API key (for the fallback)", text: $apiKey)
+                SecureField("\(provider.displayName) API key", text: $apiKey)
                     .onChange(of: apiKey) {
                         KeychainStore.save(apiKey, account: provider.keychainAccount)
+                        // Ключ в акторе кешируется на запуск — сбросить,
+                        // иначе новый ключ заработает только после перезапуска.
+                        Task { await env.albumInfo.forgetKeys() }
                     }
                     .help("Stored in the Keychain, sent only to the selected provider")
             }

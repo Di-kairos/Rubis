@@ -27,23 +27,33 @@ struct NowPlayingQueue: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
-                // Низ: liner notes широкой полосой под обеими колонками.
-                VStack(alignment: .leading, spacing: DS.Space.lg) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: DS.Space.xxl) {
-                            hero
-                            queueList
+                // Высоты заданы числом, а не «гибкостью»: два скролла в одном
+                // VStack SwiftUI делил по своим правилам и очередь схлопывалась
+                // в ноль, стоило появиться заметке. GeometryReader убирает
+                // переговоры — верхнему ряду достаётся всё, кроме полосы заметок.
+                GeometryReader { geo in
+                    let band = notes == nil ? 0 : Self.notesHeight + DS.Space.lg
+                    VStack(alignment: .leading, spacing: DS.Space.lg) {
+                        // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
+                        Group {
+                            if geo.size.width >= 640 {
+                                HStack(alignment: .top, spacing: DS.Space.xxl) {
+                                    hero
+                                    queueList
+                                }
+                            } else {
+                                VStack(alignment: .leading, spacing: DS.Space.xl) {
+                                    hero
+                                    queueList
+                                }
+                            }
                         }
-                        VStack(alignment: .leading, spacing: DS.Space.xl) {
-                            hero
-                            queueList
-                        }
+                        .frame(height: max(120, geo.size.height - band))
+                        // Низ: liner notes широкой полосой под обеими колонками.
+                        notesSection
                     }
-                    notesSection
                 }
                 .padding(DS.Space.xl)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .background(DS.Color.bgBase)
@@ -86,9 +96,10 @@ struct NowPlayingQueue: View {
     }
 
     /// Liner notes широкой полосой внизу, под обложкой и очередью сразу —
-    /// как текст на обороте конверта (вердикт владельца). Свой скролл с
-    /// потолком высоты: без потолка текст съедает вертикальный бюджет
-    /// очереди (урок 0.6.1).
+    /// как текст на обороте конверта (вердикт владельца). Высота полосы
+    /// ЖЁСТКАЯ: с «потолком» (maxHeight) два гибких скролла в одном VStack
+    /// делили высоту как попало и очередь схлопывалась в ноль, стоило
+    /// заметке появиться (та же болезнь, что в 0.6.1).
     @ViewBuilder
     private var notesSection: some View {
         if let notes {
@@ -107,16 +118,18 @@ struct NowPlayingQueue: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(maxHeight: 260)
+            .frame(height: Self.notesHeight)
         }
     }
 
+    /// Высота полосы заметок — та же константа в расчёте верхнего ряда.
+    private static let notesHeight: CGFloat = 200
+
+    /// Подпись под заметкой: писателя не называем (решение владельца) —
+    /// liner notes идут от имени плеера. Wikipedia остаётся названной:
+    /// это цитата чужого текста, а не наш.
     private var notesAttribution: String {
-        switch notes?.source {
-        case .claude: return "Notes by Claude"
-        case .deepseek: return "Notes by DeepSeek"
-        default: return "From Wikipedia"
-        }
+        notes?.source == .wikipedia ? "From Wikipedia" : "Rubis Music"
     }
 
     private var coverImage: NSImage? {
@@ -163,7 +176,6 @@ struct NowPlayingQueue: View {
                         .trackQueueMenu(track, env: env)
                     }
                 }
-                notesSection
             }
             .onAppear { proxy.scrollTo(currentIndex, anchor: .center) }
         }

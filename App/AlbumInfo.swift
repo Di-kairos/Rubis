@@ -14,6 +14,10 @@ struct AlbumInfo: Codable, Sendable, Equatable {
 
     let source: Source
     let text: String
+    /// Отметка «к писателю уже ходили»: заметка Wikipedia без неё осталась
+    /// от старого порядка (Wikipedia → LLM) и подлежит перезапросу, с ней —
+    /// LLM этот альбом не знает, второй раз не спрашиваем.
+    var llmTried: Bool?
 }
 
 /// Писатель fallback-заметок — выбор владельца (Settings → General).
@@ -43,6 +47,10 @@ enum NotesProvider: String, CaseIterable, Identifiable {
 actor AlbumInfoService {
     private let cacheRoot: URL
     private let session: URLSession
+    /// Ключи читаются из связки один раз за запуск: писатель спрашивается
+    /// на каждый новый альбом, а каждое обращение к Keychain — потенциальный
+    /// диалог. Живёт в акторе, поэтому без замков и глобального состояния.
+    private var keyCache: [NotesProvider: String] = [:]
 
     init() {
         cacheRoot = FileManager.default
@@ -53,26 +61,30 @@ actor AlbumInfoService {
         session = URLSession(configuration: config)
     }
 
-    /// Кеш → Wikipedia → Claude. nil — источники не нашлись или выключено;
-    /// секция в UI тогда просто не показывается.
+    /// Кеш → писатель (Claude/DeepSeek) → Wikipedia. Порядок именно такой
+    /// (решение владельца, 0.8.4): liner notes — основной текст, Wikipedia
+    /// подстраховывает, когда ключа нет или альбом писателю незнаком.
+    /// nil — не нашлось ни там, ни там; секция в UI тогда не показывается.
     func info(for album: Album) async -> AlbumInfo? {
         guard let id = album.id, let title = nonEmpty(album.title) else { return nil }
         if let cached = readCache(albumId: id) { return cached }
 
-        var result = await fetchWikipedia(title: title, artist: album.albumArtist)
+        let provider =
+            NotesProvider(
+                rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
+            ) ?? .claude
+        var result: AlbumInfo?
+        switch provider {
+        case .claude:
+            result = await fetchClaude(title: title, artist: album.albumArtist, year: album.year)
+        case .deepseek:
+            result = await fetchDeepSeek(title: title, artist: album.albumArtist, year: album.year)
+        }
         if result == nil {
-            let provider =
-                NotesProvider(
-                    rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
-                ) ?? .claude
-            switch provider {
-            case .claude:
-                result = await fetchClaude(
-                    title: title, artist: album.albumArtist, year: album.year)
-            case .deepseek:
-                result = await fetchDeepSeek(
-                    title: title, artist: album.albumArtist, year: album.year)
-            }
+            // Писателя спросили и он не ответил — помечаем, чтобы справка
+            // Wikipedia не тянула за собой запрос к API на каждом заходе.
+            result = await fetchWikipedia(title: title, artist: album.albumArtist)
+            result?.llmTried = true
         }
         if let result { writeCache(albumId: id, info: result) }
         return result
@@ -80,9 +92,14 @@ actor AlbumInfoService {
 
     // MARK: - Wikipedia
 
+    /// `search/page` (полнотекстовый), не `search/title`: заголовок статьи
+    /// редко содержит артиста — «Adam's Apple (album)» по title-поиску не
+    /// находился вообще. Из трёх кандидатов берём первый, у которого в
+    /// коротком описании есть «album» (у статей об альбомах это «1967 studio
+    /// album by …»), иначе первый — так артист-страница не подменяет альбом.
     private func fetchWikipedia(title: String, artist: String?) async -> AlbumInfo? {
         let query = [title, artist ?? "", "album"].joined(separator: " ")
-        var search = URLComponents(string: "https://en.wikipedia.org/w/rest.php/v1/search/title")
+        var search = URLComponents(string: "https://en.wikipedia.org/w/rest.php/v1/search/page")
         search?.queryItems = [
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "limit", value: "3"),
@@ -90,7 +107,7 @@ actor AlbumInfoService {
         guard let searchURL = search?.url,
             let searchData = try? await data(from: URLRequest(url: searchURL)),
             let pages = try? JSONDecoder().decode(WikiSearch.self, from: searchData).pages,
-            let key = pages.first?.key,
+            let key = albumPage(in: pages)?.key,
             let summaryURL = URL(
                 string: "https://en.wikipedia.org/api/rest_v1/page/summary/"
                     + (key.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? key))
@@ -105,8 +122,16 @@ actor AlbumInfoService {
         return AlbumInfo(source: .wikipedia, text: extract)
     }
 
+    private func albumPage(in pages: [WikiSearch.Page]) -> WikiSearch.Page? {
+        pages.first { $0.description?.localizedCaseInsensitiveContains("album") == true }
+            ?? pages.first
+    }
+
     private struct WikiSearch: Decodable {
-        struct Page: Decodable { let key: String }
+        struct Page: Decodable {
+            let key: String
+            let description: String?
+        }
         let pages: [Page]
     }
 
@@ -131,9 +156,22 @@ actor AlbumInfoService {
     private let systemPrompt =
         "You write concise, knowledgeable liner notes for a personal hi-fi music player."
 
+    /// Ключ сменили в настройках — перечитать из связки при следующем запросе.
+    func forgetKeys() {
+        keyCache.removeAll()
+    }
+
+    /// Ключ провайдера: из связки один раз, дальше из памяти процесса.
+    private func apiKey(for provider: NotesProvider) -> String? {
+        if let cached = keyCache[provider] { return cached }
+        guard let key = KeychainStore.load(account: provider.keychainAccount), !key.isEmpty
+        else { return nil }
+        keyCache[provider] = key
+        return key
+    }
+
     private func fetchClaude(title: String, artist: String?, year: Int?) async -> AlbumInfo? {
-        guard let apiKey = KeychainStore.load(account: NotesProvider.claude.keychainAccount),
-            !apiKey.isEmpty,
+        guard let apiKey = apiKey(for: .claude),
             let url = URL(string: "https://api.anthropic.com/v1/messages")
         else { return nil }
         let prompt = linerNotesPrompt(title: title, artist: artist, year: year)
@@ -164,8 +202,7 @@ actor AlbumInfoService {
 
     /// DeepSeek: OpenAI-совместимый chat/completions, Bearer-авторизация.
     private func fetchDeepSeek(title: String, artist: String?, year: Int?) async -> AlbumInfo? {
-        guard let apiKey = KeychainStore.load(account: NotesProvider.deepseek.keychainAccount),
-            !apiKey.isEmpty,
+        guard let apiKey = apiKey(for: .deepseek),
             let url = URL(string: "https://api.deepseek.com/chat/completions")
         else { return nil }
         let prompt = linerNotesPrompt(title: title, artist: artist, year: year)
@@ -236,6 +273,9 @@ actor AlbumInfoService {
         // Самолечение кеша: до 0.8.1 обрезанный max_tokens'ом ответ LLM
         // кешировался навсегда. Заметка без конца предложения — перезапросить.
         if info.source != .wikipedia, !endsAsSentence(info.text) { return nil }
+        // Справка Wikipedia, добытая при старом порядке (до 0.8.4): писателя
+        // по этому альбому ещё не спрашивали — спросить один раз.
+        if info.source == .wikipedia, info.llmTried != true { return nil }
         return info
     }
 
@@ -302,10 +342,11 @@ enum KeychainStore {
             let data = item as? Data,
             let value = String(data: data, encoding: .utf8)
         else { return nil }
-        // Пересохранение делает текущую сборку создателем записи: записи от
-        // старых ad-hoc-сборок «чужие», и macOS спрашивала пароль на каждое
-        // чтение. После первого удачного чтения — тишина навсегда.
-        save(value, account: account)
+        // Чтение НИЧЕГО не меняет в связке. Пересохранение «для усыновления»
+        // (0.8.3) делало ровно обратное обещанному: «Always Allow» выдаётся
+        // на конкретную запись, а мы её тут же удаляли и создавали заново —
+        // разрешение исчезало вместе со старой записью, и диалог возвращался
+        // при каждом чтении.
         return value
     }
 }
