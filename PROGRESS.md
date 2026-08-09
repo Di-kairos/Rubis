@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "bb0b16a"
+head: "fa70bf4"
 tests: 72/72 (swift test, 5 packages)
 last_session: 5
 last_reviewed: 2026-08-07
@@ -269,6 +269,27 @@ Key ID и Issuer — в `.claude/codesign/` рядом с копией `.p8` (в
 Выпущена **0.8.5** (build 22), SHA256 опубликованного DMG сверён
 (`d2de650b…`), appcast запушен.
 HEAD: `bb0b16a` — build(release): sign the disk image and keep going past the Gatekeeper check.
+**Репозиторий кода стал публичным** (`Di-kairos/Rubis`) по решению владельца.
+Перед публикацией — аудит истории: ключей, сертификатов (`.p8/.p12/.pem`),
+токенов и почт в ней нет; из PROGRESS убраны Key ID и Issuer нотаризации.
+README переоформлен под публичный статус: бейджи (тесты 72/72, bit-perfect
+24/24, notarized), скриншоты Now Playing и витрины (`docs/assets/`), раздел
+Install с честным «двойной клик», измеренные числа и раздел «About this
+repository» (личный плеер, не продукт). Топики и homepage проставлены.
+По жалобе «долго грузится информация об альбоме» порядок заметок **возвращён к
+D-008**: Wikipedia первой, писатель (Claude/DeepSeek) — только для альбомов без
+статьи. Причина была именно в порядке 0.8.4: модель сочиняет 2–3 абзаца
+десятками секунд, тогда как справка приходит за доли секунды; флаг `llmTried`
+удалён как мёртвый код. Пока писатель работает, в полосе стоит
+`Writing liner notes…` вместо пустоты.
+Выпущена **0.8.6** (build 23) — нотаризация `Accepted` с первой попытки, DMG
+`accepted / source=Notarized Developer ID`, SHA256 опубликованного файла сверен
+(`cba26480…`), appcast запушен. Конвейер отработал полностью сам, включая
+EdDSA-подпись.
+Разбор жалобы «нажимаю rescan, альбом не появляется»: в папке
+`VA - Buddha-Bar …` лежат 31 `.part` и ни одного `.flac` — загрузка не
+завершена. Скан отработал верно, недокачанные файлы не импортируются.
+HEAD: `fa70bf4` — chore(release): bump version to 0.8.6 (23).
 
 ## Фазы (из TASKS.md)
 
