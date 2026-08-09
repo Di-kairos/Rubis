@@ -29,6 +29,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/assets/now-playing.png" alt="Now Playing: cover and queue side by side, liner notes below">
+</p>
+
 Rubis plays a local lossless library the way the file was mastered: the device
 sample rate follows the track, the mixer is bypassed, the signal leaves the app
 untouched. The audio path is not "probably fine" — `Tools/audio-verify` proves
@@ -63,6 +67,16 @@ any engine change lands.
 Design is its own thing: **Jewel Box** — warm near-black, serif display type,
 a golden thread for selection, and a single garnet ◆ on the playing track.
 No aggressive red anywhere.
+
+<p align="center">
+  <img src="docs/assets/albums.png" alt="Albums: featured record with its track list, the rest of the collection on a shelf">
+</p>
+
+<p align="center">
+  <sub>Albums as a shop window: the featured record lit from the front, the
+  collection on a shelf underneath, and a scroll indicator wearing the same
+  ruby as the playing mark.</sub>
+</p>
 
 ## Install
 
