@@ -1,43 +1,65 @@
 <p align="center">
-  <img src="docs/assets/logo.png" width="340" alt="Rubis Music logo">
+  <img src="docs/assets/logo.png" width="220" alt="Rubis Music">
 </p>
 
 <h1 align="center">Rubis Music</h1>
 
 <p align="center">
-  Personal hi-fi player for macOS. Bit-perfect or silent — never "close enough".
+  A local hi-fi player for macOS that plays the file, not an interpretation of it.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS-15%2B-black" alt="macOS 15+">
-  <img src="https://img.shields.io/badge/Swift-6-F05138" alt="Swift 6">
-  <img src="https://img.shields.io/badge/arch-arm64-blue" alt="arm64">
-  <img src="https://img.shields.io/badge/tests-72%2F72-brightgreen" alt="tests">
-  <img src="https://img.shields.io/badge/bit--perfect-24%2F24-brightgreen" alt="bit-perfect 24/24">
-  <img src="https://img.shields.io/badge/notarized-Apple-blue" alt="notarized">
+  <img src="https://img.shields.io/badge/macOS-15%2B-A85868?style=flat-square" alt="macOS 15+">
+  <img src="https://img.shields.io/badge/Swift-6-C9A76A?style=flat-square" alt="Swift 6">
+  <img src="https://img.shields.io/badge/bit--perfect-24%2F24_fixtures-C9A76A?style=flat-square" alt="bit-perfect on 24 fixtures">
+  <img src="https://img.shields.io/badge/notarized_by-Apple-A85868?style=flat-square" alt="notarized by Apple">
 </p>
 
 <p align="center">
-  <a href="https://github.com/Di-kairos/rubis-releases/releases/latest"><b>Download the latest build</b></a>
-  ·
-  <a href="SPEC.md">Spec</a>
-  ·
-  <a href="DESIGN.md">Design</a>
-  ·
-  <a href="DECISIONS.md">Decisions</a>
+  <a href="https://github.com/Di-kairos/rubis-releases/releases/latest"><img src="https://img.shields.io/badge/Download-latest%20build-A85868?style=for-the-badge" alt="Download the latest build"></a>
+</p>
+
+<p align="center">
+  <sub>A player built for one listener, published because the audio path, the layout
+  math and the release pipeline may be worth reading. Not a product: no support,
+  no roadmap for feature requests. Issues and pull requests are welcome and
+  answered when time allows.</sub>
 </p>
 
 ---
 
 <p align="center">
-  <img src="docs/assets/now-playing.png" alt="Now Playing: cover and queue side by side, liner notes below">
+  <img src="docs/assets/now-playing.png" alt="Now Playing: the album cover and the queue side by side, liner notes underneath">
 </p>
 
 Rubis plays a local lossless library the way the file was mastered: the device
 sample rate follows the track, the mixer is bypassed, the signal leaves the app
-untouched. The audio path is not "probably fine" — `Tools/audio-verify` proves
-bit-perfect output on 24 fixtures (44.1–192 kHz, 16/24-bit, FLAC/ALAC/WAV) before
-any engine change lands.
+untouched. That claim is not taken on trust — `Tools/audio-verify` compares
+output against 24 fixtures (44.1–192 kHz, 16/24-bit, FLAC/ALAC/WAV) and has to
+pass before any change to the engine is committed.
+
+| Measured | |
+|---|---|
+| Bit-perfect output | 24 of 24 fixtures |
+| Cold start | 208–219 ms |
+| Search on 100k tracks | under 50 ms |
+| Scrolling 100k tracks | 59–60 fps on a 60 Hz display |
+| Memory, 50k-track library | 221 MB |
+
+Numbers that have not been measured are not claimed. Where the signal path is
+degraded — a device that cannot follow the rate, a shared output — the badge in
+the transport bar says so instead of hiding it.
+
+## Install
+
+Download the DMG from
+[releases](https://github.com/Di-kairos/rubis-releases/releases/latest), drag
+**Rubis Music** to Applications, launch it. The build is signed with a Developer
+ID certificate and notarized by Apple, so it opens with a double click — no
+right-click → Open, no Gatekeeper warning. Later versions arrive in-app through
+Sparkle.
+
+Requires macOS 15 or newer on Apple silicon.
 
 ## What it does
 
@@ -50,68 +72,59 @@ any engine change lands.
   when it does not.
 - **Output device pinning** — pick your DAC in Settings and stay on it, whatever
   the system default does.
-- **Library at scale** — 100k-track library loads off the main thread, full-text
-  search answers under 50 ms, the grid scrolls at 59–60 fps.
+- **Library at scale** — a 100k-track library loads off the main thread, full-text
+  search answers under 50 ms, the shelf scrolls at 59–60 fps.
 - **Sources** — folders on any volume; a disconnected disk greys tracks out
-  instead of destroying history. Files are never deleted by a scan.
-- **The usual comforts** — playlists, queue with shuffle/repeat, media keys,
+  instead of destroying history. A scan never deletes anything.
+- **Liner notes** — an optional note about the playing album, from Wikipedia and,
+  for records Wikipedia does not cover, from Claude or DeepSeek with your own API
+  key. Off by default: the app makes no network call you did not ask for.
+- **The usual comforts** — playlists, queue with shuffle and repeat, media keys,
   Now Playing as a full-window screen, mini player, optional menu bar presence,
-  position restore across launches.
+  position restored across launches.
 - **Self-updating** — Sparkle 2, EdDSA-signed feed in
   [rubis-releases](https://github.com/Di-kairos/rubis-releases).
 
-- **Liner notes** — an optional note about the playing album, from Wikipedia and,
-  where Wikipedia has nothing, from Claude or DeepSeek with your own API key.
-  Off by default: the app makes no network call you did not ask for.
+## Design — Jewel Box
 
-Design is its own thing: **Jewel Box** — warm near-black, serif display type,
-a golden thread for selection, and a single garnet ◆ on the playing track.
-No aggressive red anywhere.
-
-<p align="center">
-  <img src="docs/assets/albums.png" alt="Albums: featured record with its track list, the rest of the collection on a shelf">
-</p>
+Warm near-black instead of grey, serif display type for album and artist names,
+a thread of gold marking selection rather than a filled bar, and a single garnet
+◆ against the playing track — the only red in the interface. Albums are a shop
+window: one record lit from the front, the collection on a shelf below it.
 
 <p align="center">
-  <sub>Albums as a shop window: the featured record lit from the front, the
-  collection on a shelf underneath, and a scroll indicator wearing the same
-  ruby as the playing mark.</sub>
+  <img src="docs/assets/albums.png" alt="Albums: the featured record with its track list, the rest of the collection on a shelf">
 </p>
 
-## Install
-
-Grab the DMG from
-[releases](https://github.com/Di-kairos/rubis-releases/releases/latest), drag
-**Rubis Music** to Applications, launch it. The build is signed with a Developer
-ID certificate and notarized by Apple, so it opens with a double click — no
-right-click → Open, no Gatekeeper warning. Updates arrive in-app through Sparkle.
-
-Requires macOS 15 or newer on Apple silicon.
+The full system — palette, type scale, spacing grid, motion rules — is in
+[DESIGN.md](DESIGN.md). Every colour, font and radius in the app comes from a
+token in the `DesignSystem` package; literals outside it are forbidden.
 
 ## Architecture
 
-Five SPM packages, dependencies point one way:
+Four SPM packages carry the work, and dependencies point one way:
 
 | Package | Role |
 |---|---|
 | `EscapementCore` | Shared models and contracts; depends on nothing |
 | `PlaybackEngine` | Core Audio HAL, hog mode, rate switching, gapless queue |
 | `MusicLibrary` | Scanner, metadata, GRDB/SQLite, FTS5 search, cover cache |
-| `DesignSystem` | Every color, font, spacing, and radius token in the app |
-| `SubsonicKit` | Empty shell until phase 6 (Navidrome/Subsonic) |
+| `DesignSystem` | Every colour, font, spacing and radius token in the app |
 
-The app target is a thin SwiftUI shell; all logic lives in the packages.
-Swift 6, strict concurrency complete, zero warnings.
+The app target is a thin SwiftUI shell; the logic lives in the packages. Swift 6
+with strict concurrency complete, and the build carries no warnings.
 
-## Build
+*The Xcode scheme and the core package are called `Escapement` — the project's
+working title, kept because renaming a scheme breaks more than it fixes. The
+product has been Rubis Music since 0.2.0.*
 
 ```bash
-./Tools/test.sh          # swift test for all five packages
-./Tools/format.sh        # swift-format in-place (run before commit)
-./Tools/audio-verify     # bit-perfect proof — required for engine changes
+./Tools/test.sh          # swift test across the packages
+./Tools/format.sh        # swift-format in place (run before committing)
+./Tools/audio-verify     # the bit-perfect proof — required for engine changes
 ./Tools/make-dmg.sh      # Release build → signed, notarized, stapled DMG
 
-# App target (requires full Xcode, not Command Line Tools):
+# The app target needs full Xcode, not Command Line Tools:
 xcodebuild -scheme Escapement -configuration Release
 ```
 
@@ -119,31 +132,28 @@ xcodebuild -scheme Escapement -configuration Release
 
 | File | What's inside |
 |---|---|
-| `SPEC.md` | Technical spec: architecture, audio contract, DB schema, budgets |
-| `DESIGN.md` | Design system: palette, typography, grid, components, motion |
-| `TASKS.md` | Phases with acceptance criteria |
-| `PROGRESS.md` / `DECISIONS.md` | Living state and decision log |
-| `docs/manual-checklist.md` | Hardware acceptance: DAC, gapless, VoiceOver |
+| [SPEC.md](SPEC.md) | Architecture, the audio contract, DB schema, performance budgets |
+| [DESIGN.md](DESIGN.md) | Palette, typography, grid, components, motion |
+| [TASKS.md](TASKS.md) | Phases with acceptance criteria |
+| [DECISIONS.md](DECISIONS.md) | Why things are the way they are |
+| [PROGRESS.md](PROGRESS.md) | Living state, release by release |
+| [docs/manual-checklist.md](docs/manual-checklist.md) | What only ears and hardware can verify |
+| [docs/third-party.md](docs/third-party.md) | Libraries the app ships, and their licences |
 
 ## Status
 
-Phases 0–7 shipped: scaffold, design system, database, audio engine, local
-library, full UI, system integration. Releases live in
-[rubis-releases](https://github.com/Di-kairos/rubis-releases). Next fork in the
-road: phase 6 (Navidrome/Subsonic).
+Seven of the eight planned phases are done — scaffold, design system, database,
+audio engine, local library, interface, system integration — and the eighth,
+Subsonic/Navidrome support, is deliberately postponed
+([D-003](DECISIONS.md)). Releases live in
+[rubis-releases](https://github.com/Di-kairos/rubis-releases); the current one is
+signed, notarized, and verified by checksum against the file published there.
 
-Measured, not assumed: cold start 208–219 ms, search under 50 ms on 100k tracks,
-scrolling 59–60 fps, 221 MB on a 50k-track library, and 24/24 bit-perfect
-fixtures. Numbers that are not measured are not claimed.
+Binaries bundle libraries from other people, including two under LGPL terms —
+see [docs/third-party.md](docs/third-party.md).
 
-## About this repository
+## Licence
 
-A personal player built for one listener, published because the audio path,
-the layout math and the release pipeline may be useful to read. It is not a
-product: there is no support, no roadmap for feature requests, and no promise
-of compatibility between versions. Issues and pull requests are welcome but
-answered when time allows.
-
-The audio contract is the part worth reading: `SPEC.md` §4 states what
-bit-perfect means here, and `Tools/audio-verify` is the proof that has to pass
-before any engine change is committed.
+None yet, which by default means all rights reserved: read the code freely, but
+copying it into your own project is not permitted until a licence file says
+otherwise.
