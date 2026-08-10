@@ -93,3 +93,33 @@ Subsonic (когда появится) + фид обновлений.
 Claude или DeepSeek (`deepseek-chat`, OpenAI-совместимый chat/completions).
 Picker в Settings → General, ключ каждого провайдера в Keychain под своим
 account (`claude-api-key` / `deepseek-api-key`). Промпт и правило UNKNOWN общие.
+
+---
+
+## D-009 · 2026-08-10 · Mac App Store — цель, но отложена до команды владельца
+
+Владелец хочет видеть Rubis Music в App Store. Решение: делать, но **не сейчас** —
+старт по его явной команде. До первой строчки кода два гейта, каждый даёт
+измеримый ответ:
+
+1. **Hog mode под песочницей.** `AudioDeviceController.startHogging` (SPEC §4,
+   эксклюзивный захват) — работает ли у сэндбокс-приложения, проверяется прогоном
+   `Tools/audio-verify` в сборке с `com.apple.security.app-sandbox` и живым
+   тестом на FiiO QX13. Умрёт hog — MAS-версия перестаёт быть bit-perfect,
+   и это развилка владельца, а не Claude.
+2. **LGPL в бандле.** `lame` (LGPL v2) и `libsndfile` (LGPL 2.1) приезжают
+   бинарными артефактами SFBAudioEngine (`docs/third-party.md`). LGPL требует
+   возможности подменить библиотеку, подпись App Store её не даёт — конфликт.
+   Проверить, отделяются ли обе от сборки SFBAudioEngine (lame — mp3-энкодер,
+   не нужен; libsndfile — WAV/AIFF, покрывается CoreAudio).
+
+Что придётся сделать после гейтов: скоуп bookmark'ов держать и на воспроизведении
+(сейчас `startAccessingSecurityScopedResource` живёт только в `LibraryScanner`),
+выкинуть из MAS-сборки Sparkle (D-005) и медиа-клавиши через `AXIsProcessTrusted`
+(`MPRemoteCommandCenter` остаётся), завести Mac App Distribution-сертификаты,
+запись в App Store Connect, privacy labels (Anthropic/DeepSeek/Wikipedia).
+
+**Архитектура — две конфигурации одного проекта, не переезд.** Прямой DMG
+(Developer ID + Sparkle + hog) остаётся личным плеером владельца; MAS-таргет —
+публичная версия с ограничениями песочницы. Иначе провал гейта 1 стоил бы
+bit-perfect ради витрины.
