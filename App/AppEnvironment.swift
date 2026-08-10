@@ -14,8 +14,17 @@ final class AppEnvironment {
     let devices: AudioDeviceController
     let scanner: LibraryScanner
     let covers: CoverCache
+    /// Журнал исходящих соединений (SPEC §1.2): один на приложение, чтобы
+    /// в панели сходились все запросы — и заметки, и проверки обновлений.
+    let networkLedger = NetworkLedger(fileURL: AppEnvironment.ledgerURL)
     /// Аннотации альбомов (D-008): Wikipedia → Claude, кеш на диске.
-    let albumInfo = AlbumInfoService()
+    let albumInfo: AlbumInfoService
+
+    static var ledgerURL: URL {
+        FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Escapement/network-ledger.json")
+    }
 
     var trackRepo: TrackRepository { TrackRepository(db: db) }
     var albumRepo: AlbumRepository { AlbumRepository(db: db) }
@@ -79,6 +88,7 @@ final class AppEnvironment {
         player = Player(devices: devices)
         covers = try CoverCache()
         scanner = LibraryScanner(db: db, covers: covers)
+        albumInfo = AlbumInfoService(ledger: networkLedger)
 
         Task { [player] in
             for await state in await player.stateStream() {

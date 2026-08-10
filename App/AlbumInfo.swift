@@ -47,8 +47,11 @@ actor AlbumInfoService {
     /// на каждый новый альбом, а каждое обращение к Keychain — потенциальный
     /// диалог. Живёт в акторе, поэтому без замков и глобального состояния.
     private var keyCache: [NotesProvider: String] = [:]
+    /// Журнал соединений (SPEC §1.2): каждый запрос заметок в нём виден.
+    private let ledger: NetworkLedger
 
-    init() {
+    init(ledger: NetworkLedger) {
+        self.ledger = ledger
         cacheRoot = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Escapement/album-info", isDirectory: true)
@@ -288,13 +291,33 @@ actor AlbumInfoService {
         }
     }
 
+    /// Единственная дверь наружу у заметок — здесь же запись в журнал,
+    /// поэтому «незаписанного» запроса не бывает.
     private func data(from request: URLRequest) async throws -> Data {
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
+        let host = request.url?.host ?? ""
+        let result: Result<(Data, URLResponse), any Error>
+        do {
+            result = .success(try await session.data(for: request))
+        } catch {
+            result = .failure(error)
         }
-        return data
+
+        switch result {
+        case .success(let (data, response)):
+            let ok = (response as? HTTPURLResponse)?.statusCode == 200
+            await ledger.record(
+                host: host, purpose: Self.ledgerPurpose, succeeded: ok, bytes: data.count)
+            guard ok else { throw URLError(.badServerResponse) }
+            return data
+        case .failure(let error):
+            // Сеть не ответила вовсе — для журнала это тоже событие.
+            await ledger.record(
+                host: host, purpose: Self.ledgerPurpose, succeeded: false, bytes: 0)
+            throw error
+        }
     }
+
+    static let ledgerPurpose = "Album notes"
 
     private func nonEmpty(_ string: String?) -> String? {
         guard let trimmed = string?.trimmingCharacters(in: .whitespacesAndNewlines),

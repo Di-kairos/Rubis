@@ -20,6 +20,8 @@ struct SettingsScene: View {
             DSText("Server — phase 6", style: .body, color: DS.Color.textTertiary)
                 .frame(width: 480, height: 200)
                 .tabItem { Label("Server", systemImage: "server.rack") }
+            NetworkSettings()
+                .tabItem { Label("Network", systemImage: "antenna.radiowaves.left.and.right") }
             KeysSettings()
                 .tabItem { Label("Keys", systemImage: "keyboard") }
         }
