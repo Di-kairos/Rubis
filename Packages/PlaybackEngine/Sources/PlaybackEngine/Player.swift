@@ -28,6 +28,8 @@ public actor Player {
     /// Set when the output device vanished mid-play (SPEC §9): paused, badge red,
     /// cleared on the next successful play. Never auto-resumes.
     public private(set) var outputDeviceLost = false
+    /// Секунда, на которой пропал выход — с неё Play поднимает трек заново.
+    private var lostAtOffset: TimeInterval?
 
     private let engine = AudioPlayer()
     private let devices: AudioDeviceController
@@ -187,16 +189,21 @@ public actor Player {
         state = .paused(track)
     }
 
-    public func resume() {
-        guard case .paused(let track) = state, !outputDeviceLost else { return }
-        _ = engine.resume()
-        state = .playing(track)
+    public func resume() async {
+        guard case .paused(let track) = state else { return }
+        switch ResumePolicy.decide(deviceLost: outputDeviceLost, offset: lostAtOffset) {
+        case .continueEngine:
+            _ = engine.resume()
+            state = .playing(track)
+        case .restart(let offset):
+            await startCurrent(seekTo: offset)
+        }
     }
 
     public func togglePlayPause() async {
         switch state {
         case .playing: pause()
-        case .paused: resume()
+        case .paused: await resume()
         case .idle: await playCurrent()  // восстановленная очередь: Play её будит
         default: break
         }
@@ -269,6 +276,7 @@ public actor Player {
         let item = queue[index]
         state = .loading(item.track)
         outputDeviceLost = false
+        lostAtOffset = nil
         do {
             try await prepareDevice(for: item.track)
             let decoder = try makeDecoder(for: item)
@@ -416,6 +424,9 @@ public actor Player {
 
     private func handleDeviceLoss() {
         guard case .playing(let track) = state else { return }
+        // Позиция снимается ДО паузы: у мёртвого устройства время читается,
+        // пока движок ещё держит текущий декодер.
+        lostAtOffset = engine.time?.current
         _ = engine.pause()
         outputDeviceLost = true
         currentDeviceID = nil
