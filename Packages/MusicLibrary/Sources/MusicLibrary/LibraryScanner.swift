@@ -18,6 +18,8 @@ public struct ScanSummary: Sendable, Equatable {
     public var unavailable = 0
     /// Файл вернулся на место — пометка снята.
     public var restored = 0
+    /// Недоступные двойники, снятые после переезда файла в другой источник.
+    public var deduplicated = 0
     public var unchanged = 0
     /// Paths that failed to read — the Problem files list.
     public var failed: [String] = []
@@ -185,6 +187,41 @@ public actor LibraryScanner {
             }
             missing = stillMissing
         }
+
+        // 4b. Файл мог переехать в ДРУГОЙ источник — так бывает, когда папки
+        //     источников разложены по направлениям музыки. В базе он висит
+        //     недоступным под старым источником; узнаём по той же подписи и
+        //     забираем строку себе: id, плейлисты и история переживают переезд,
+        //     призрак в прежнем источнике не остаётся.
+        let arrivals: [(index: Int, signature: String)] = toRead.enumerated()
+            .compactMap { index, item in
+                guard item.existingID == nil, let info = onDisk[item.relative] else { return nil }
+                return (index, Self.signature(size: info.size, mtime: info.mtime))
+            }
+        if !arrivals.isEmpty {
+            let orphans: [KnownTrack] = try await db.reader.read { database in
+                try KnownTrack.fetchAll(
+                    database,
+                    sql: """
+                        SELECT id, relative_path, file_size, modified_at, unavailable
+                        FROM track WHERE unavailable = 1 AND source_id <> ?
+                        """,
+                    arguments: [source.id])
+            }
+            var orphanBySignature: [String: Int64] = [:]
+            for orphan in orphans {
+                guard let size = orphan.fileSize, let mtime = orphan.modifiedAt else { continue }
+                orphanBySignature[Self.signature(size: size, mtime: mtime)] = orphan.id
+            }
+            for arrival in arrivals {
+                guard let id = orphanBySignature.removeValue(forKey: arrival.signature) else {
+                    continue
+                }
+                toRead[arrival.index].existingID = id
+                summary.moved += 1
+            }
+        }
+
         if !missing.isEmpty {
             let ids = missing.map(\.id)
             try await db.writer.write { database in
@@ -259,13 +296,34 @@ public actor LibraryScanner {
             try await commit(batch: batch, source: source, summary: &summary)
         }
 
+        // 6. Уборка двойников. Пункт 4b ловит переезд, только когда старый
+        //    источник просканирован раньше нового. При обратном порядке файл
+        //    успевает войти новой строкой, а старая остаётся недоступной —
+        //    два трека на один файл. Совпали подпись и разные источники,
+        //    причём живой экземпляр найден → недоступный больше не нужен.
+        summary.deduplicated = try await db.writer.write { database -> Int in
+            try database.execute(
+                sql: """
+                    DELETE FROM track
+                    WHERE unavailable = 1
+                      AND file_size IS NOT NULL AND modified_at IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1 FROM track other
+                        WHERE other.unavailable = 0
+                          AND other.source_id <> track.source_id
+                          AND other.file_size = track.file_size
+                          AND other.modified_at = track.modified_at)
+                    """)
+            return database.changesCount
+        }
+
         try await db.writer.write { database in
             try database.execute(
                 sql: "UPDATE source SET last_scan_at = ? WHERE id = ?",
                 arguments: [Date(), source.id])
         }
         log(
-            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) →\(summary.moved) ?\(summary.unavailable) ↩\(summary.restored) =\(summary.unchanged) !\(summary.failed.count)"
+            "scan \(source.displayName): +\(summary.added) ~\(summary.updated) →\(summary.moved) ?\(summary.unavailable) ↩\(summary.restored) ×\(summary.deduplicated) =\(summary.unchanged) !\(summary.failed.count)"
         )
         onProgress?(.finished(summary))
         return summary
