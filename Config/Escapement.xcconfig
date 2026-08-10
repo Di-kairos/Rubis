@@ -1,8 +1,8 @@
 // Single place for product identity (SPEC §14). Renaming the product = editing this file.
 PRODUCT_NAME = Rubis Music
 PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement
-MARKETING_VERSION = 0.8.6
-CURRENT_PROJECT_VERSION = 23
+MARKETING_VERSION = 0.8.7
+CURRENT_PROJECT_VERSION = 24
 DEVELOPMENT_TEAM = TA24A89R8H
 
 MACOSX_DEPLOYMENT_TARGET = 15.0
