@@ -6,16 +6,17 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "fa70bf4"
+head: "607ff72"
 tests: 72/72 (swift test, 5 packages)
-last_session: 5
-last_reviewed: 2026-08-07
+last_session: 6
+last_reviewed: 2026-08-10
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Общий вердикт владельца по Jewel Box II (0.4.0 liner notes / 0.5.0 прибор / 0.6.0 витрина) → правки"
-  - "Прогнать docs/manual-checklist.md — то, что требует железа и ушей: ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
-  - "Развилка после дизайн-итерации: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
-  - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH, см. TASKS фаза 5"
+  - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
+  - "Тёмные скриншоты для README (два, одинаковое окно) и лого на прозрачном фоне без впечатанного текста"
+  - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
+  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
+  - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
   - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
@@ -26,8 +27,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session05.md
-  latest_kickoff: docs/sessions/SESSION_06_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session06.md
+  latest_kickoff: docs/sessions/SESSION_07_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -290,6 +291,16 @@ EdDSA-подпись.
 `VA - Buddha-Bar …` лежат 31 `.part` и ни одного `.flac` — загрузка не
 завершена. Скан отработал верно, недокачанные файлы не импортируются.
 HEAD: `fa70bf4` — chore(release): bump version to 0.8.6 (23).
+Закрытие сессии 06: два дизайн-разбора README субагентами → страница
+пересобрана под первого посетителя (дисклеймер «не продукт» под таглайном,
+измеренные числа таблицей, Install выше Build, Jewel Box стал секцией, бейджей
+четыре в цветах продукта, Download — ссылка), со скриншотов срезана чёрная
+рамка. Создан `docs/third-party.md`: в DMG уезжают `lame` (LGPL v2) и
+`libsndfile` (LGPL 2.1) через SFBAudioEngine — уведомление обязательно, обе
+динамические и заменяемые. Лицензии у репозитория нет: README честно говорит,
+что это «все права защищены» — решение за владельцем.
+HEAD: `607ff72` — docs(readme): rebuild the page around what a first-time visitor needs.
+Отчёт сессии — `docs/sessions/progress-report-session06.md`.
 
 ## Фазы (из TASKS.md)
 
