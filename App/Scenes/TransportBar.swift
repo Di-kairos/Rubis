@@ -238,7 +238,9 @@ struct TransportBar: View {
 
     private var subtitleLine: String {
         switch env.playbackState {
-        case .failed(_, let error): return "Error: \(error)"
+        // Отказ и поломка одинаково важны, но читаются словами, а не кодом:
+        // «Refused: … cannot do 192 kHz» объясняет себя без документации.
+        case .failed(_, let error): return error.errorDescription ?? "Playback failed"
         case .loading: return "Loading…"
         default: return ""
         }

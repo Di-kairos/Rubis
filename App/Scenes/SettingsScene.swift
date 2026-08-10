@@ -271,8 +271,11 @@ struct AudioSettings: View {
             Picker("If exact rate unavailable", selection: $rateFallback) {
                 Text("Nearest family multiple").tag("nearestFamilyMultiple")
                 Text("Allow cross-family resample").tag("allowCrossFamily")
-                Text("Refuse to play").tag("refuse")
+                Text("Bit-perfect or silence — refuse to play").tag("refuse")
             }
+            .help(
+                "The last option never resamples: a track the device cannot play exactly "
+                    + "stays silent and says so, instead of playing altered.")
             Picker("DSD mode", selection: $dsdMode) {
                 Text("DoP if available").tag("dopIfAvailable")
                 Text("Always convert to PCM").tag("alwaysConvertToPCM")
