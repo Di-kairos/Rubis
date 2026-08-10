@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "607ff72"
+head: "66ac884"
 tests: 72/72 (swift test, 5 packages)
 last_session: 6
 last_reviewed: 2026-08-10
@@ -299,7 +299,7 @@ HEAD: `fa70bf4` — chore(release): bump version to 0.8.6 (23).
 `libsndfile` (LGPL 2.1) через SFBAudioEngine — уведомление обязательно, обе
 динамические и заменяемые. Лицензии у репозитория нет: README честно говорит,
 что это «все права защищены» — решение за владельцем.
-HEAD: `607ff72` — docs(readme): rebuild the page around what a first-time visitor needs.
+HEAD: `66ac884` — docs(session): close session 06 — Developer ID, notarization, public repo.
 Отчёт сессии — `docs/sessions/progress-report-session06.md`.
 
 ## Фазы (из TASKS.md)
