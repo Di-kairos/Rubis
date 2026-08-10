@@ -8,12 +8,13 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
 head: "ea65c6a"
 tests: 72/72 (swift test, 5 packages)
-last_session: 6
+last_session: 7
 last_reviewed: 2026-08-10
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
-  - "Тёмные скриншоты для README (два, одинаковое окно) и лого на прозрачном фоне без впечатанного текста"
+  - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
+  - "Выпустить релиз со второй машины: в main лежит невыпущенный переключатель Appearance"
   - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
   - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
@@ -27,8 +28,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session06.md
-  latest_kickoff: docs/sessions/SESSION_07_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session07.md
+  latest_kickoff: docs/sessions/SESSION_08_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -307,6 +308,9 @@ Session 07 (2026-08-10): оформление плеера отвязано от
 токены DesignSystem уже разрешаются по `NSAppearance`, поэтому перекрашиваются
 все окна разом. Проверено снимком харнесса: при светлой системе окно тёмное.
 HEAD: `ea65c6a` — feat(settings): pin the player appearance apart from macOS.
+Отчёт сессии — `docs/sessions/progress-report-session07.md`. Релиза не было:
+на этой машине нет Developer ID (`security find-identity` → 0 identities),
+переключатель уедет следующим релизом со второй машины.
 
 ## Фазы (из TASKS.md)
 

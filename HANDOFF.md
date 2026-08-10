@@ -2,10 +2,14 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **06** (2026-08-09/10, Developer ID + нотаризация, публикация
-  репозитория, 3 релиза) — отчёт `docs/sessions/progress-report-session06.md`
-- Следующая: **07** — kickoff `docs/sessions/SESSION_07_KICKOFF.md`
-- Ветка: `main`, head `607ff72`. Тесты 72/72, Debug и Release без warnings
+- Последняя сессия: **07** (2026-08-10, переключатель Appearance) — отчёт
+  `docs/sessions/progress-report-session07.md`
+- Следующая: **08** — kickoff `docs/sessions/SESSION_08_KICKOFF.md`
+- Ветка: `main`, head `ea65c6a`. Тесты 72/72, Debug без warnings
+- **В main лежит невыпущенное**: Settings → General → Appearance
+  (System / Light / Dark), палитра больше не привязана к macOS.
+  Релиз с этой машины невозможен — `security find-identity` → 0 identities,
+  Developer ID на второй машине
 - Статус продукта: **Rubis Music 0.8.6** (build 23) в фиде `rubis-releases`.
   0.8.5 и 0.8.6 подписаны `Developer ID Application: Daniel Diamant (TA24A89R8H)`
   и нотаризованы Apple — на чужой машине открываются двойным кликом
@@ -22,8 +26,9 @@
 1. **Лицензия репозитория** — MIT / AGPL / оставить «все права защищены»
    (сейчас файла нет, README это проговаривает явно)
 2. **Тёмные скриншоты** для README (два, одинаковый размер окна, без пустой
-   полосы внизу) и **лого на прозрачном фоне** без впечатанных «RUBIS» и
-   «HI-FI MUSIC PLAYER» — сейчас они дублируют заголовок и таглайн
+   полосы внизу) — снимаются без переключения всей macOS: Settings → General →
+   Appearance → Dark, ⌘⇧3. И **лого на прозрачном фоне** без впечатанных
+   «RUBIS» и «HI-FI MUSIC PLAYER» — сейчас они дублируют заголовок и таглайн
 3. **Развилка разработки**: фаза 6 Navidrome (D-003) или бэклог D-006
 
 ## Знать до того, как копать
