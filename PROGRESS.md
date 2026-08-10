@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "ea65c6a"
+head: "2611349"
 tests: 72/72 (swift test, 5 packages)
 last_session: 7
 last_reviewed: 2026-08-10
@@ -14,7 +14,6 @@ keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidro
 next_actions:
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
   - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
-  - "Выпустить релиз со второй машины: в main лежит невыпущенный переключатель Appearance"
   - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
   - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
@@ -309,8 +308,19 @@ Session 07 (2026-08-10): оформление плеера отвязано от
 все окна разом. Проверено снимком харнесса: при светлой системе окно тёмное.
 HEAD: `ea65c6a` — feat(settings): pin the player appearance apart from macOS.
 Отчёт сессии — `docs/sessions/progress-report-session07.md`. Релиза не было:
-на этой машине нет Developer ID (`security find-identity` → 0 identities),
-переключатель уедет следующим релизом со второй машины.
+на той машине нет Developer ID (`security find-identity` → 0 identities),
+переключатель уехал следующим релизом со второй машины.
+Session 08 (2026-08-10, вторая машина): выпущена **0.8.7** (build 24) —
+переключатель Appearance доехал до пользователей. Здесь Developer ID и профиль
+нотаризации `rubis` на месте, конвейер `Tools/make-dmg.sh` отработал сам:
+нотаризация `Accepted` с первой попытки, staple, `spctl → accepted /
+source=Notarized Developer ID`. SHA256 опубликованного DMG сверён скачиванием
+(`fdda5a72…`, 10370570 байт), appcast запушен. Тесты 72/72.
+Грабли машины: `xcode-select -p` → `/Library/Developer/CommandLineTools`,
+поэтому `swift test` не видит модуль `Testing` — гонять с
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` (make-dmg.sh это
+уже делает сам).
+HEAD: `2611349` — chore(release): bump version to 0.8.7 (24).
 
 ## Фазы (из TASKS.md)
 
