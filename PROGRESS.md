@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "66ac884"
+head: "ea65c6a"
 tests: 72/72 (swift test, 5 packages)
 last_session: 6
 last_reviewed: 2026-08-10
@@ -301,6 +301,12 @@ HEAD: `fa70bf4` — chore(release): bump version to 0.8.6 (23).
 что это «все права защищены» — решение за владельцем.
 HEAD: `66ac884` — docs(session): close session 06 — Developer ID, notarization, public repo.
 Отчёт сессии — `docs/sessions/progress-report-session06.md`.
+Session 07 (2026-08-10): оформление плеера отвязано от системы — Picker
+«Appearance» (System / Light / Dark) в Settings → General, применение одной
+точкой `AppAppearance.apply` (`App/SettingsKey.swift`) через `NSApp.appearance`;
+токены DesignSystem уже разрешаются по `NSAppearance`, поэтому перекрашиваются
+все окна разом. Проверено снимком харнесса: при светлой системе окно тёмное.
+HEAD: `ea65c6a` — feat(settings): pin the player appearance apart from macOS.
 
 ## Фазы (из TASKS.md)
 
