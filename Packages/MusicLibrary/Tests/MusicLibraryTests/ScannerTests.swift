@@ -39,6 +39,14 @@ struct ScannerTests {
         return root
     }
 
+    /// Пустая папка под второй источник.
+    private func makeEmptyLibrary() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scanner-test-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        return root
+    }
+
     private func makeScanner(_ db: TestDatabase) throws -> LibraryScanner {
         let tmp = FileManager.default.temporaryDirectory
         return LibraryScanner(
@@ -113,6 +121,98 @@ struct ScannerTests {
         #expect(try trackRepo.count() == 2)
         #expect(try playlistRepo.trackIds(in: playlist.id!) == [moved.id!])
         #expect(try trackRepo.track(id: moved.id!)?.relativePath == "Album B/track-0.flac")
+    }
+
+    /// Переезд файла между источниками (папки «направлений музыки»):
+    /// старый источник просканирован первым — трек обязан сменить источник,
+    /// а не раздвоиться.
+    @Test(.enabled(if: fixturesAvailable)) func fileMovedToAnotherSourceKeepsIdentity()
+        async throws
+    {
+        let ambient = try makeLibrary(copies: 2)
+        let electro = try makeEmptyLibrary()
+        defer {
+            try? FileManager.default.removeItem(at: ambient)
+            try? FileManager.default.removeItem(at: electro)
+        }
+
+        let db = try AppDatabase.inMemory()
+        let repo = SourceRepository(db: db)
+        var first = Source(kind: .local, displayName: "AMBIENT")
+        first.bookmark = try LibraryScanner.makeBookmark(for: ambient)
+        try repo.upsert(first)
+        var second = Source(kind: .local, displayName: "ELECTRO")
+        second.bookmark = try LibraryScanner.makeBookmark(for: electro)
+        try repo.upsert(second)
+
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: first)
+        _ = try await scanner.scan(source: second)
+
+        let trackRepo = TrackRepository(db: db)
+        let moving = try #require(
+            try trackRepo.tracks(ids: [1, 2]).first { $0.relativePath == "Album A/track-0.flac" })
+        let playlistRepo = PlaylistRepository(db: db)
+        let playlist = try playlistRepo.create(name: "Mix")
+        try playlistRepo.setTracks([moving.id!], in: playlist.id!)
+
+        try FileManager.default.createDirectory(
+            at: electro.appendingPathComponent("Album A"), withIntermediateDirectories: true)
+        try FileManager.default.moveItem(
+            at: ambient.appendingPathComponent("Album A/track-0.flac"),
+            to: electro.appendingPathComponent("Album A/track-0.flac"))
+
+        #expect(try await scanner.scan(source: first).unavailable == 1)
+        let arrival = try await scanner.scan(source: second)
+        #expect(arrival.moved == 1)
+        #expect(arrival.added == 0)
+
+        // Один файл — один трек, под новым источником и со своим id.
+        #expect(try trackRepo.count() == 2)
+        #expect(try trackRepo.unavailableCount() == 0)
+        #expect(try trackRepo.track(id: moving.id!)?.sourceId == second.id)
+        #expect(try playlistRepo.trackIds(in: playlist.id!) == [moving.id!])
+    }
+
+    /// Тот же переезд, но новый источник просканирован раньше старого:
+    /// файл успевает войти новой строкой, старая остаётся недоступной.
+    /// Уборка обязана снять двойника.
+    @Test(.enabled(if: fixturesAvailable)) func unluckyScanOrderLeavesNoGhost() async throws {
+        let ambient = try makeLibrary(copies: 2)
+        let electro = try makeEmptyLibrary()
+        defer {
+            try? FileManager.default.removeItem(at: ambient)
+            try? FileManager.default.removeItem(at: electro)
+        }
+
+        let db = try AppDatabase.inMemory()
+        let repo = SourceRepository(db: db)
+        var first = Source(kind: .local, displayName: "AMBIENT")
+        first.bookmark = try LibraryScanner.makeBookmark(for: ambient)
+        try repo.upsert(first)
+        var second = Source(kind: .local, displayName: "ELECTRO")
+        second.bookmark = try LibraryScanner.makeBookmark(for: electro)
+        try repo.upsert(second)
+
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: first)
+
+        try FileManager.default.createDirectory(
+            at: electro.appendingPathComponent("Album A"), withIntermediateDirectories: true)
+        try FileManager.default.moveItem(
+            at: ambient.appendingPathComponent("Album A/track-0.flac"),
+            to: electro.appendingPathComponent("Album A/track-0.flac"))
+
+        // Новый источник первым: старая строка ещё числится доступной,
+        // поэтому файл входит как новый трек.
+        #expect(try await scanner.scan(source: second).added == 1)
+        let cleanup = try await scanner.scan(source: first)
+        #expect(cleanup.unavailable == 1)
+        #expect(cleanup.deduplicated == 1)
+
+        let trackRepo = TrackRepository(db: db)
+        #expect(try trackRepo.count() == 2)
+        #expect(try trackRepo.unavailableCount() == 0)
     }
 
     @Test(.enabled(if: fixturesAvailable)) func returningFileClearsUnavailable() async throws {
