@@ -148,6 +148,23 @@ struct SubsonicClientTests {
         #expect(albums[0].id == "al-1")
     }
 
+    // MARK: - Тексты ошибок
+
+    @Test func errorsReadAsSentences() {
+        #expect(
+            SubsonicError.server(.init(code: 40, message: "Wrong username or password"))
+                .errorDescription == "Wrong username or password")
+        #expect(
+            SubsonicError.server(.init(code: 70, message: "Album not found"))
+                .errorDescription == "Album not found")
+        #expect(
+            SubsonicError.server(.init(code: 70, message: nil))
+                .errorDescription == "Server refused the request (code 70)")
+        #expect(SubsonicError.http(502).errorDescription == "Server answered with HTTP 502")
+        #expect(
+            SubsonicError.invalidServerURL.errorDescription == "That address is not a server URL")
+    }
+
     // MARK: - Адреса файлов
 
     @Test func streamURLForbidsTranscoding() throws {

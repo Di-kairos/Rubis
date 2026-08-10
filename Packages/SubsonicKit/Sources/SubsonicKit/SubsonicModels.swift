@@ -38,7 +38,7 @@ public struct SubsonicServerError: Decodable, Sendable, Equatable {
 }
 
 /// Всё, что может пойти не так у клиента.
-public enum SubsonicError: Error, Sendable, Equatable {
+public enum SubsonicError: Error, Sendable, Equatable, LocalizedError {
     /// Сервер ответил `status = "failed"` с кодом (40 — неверный логин/пароль).
     case server(SubsonicServerError)
     /// HTTP-код вне 2xx.
@@ -47,6 +47,23 @@ public enum SubsonicError: Error, Sendable, Equatable {
     case malformedResponse
     /// В настройках источника лежит адрес, из которого не собирается URL.
     case invalidServerURL
+
+    /// Текст для строки статуса в настройках — «Test connection» обязан
+    /// показывать явный результат (TASKS фаза 6), а не «что-то пошло не так».
+    public var errorDescription: String? {
+        switch self {
+        case .server(let error):
+            // 40 — единственный код, который владелец увидит в жизни чаще прочих.
+            if error.code == 40 { return "Wrong username or password" }
+            return error.message ?? "Server refused the request (code \(error.code))"
+        case .http(let status):
+            return "Server answered with HTTP \(status)"
+        case .malformedResponse:
+            return "The answer did not look like Subsonic"
+        case .invalidServerURL:
+            return "That address is not a server URL"
+        }
+    }
 }
 
 // MARK: - Сущности каталога

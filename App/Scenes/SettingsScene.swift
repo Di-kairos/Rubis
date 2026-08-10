@@ -17,8 +17,7 @@ struct SettingsScene: View {
                 .tabItem { Label("Library", systemImage: "folder") }
             AudioSettings()
                 .tabItem { Label("Audio", systemImage: "hifispeaker") }
-            DSText("Server — phase 6", style: .body, color: DS.Color.textTertiary)
-                .frame(width: 480, height: 200)
+            ServerSettings()
                 .tabItem { Label("Server", systemImage: "server.rack") }
             KeysSettings()
                 .tabItem { Label("Keys", systemImage: "keyboard") }
@@ -229,6 +228,11 @@ struct LibrarySettings: View {
         alert.addButton(withTitle: "Remove")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
+            // У сервера вместе с записью уходит пароль — иначе он остался бы
+            // в связке сиротой (SPEC §6.1).
+            if source.kind == .subsonic, let url = source.serverUrl, let user = source.username {
+                SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: url), username: user)
+            }
             try? env.sourceRepo.delete(id: source.id)
             reload()
         }
