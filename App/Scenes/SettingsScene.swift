@@ -110,6 +110,9 @@ struct GeneralSettings: View {
     @Environment(AppEnvironment.self) private var env
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
+    /// Оформление плеера отдельно от macOS: Obsidian можно держать при светлой
+    /// системе и наоборот.
+    @AppStorage(SettingsKey.appearance) private var appearance = AppAppearance.system.rawValue
     /// D-008: аннотации альбомов — opt-in, сеть только по явному включению.
     @AppStorage("albumNotes") private var albumNotes = false
     /// Писатель fallback-заметок (D-008): Claude или DeepSeek, ключ каждого
@@ -124,6 +127,12 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
+            Picker("Appearance", selection: $appearance) {
+                ForEach(AppAppearance.allCases) { option in
+                    Text(option.displayName).tag(option.rawValue)
+                }
+            }
+            .help("Follows macOS unless you pin the player to light or dark")
             Toggle("Show icon in the menu bar", isOn: $menuBarIcon)
                 .help("Current track and transport without bringing the window up")
             Toggle("Keep mini player above other windows", isOn: $miniPlayerOnTop)
@@ -150,6 +159,9 @@ struct GeneralSettings: View {
         }
         .padding(DS.Space.xl)
         .frame(width: 520)
+        // Применяем здесь, а не в главном окне: оно может быть закрыто
+        // (режим меню-бара), а Settings в этот момент открыт.
+        .onChange(of: appearance) { AppAppearance.apply(appearance) }
         // Смена писателя — поле показывает ключ выбранного провайдера.
         .onChange(of: notesProvider) {
             apiKey = KeychainStore.load(account: provider.keychainAccount) ?? ""

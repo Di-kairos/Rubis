@@ -24,6 +24,7 @@ struct EscapementApp: App {
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.globalMediaKeys) private var globalMediaKeys = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
+    @AppStorage(SettingsKey.appearance) private var appearance = AppAppearance.system.rawValue
     /// Sparkle (D-005): проверка и установка обновлений из rubis-releases.
     private let updater = SPUStandardUpdaterController(
         startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -42,6 +43,7 @@ struct EscapementApp: App {
             MainWindow()
                 .environment(env)
                 .task {
+                    AppAppearance.apply(appearance)
                     if let start = Self.processStartDate() {
                         let ms = Int(Date().timeIntervalSince(start) * 1000)
                         Log.ui.info("launch to interactive window: \(ms, privacy: .public) ms")
