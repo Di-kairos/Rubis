@@ -8,19 +8,25 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
 head: "3fb5d42"
 tests: 109/109 (swift test, 5 packages)
-last_session: 8
+last_session: 9
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Выпустить 0.8.9 — в main лежат невыпущенными C, D, E, B-local, автообновление и Signal Path Receipt; нужна машина с сертификатом Developer ID"
+  - "Перенос ключа на вторую машину: экспорт .p12 + notarytool store-credentials (инструкция в SESSION_10_KICKOFF)"
+  - "Фаза 6, packs 4-8 в ветке phase/06-subsonic: обложки, download-then-play, LRU-кэш, офлайн"
+  - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
-  - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
-  - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
-  - "Рамка продукта: список фишек написан языком запуска, а SPEC §1.3 говорит «личный плеер, не продукт» — решает Di-kairos"
-  - "Публичная база ЦАПов (вторая половина фишки B) — против SPEC §1.2, решает Di-kairos"
-  - "Mac App Store (D-009) — отложено, старт по команде владельца; первыми два гейта: hog под песочницей и LGPL lame/libsndfile"
-  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
-  - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
-  - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
+  - "Рамка продукта: манифест написан продуктовым языком, SPEC §1.3 говорит «личный плеер»; конкурент Bòcan бесплатен и open source — решает Di-kairos"
+  - "Класть ли audio-verify в DMG — решает Di-kairos (даёт то, чего нет у конкурентов)"
+  - "Криптоподпись отчёта о тракте вместо SHA-256-отпечатка — решает Di-kairos"
+  - "CUE sheets в бэклог или нет — единственный функциональный пробел из разбора конкурентов"
+  - "MANIFESTO.md в репо и русская версия манифеста — решает Di-kairos; в цифрах указать MacBook Pro M5 Max"
+  - "Тёмные скриншоты для README и лого на прозрачном фоне"
+  - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
+  - "Mac App Store (D-009) — отложено, старт по команде владельца"
+  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
+  - "Прогнать замер скролла на 120-Гц панели: RUBIS_SCROLL_BENCH"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
@@ -30,8 +36,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session08.md
-  latest_kickoff: docs/sessions/SESSION_09_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session09.md
+  latest_kickoff: docs/sessions/SESSION_10_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
