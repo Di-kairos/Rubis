@@ -109,7 +109,13 @@ final class AppEnvironment {
         covers = try CoverCache()
         scanner = LibraryScanner(db: db, covers: covers)
         albumInfo = AlbumInfoService(ledger: networkLedger)
-        remote = RemotePlayback(cache: try StreamCache(), ledger: networkLedger)
+        let cacheLimitGB =
+            UserDefaults.standard.object(forKey: SettingsKey.streamCacheSizeGB) as? Int
+            ?? SettingsKey.defaultStreamCacheSizeGB
+        remote = RemotePlayback(
+            cache: try StreamCache(
+                limitBytes: Int64(max(1, cacheLimitGB)) * 1024 * 1024 * 1024),
+            ledger: networkLedger)
 
         Task { [player] in
             for await state in await player.stateStream() {

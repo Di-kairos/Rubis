@@ -33,6 +33,21 @@ actor RemotePlayback {
         return cache.location(remoteId: remoteId, codec: track.codec)
     }
 
+    /// Потолок кэша из настроек (SPEC §6.2). Уменьшил — лишнее уезжает сразу.
+    func setCacheLimit(gigabytes: Int) async {
+        await cache.setLimit(bytes: Int64(max(1, gigabytes)) * 1024 * 1024 * 1024)
+    }
+
+    /// Сколько скачанного лежит на диске — строка в настройках.
+    func cacheSize() async -> Int64 {
+        await cache.size()
+    }
+
+    /// Ручная очистка кэша.
+    func clearCache() async {
+        await cache.clear()
+    }
+
     func register(source: Source) {
         guard source.kind == .subsonic, let client = SubsonicAccount.client(for: source) else {
             return

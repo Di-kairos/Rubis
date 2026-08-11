@@ -15,16 +15,28 @@ public actor StreamCache {
     /// Загрузка одного адреса во временный файл. Подменяется в тестах.
     public typealias Download = @Sendable (URL) async throws -> URL
 
+    /// Сколько файлов кэш держит при любом лимите. Играющий трек и
+    /// префетченный следующий вытеснять нельзя — иначе кэш убивает то самое
+    /// воспроизведение, ради которого он существует.
+    static let protectedCount = 2
+
     private let root: URL
     private let download: Download
+    /// Потолок кэша в байтах (SPEC §6.2, по умолчанию 8 ГБ).
+    private var limit: Int64
     /// Идущие загрузки: второй запрос того же трека ждёт первую, а не качает
     /// файл дважды (Play и префетч легко сходятся на одном треке).
     private var inFlight: [String: Task<URL, Error>] = [:]
 
     /// Корень по умолчанию — `~/Library/Caches/Escapement/stream`.
-    public init(root: URL? = nil, download: @escaping Download = StreamCache.urlSessionDownload)
+    public init(
+        root: URL? = nil,
+        limitBytes: Int64 = 8 * 1024 * 1024 * 1024,
+        download: @escaping Download = StreamCache.urlSessionDownload
+    )
         throws
     {
+        self.limit = limitBytes
         self.root =
             root
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -56,7 +68,10 @@ public actor StreamCache {
     /// ponytail: кэш растёт без предела — лимит и вытеснение идут pack'ом 6.
     public func file(remoteId: String, codec: String, from url: URL) async throws -> URL {
         let destination = location(remoteId: remoteId, codec: codec)
-        if FileManager.default.fileExists(atPath: destination.path) { return destination }
+        if FileManager.default.fileExists(atPath: destination.path) {
+            touch(destination)
+            return destination
+        }
         if let running = inFlight[destination.path] { return try await running.value }
 
         let task = Task<URL, Error> { [download] in
@@ -70,7 +85,70 @@ public actor StreamCache {
         }
         inFlight[destination.path] = task
         defer { inFlight[destination.path] = nil }
-        return try await task.value
+        let file = try await task.value
+        evict()
+        return file
+    }
+
+    // MARK: - Лимит (SPEC §6.2)
+
+    /// Новый потолок применяется сразу: уменьшил лимит — лишнее уехало.
+    public func setLimit(bytes: Int64) {
+        limit = bytes
+        evict()
+    }
+
+    /// Сколько кэш занимает сейчас — для строки в настройках.
+    public func size() -> Int64 {
+        entries().reduce(0) { $0 + $1.size }
+    }
+
+    /// Ручная очистка. Играющий трек уже открыт движком: файл исчезает из
+    /// каталога, но воспроизведение доигрывает по открытому дескриптору.
+    public func clear() {
+        for entry in entries() {
+            try? FileManager.default.removeItem(at: entry.url)
+        }
+    }
+
+    /// Вытеснение по давности использования: свежие остаются, старые уходят,
+    /// пока кэш не влезет в лимит. Два самых свежих не трогаем никогда.
+    private func evict() {
+        let sorted = entries().sorted { $0.used > $1.used }
+        var total: Int64 = 0
+        for (position, entry) in sorted.enumerated() {
+            total += entry.size
+            guard position >= Self.protectedCount, total > limit else { continue }
+            try? FileManager.default.removeItem(at: entry.url)
+            total -= entry.size
+        }
+    }
+
+    private struct Entry {
+        let url: URL
+        let size: Int64
+        let used: Date
+    }
+
+    private func entries() -> [Entry] {
+        let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey]
+        let files =
+            (try? FileManager.default.contentsOfDirectory(
+                at: root, includingPropertiesForKeys: keys)) ?? []
+        return files.compactMap { url in
+            guard let values = try? url.resourceValues(forKeys: Set(keys)),
+                let size = values.fileSize
+            else { return nil }
+            return Entry(
+                url: url, size: Int64(size),
+                used: values.contentModificationDate ?? .distantPast)
+        }
+    }
+
+    /// Отметка «файлом только что пользовались» — по ней и считается давность.
+    private func touch(_ url: URL) {
+        try? FileManager.default.setAttributes(
+            [.modificationDate: Date()], ofItemAtPath: url.path)
     }
 
     /// Загрузка по умолчанию: временный файл системной сессии.

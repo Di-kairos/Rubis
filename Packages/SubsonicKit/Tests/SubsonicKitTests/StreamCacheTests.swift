@@ -14,8 +14,10 @@ struct StreamCacheTests {
         var failure: Error?
     }
 
-    private func makeCache(_ recorder: Recorder, root: URL) throws -> StreamCache {
-        try StreamCache(root: root) { _ in
+    private func makeCache(
+        _ recorder: Recorder, root: URL, limitBytes: Int64 = 8 * 1024 * 1024 * 1024
+    ) throws -> StreamCache {
+        try StreamCache(root: root, limitBytes: limitBytes) { _ in
             recorder.calls += 1
             if let failure = recorder.failure { throw failure }
             let temporary = FileManager.default.temporaryDirectory
@@ -95,5 +97,92 @@ struct StreamCacheTests {
         _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
         #expect(cache.isCached(remoteId: "tr-1", codec: "flac"))
         #expect(recorder.calls == 2)
+    }
+
+    // MARK: - Лимит и вытеснение (pack 6)
+
+    /// Файлы по 100 байт: лимит считается в них, а не в мегабайтах.
+    private func makeCountingCache(root: URL, limitBytes: Int64) throws -> StreamCache {
+        let recorder = Recorder()
+        recorder.bytes = Data(repeating: 0x41, count: 100)
+        return try makeCache(recorder, root: root, limitBytes: limitBytes)
+    }
+
+    @Test func oldestTracksLeaveWhenTheCacheIsFull() async throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCountingCache(root: root, limitBytes: 250)
+
+        for id in ["tr-1", "tr-2", "tr-3", "tr-4"] {
+            _ = try await cache.file(remoteId: id, codec: "flac", from: remoteURL)
+        }
+
+        #expect(cache.isCached(remoteId: "tr-4", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-3", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(await cache.size() == 200)
+    }
+
+    @Test func aTrackPlayedAgainOutlivesOlderNeighbours() async throws {
+        // Давность считается по последнему обращению, а не по загрузке:
+        // любимый альбом не должен вымываться свежескачанным.
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCountingCache(root: root, limitBytes: 250)
+
+        _ = try await cache.file(remoteId: "old-favourite", codec: "flac", from: remoteURL)
+        _ = try await cache.file(remoteId: "tr-2", codec: "flac", from: remoteURL)
+        _ = try await cache.file(remoteId: "tr-3", codec: "flac", from: remoteURL)
+        // Слушаем первый ещё раз — он снова самый свежий.
+        _ = try await cache.file(remoteId: "old-favourite", codec: "flac", from: remoteURL)
+        _ = try await cache.file(remoteId: "tr-4", codec: "flac", from: remoteURL)
+
+        #expect(cache.isCached(remoteId: "old-favourite", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-4", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac"))
+    }
+
+    @Test func twoNewestSurviveEvenAnAbsurdLimit() async throws {
+        // Играющий трек и префетченный следующий вытеснять нельзя — иначе
+        // кэш убивает то воспроизведение, ради которого он и заведён.
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCountingCache(root: root, limitBytes: 1)
+
+        for id in ["tr-1", "tr-2", "tr-3"] {
+            _ = try await cache.file(remoteId: id, codec: "flac", from: remoteURL)
+        }
+
+        #expect(cache.isCached(remoteId: "tr-3", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-2", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+    }
+
+    @Test func loweredLimitTakesEffectAtOnce() async throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCountingCache(root: root, limitBytes: 10_000)
+
+        for id in ["tr-1", "tr-2", "tr-3", "tr-4"] {
+            _ = try await cache.file(remoteId: id, codec: "flac", from: remoteURL)
+        }
+        #expect(await cache.size() == 400)
+
+        await cache.setLimit(bytes: 250)
+        #expect(await cache.size() == 200)
+    }
+
+    @Test func clearEmptiesTheWholeCache() async throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCountingCache(root: root, limitBytes: 10_000)
+
+        _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
+        _ = try await cache.file(remoteId: "tr-2", codec: "flac", from: remoteURL)
+
+        await cache.clear()
+        #expect(await cache.size() == 0)
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
     }
 }

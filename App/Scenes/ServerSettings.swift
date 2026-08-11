@@ -18,6 +18,10 @@ struct ServerSettings: View {
     @State private var existing: Source?
     /// Идёт синхронизация каталога — кнопка занята.
     @State private var syncing = false
+    @AppStorage(SettingsKey.streamCacheSizeGB) private var cacheLimitGB = SettingsKey
+        .defaultStreamCacheSizeGB
+    /// Занятое кэшем место в байтах — считается по файлам, не хранится.
+    @State private var cacheSize: Int64 = 0
 
     /// Результат «Test connection» — явный, как требует acceptance фазы 6.
     private enum Status: Equatable {
@@ -57,10 +61,42 @@ struct ServerSettings: View {
             }
 
             statusLine
+
+            Divider()
+            cacheSection
         }
         .padding(DS.Space.xl)
         .frame(width: 520, alignment: .leading)
         .task { load() }
+        .task { await refreshCacheSize() }
+    }
+
+    /// Кэш скачанного (SPEC §6.2): треки с сервера играют файлами, поэтому
+    /// место на диске тратится по-настоящему — потолок и очистка на виду.
+    private var cacheSection: some View {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
+            DSText("Downloaded tracks", style: .caption, color: DS.Color.textSecondary)
+            HStack(spacing: DS.Space.md) {
+                Stepper(
+                    "Keep up to \(cacheLimitGB) GB",
+                    value: $cacheLimitGB, in: 1...512)
+                Button("Clear now") { clearCache() }
+                    .disabled(cacheSize == 0)
+                Spacer()
+            }
+            DSText(cacheSizeLine, style: .caption, color: DS.Color.textTertiary)
+        }
+        .onChange(of: cacheLimitGB) { _, value in
+            Task { await env.remote.setCacheLimit(gigabytes: value) }
+            Task { await refreshCacheSize() }
+        }
+    }
+
+    private var cacheSizeLine: String {
+        guard cacheSize > 0 else { return "Nothing downloaded yet" }
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return "\(formatter.string(fromByteCount: cacheSize)) on disk"
     }
 
     @ViewBuilder
@@ -158,6 +194,17 @@ struct ServerSettings: View {
             status = .ok("Saved")
         } catch {
             status = .failed(error.localizedDescription)
+        }
+    }
+
+    private func refreshCacheSize() async {
+        cacheSize = await env.remote.cacheSize()
+    }
+
+    private func clearCache() {
+        Task {
+            await env.remote.clearCache()
+            await refreshCacheSize()
         }
     }
 
