@@ -34,8 +34,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session09.md
-  latest_kickoff: docs/sessions/SESSION_10_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session10.md
+  latest_kickoff: docs/sessions/SESSION_11_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -427,6 +427,12 @@ Settings → Server показывает размер и чистит. Pack 7 �
 Манифест выправлен и положен в репо как `MANIFESTO.md` (личные детали, которые
 агент выдумал заглушками, убраны — это территория владельца), README догнал
 фазу 6 и новые фишки, пакетов теперь пять.
+Выпущена **0.9.0** (build 27) — вся фаза 6 разом: нотаризация `Accepted` с
+первой попытки, staple, SHA256 опубликованного DMG сверён скачиванием
+(`f14d5b3b…`, 10 889 631 байт), appcast запушен, сборка установлена у владельца.
+Невыпущенного в `main` не осталось. Тесты 152/152.
+HEAD: `4ad63f3` — chore(release): bump version to 0.9.0 (27).
+Отчёт сессии 10 — `docs/sessions/progress-report-session10.md`.
 
 ## Фазы (из TASKS.md)
 
