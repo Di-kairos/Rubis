@@ -3,15 +3,20 @@ import DesignSystem
 import EscapementCore
 import MusicLibrary
 import PlaybackEngine
+import Sparkle
 import SwiftUI
 
 /// Settings (SPEC §8): Library / Audio / Server / Keys.
 /// ASSUMPTION: вкладка General добавлена сверх списка §8 — присутствие в системе
 /// (меню-бар, mini player поверх окон) не относится ни к одной из четырёх.
 struct SettingsScene: View {
+    /// Sparkle приходит из приложения: обновления настраиваются здесь, а
+    /// живёт контроллер там же, где создан (без синглтонов).
+    let updater: SPUUpdater
+
     var body: some View {
         TabView {
-            GeneralSettings()
+            GeneralSettings(updater: updater)
                 .tabItem { Label("General", systemImage: "gearshape") }
             LibrarySettings()
                 .tabItem { Label("Library", systemImage: "folder") }
@@ -109,6 +114,7 @@ struct KeysSettings: View {
 /// Присутствие приложения в системе (SPEC §7.5): обе опции выключены по
 /// умолчанию — ничего не лезет в меню-бар и поверх чужих окон без спроса.
 struct GeneralSettings: View {
+    let updater: SPUUpdater
     @Environment(AppEnvironment.self) private var env
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
@@ -158,6 +164,7 @@ struct GeneralSettings: View {
                     }
                     .help("Stored in the Keychain, sent only to the selected provider")
             }
+            UpdateSettings(updater: updater)
         }
         .padding(DS.Space.xl)
         .frame(width: 520)

@@ -40,6 +40,11 @@ struct EscapementApp: App {
         updateLedger = delegate
         updater = SPUStandardUpdaterController(
             startingUpdater: true, updaterDelegate: delegate, userDriverDelegate: nil)
+        // Первый запуск: обновления ставятся сами. Дальше решает галка в
+        // Settings → General — трогаем только пока выбора не было.
+        if UserDefaults.standard.object(forKey: "SUAutomaticallyUpdate") == nil {
+            updater.updater.automaticallyDownloadsUpdates = true
+        }
     }
 
     private static func makeEnvironment() -> AppEnvironment {
@@ -57,6 +62,12 @@ struct EscapementApp: App {
                 .environment(env)
                 .task {
                     AppAppearance.apply(appearance)
+                    // Проверка при каждом запуске. Фоновая — молчит, когда
+                    // обновления нет, и показывает окно, когда оно есть:
+                    // «you're up to date» при старте никому не нужно.
+                    if updater.updater.automaticallyChecksForUpdates {
+                        updater.updater.checkForUpdatesInBackground()
+                    }
                     if let start = Self.processStartDate() {
                         let ms = Int(Date().timeIntervalSince(start) * 1000)
                         Log.ui.info("launch to interactive window: \(ms, privacy: .public) ms")
@@ -114,7 +125,7 @@ struct EscapementApp: App {
         }
 
         Settings {
-            SettingsScene()
+            SettingsScene(updater: updater.updater)
                 .environment(env)
         }
 
