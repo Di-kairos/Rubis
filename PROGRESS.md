@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "ed3e8cd"
-tests: 102/102 (swift test, 5 packages)
+head: "3fb5d42"
+tests: 109/109 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -384,7 +384,12 @@ empty» до первого Play. Теперь ключ — счётчик из�
 витрины и полку от высоты окна (раньше на минимальной высоте полка и
 транспорт уезжали за край), Tracks и Playlists переехали в полноширинный
 режим — колонку деталей они не заполняют, там вечно висело «Select an album».
-HEAD: `ed3e8cd` — fix(layout): let the small window keep every section readable.
+**A — Signal Path Receipt (первая половина)**: поповер тракта получил Copy
+receipt и Save… — текстовый отчёт о том, что происходит между файлом и ЦАПом
+(трек, формат источника, устройство и транспорт, частота устройства, эксклюзив,
+микшер, DSD, политика частоты, вердикт словами) с отпечатком SHA-256. Прогон
+audio-verify внутри приложения — отдельный пак, ему нужен loopback.
+HEAD: `3fb5d42` — feat(audio): signal path receipt.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
