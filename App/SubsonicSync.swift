@@ -12,11 +12,13 @@ actor SubsonicSync {
     private let client: SubsonicClient
     private let sourceId: String
     private let db: AppDatabase
+    private let covers: CoverCache
 
-    init(client: SubsonicClient, sourceId: String, db: AppDatabase) {
+    init(client: SubsonicClient, sourceId: String, db: AppDatabase, covers: CoverCache) {
         self.client = client
         self.sourceId = sourceId
         self.db = db
+        self.covers = covers
     }
 
     /// Ход синхронизации — для полоски в сайдбаре, как у скана папок.
@@ -62,6 +64,8 @@ actor SubsonicSync {
                 title: SubsonicCatalog.album(from: remoteAlbum, artistId: artist?.id).title,
                 artistId: artist?.id, albumArtist: remoteAlbum.artist, year: remoteAlbum.year)
 
+            await fetchCover(for: remoteAlbum, album: album, repo: albumRepo)
+
             var fresh: [Track] = []
             for song in detail.songs {
                 seen.insert(song.id)
@@ -94,6 +98,28 @@ actor SubsonicSync {
             }
         }
         return .finished(tracks: inserted, removed: removed)
+    }
+
+    /// Обложка с сервера в общий кэш (фаза 6, pack 4). Серверная картинка
+    /// ложится туда же, куда кладёт свою сканер папок, и опознаётся тем же
+    /// `cover_hash` — экраны о происхождении обложки ничего не знают.
+    ///
+    /// Уже одетый альбом не трогаем: лишний запрос на каждую синхронизацию
+    /// платится сетью, а картинка от этого не меняется. Сбой не роняет синк —
+    /// обложка приедет при следующем заходе.
+    private func fetchCover(
+        for remote: SubsonicAlbum, album: Album, repo: AlbumRepository
+    ) async {
+        guard let albumId = album.id, album.coverHash == nil,
+            let coverArtId = remote.coverArt
+        else { return }
+        do {
+            let data = try await client.coverArt(id: coverArtId)
+            let hash = try covers.store(data)
+            try repo.setCoverHashIfMissing(hash, albumId: albumId)
+        } catch {
+            Log.library.debug("subsonic cover skipped: \(error, privacy: .public)")
+        }
     }
 
     /// `getAlbumList2` отдаёт каталог страницами по 500.

@@ -85,4 +85,34 @@ struct RemoteCatalogTests {
         #expect(first.id != second.id)
         #expect(try repo.all().count == 2)
     }
+
+    // MARK: - Обложки с сервера (pack 4)
+
+    @Test func serverCoverFillsAnAlbumWithoutOne() throws {
+        let db = try AppDatabase.inMemory()
+        let repo = AlbumRepository(db: db)
+        let album = try repo.findOrCreate(
+            title: "Spirit Fiction", artistId: nil, albumArtist: "Ravi Coltrane", year: 2012)
+        let id = try #require(album.id)
+
+        #expect(try repo.setCoverHashIfMissing("beef", albumId: id))
+        #expect(try repo.album(id: id)?.coverHash == "beef")
+    }
+
+    @Test func serverCoverDoesNotOverwriteTheLocalOne() throws {
+        // Локальная обложка лежит в файлах владельца — она главнее серверной.
+        let db = try AppDatabase.inMemory()
+        let repo = AlbumRepository(db: db)
+        let album = try repo.insert(
+            Album(title: "Blue Train", sortTitle: "blue train", coverHash: "local"))
+        let id = try #require(album.id)
+
+        #expect(try repo.setCoverHashIfMissing("remote", albumId: id) == false)
+        #expect(try repo.album(id: id)?.coverHash == "local")
+    }
+
+    @Test func coverForAMissingAlbumChangesNothing() throws {
+        let db = try AppDatabase.inMemory()
+        #expect(try AlbumRepository(db: db).setCoverHashIfMissing("beef", albumId: 999) == false)
+    }
 }

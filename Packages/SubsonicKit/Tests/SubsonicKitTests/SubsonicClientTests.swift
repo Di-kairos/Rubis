@@ -186,4 +186,52 @@ struct SubsonicClientTests {
         #expect(cover.path == "/rest/getCoverArt")
         #expect(try #require(cover.query).contains("size=600"))
     }
+
+    // MARK: - Обложки
+
+    /// Клиент, отвечающий заданными байтами и заголовками (обложка — не JSON).
+    private func makeBinaryClient(
+        body: Data, status: Int = 200, contentType: String?, seen: URLBox = URLBox()
+    ) throws -> SubsonicClient {
+        try SubsonicClient(
+            serverURL: "https://music.example.com", username: "di", password: "hunter2",
+            fetch: { request in
+                seen.url = request.url
+                let http = HTTPURLResponse(
+                    url: request.url ?? URL(string: "https://x")!, statusCode: status,
+                    httpVersion: nil,
+                    headerFields: contentType.map { ["Content-Type": $0] })!
+                return (body, http)
+            },
+            makeSalt: { "cafebabe" })
+    }
+
+    @Test func coverArtReturnsImageBytesWithoutResizing() async throws {
+        let seen = URLBox()
+        let bytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10])
+        let client = try makeBinaryClient(body: bytes, contentType: "image/jpeg", seen: seen)
+
+        #expect(try await client.coverArt(id: "al-1") == bytes)
+        let query = try #require(seen.url?.query)
+        #expect(query.contains("id=al-1"))
+        #expect(!query.contains("size="))
+    }
+
+    /// Отказ приходит конвертом JSON с кодом 200 — по типу содержимого видно,
+    /// что картинки нет, и в кэш не попадает мусор.
+    @Test func coverArtRefusesNonImageAnswers() async throws {
+        let client = try makeBinaryClient(
+            body: Data(Fixtures.pingFailed.utf8), contentType: "application/json")
+        await #expect(throws: SubsonicError.malformedResponse) {
+            _ = try await client.coverArt(id: "al-1")
+        }
+    }
+
+    @Test func coverArtReportsHTTPFailure() async throws {
+        let client = try makeBinaryClient(
+            body: Data(), status: 404, contentType: "image/jpeg")
+        await #expect(throws: SubsonicError.http(404)) {
+            _ = try await client.coverArt(id: "al-1")
+        }
+    }
 }

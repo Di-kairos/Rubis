@@ -437,7 +437,7 @@ final class AppEnvironment {
             Log.library.error("subsonic source without credentials: \(source.id, privacy: .public)")
             return
         }
-        let sync = SubsonicSync(client: client, sourceId: source.id, db: db)
+        let sync = SubsonicSync(client: client, sourceId: source.id, db: db, covers: covers)
         do {
             for try await progress in await sync.run() {
                 switch progress {

@@ -286,6 +286,22 @@ public struct AlbumRepository: Sendable {
         }
     }
 
+    /// Ставит альбому обложку, если её ещё нет. Найденная первой остаётся:
+    /// у сканера папок то же правило (LibraryScanner), и серверная картинка
+    /// не должна затирать вложенную в файлы.
+    /// Возвращает `true`, если запись изменилась.
+    @discardableResult
+    public func setCoverHashIfMissing(_ hash: String, albumId: Int64) throws -> Bool {
+        try db.writer.write { database in
+            guard var album = try Album.fetchOne(database, key: albumId),
+                album.coverHash == nil
+            else { return false }
+            album.coverHash = hash
+            try album.update(database)
+            return true
+        }
+    }
+
     public func albums(byArtist artistId: Int64) throws -> [Album] {
         try db.reader.read {
             try Album

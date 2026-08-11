@@ -92,6 +92,26 @@ public struct SubsonicClient: Sendable {
         return url(endpoint: "getCoverArt", query: query)
     }
 
+    /// Байты обложки (`getCoverArt`). Без `size` сервер отдаёт оригинал —
+    /// ровно то, что кладёт в кэш сканер локальных папок (SPEC §5.4).
+    ///
+    /// Ответ не разбирается как JSON: при ошибке сервер всё равно шлёт конверт,
+    /// поэтому картинку от отказа отличаем по типу содержимого.
+    public func coverArt(id: String, size: Int? = nil) async throws -> Data {
+        guard let url = coverArtURL(id: id, size: size) else {
+            throw SubsonicError.invalidServerURL
+        }
+        let (data, http) = try await fetch(URLRequest(url: url))
+        guard (200..<300).contains(http.statusCode) else {
+            throw SubsonicError.http(http.statusCode)
+        }
+        let type = http.value(forHTTPHeaderField: "Content-Type") ?? ""
+        guard type.hasPrefix("image/") else {
+            throw SubsonicError.malformedResponse
+        }
+        return data
+    }
+
     /// Поток без транскодирования. `format=raw` и `maxBitRate=0` обязательны:
     /// любое перекодирование на сервере убивает bit-perfect (SPEC §6.1).
     public func streamURL(id: String) -> URL? {
