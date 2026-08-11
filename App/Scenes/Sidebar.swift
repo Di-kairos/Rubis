@@ -51,6 +51,18 @@ struct Sidebar: View {
                 }
             }
 
+            if let status = env.serverStatus {
+                // Сервер молчит — одна строка, не алерт (SPEC §6.3).
+                HStack(spacing: DS.Space.sm) {
+                    Image(systemName: "bolt.horizontal.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(DS.Color.warning)
+                        .accessibilityHidden(true)
+                    DSText(status, style: .caption, color: DS.Color.textTertiary)
+                }
+                .padding(.horizontal, DS.Space.md)
+            }
+
             if case .reading(let done, let total) = env.scanProgress {
                 // Ненавязчивая полоска прогресса скана (SPEC §5.2)
                 VStack(alignment: .leading, spacing: DS.Space.xs) {

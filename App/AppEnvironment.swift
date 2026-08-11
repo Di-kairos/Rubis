@@ -3,6 +3,7 @@ import Foundation
 import MusicLibrary
 import Observation
 import PlaybackEngine
+import SubsonicKit
 import SwiftUI
 
 /// Composition root (SPEC §3.1): the only place where packages meet.
@@ -22,6 +23,8 @@ final class AppEnvironment {
     let listeningHistory = ListeningHistory(fileURL: AppEnvironment.historyURL)
     /// Аннотации альбомов (D-008): Wikipedia → Claude, кеш на диске.
     let albumInfo: AlbumInfoService
+    /// Треки с сервера: скачивание в кэш и префетч (SPEC §6.2).
+    let remote: RemotePlayback
 
     static var ledgerURL: URL {
         supportDirectory.appendingPathComponent("network-ledger.json")
@@ -54,6 +57,12 @@ final class AppEnvironment {
     /// состояния воспроизведения — тихое восстановление при запуске оставляет
     /// `playbackState` в `idle`, и подписка на трек ничего бы не заметила.
     private(set) var queueRevision = 0
+    /// Трек, который уже перезапускали после сорванной загрузки.
+    private var lastRemoteRetry: Int64?
+    /// Серверы, которые не отвечают (SPEC §6.3).
+    private(set) var offlineServers: Set<String> = []
+    /// Строка о молчащем сервере для сайдбара — одна строка, не алерт.
+    private(set) var serverStatus: String?
 
     // MARK: - Search (SPEC §7.2)
 
@@ -104,13 +113,26 @@ final class AppEnvironment {
         covers = try CoverCache()
         scanner = LibraryScanner(db: db, covers: covers)
         albumInfo = AlbumInfoService(ledger: networkLedger)
+        let cacheLimitGB =
+            UserDefaults.standard.object(forKey: SettingsKey.streamCacheSizeGB) as? Int
+            ?? SettingsKey.defaultStreamCacheSizeGB
+        remote = RemotePlayback(
+            cache: try StreamCache(
+                limitBytes: Int64(max(1, cacheLimitGB)) * 1024 * 1024 * 1024),
+            ledger: networkLedger)
 
         Task { [player] in
             for await state in await player.stateStream() {
                 self.playbackState = state
-                if case .playing = state { await self.saveQueueSnapshot() }
+                if case .playing = state {
+                    self.lastRemoteRetry = nil
+                    await self.saveQueueSnapshot()
+                    await self.prefetchNext()
+                }
+                if case .failed(let track, _) = state { await self.retryRemote(track) }
             }
         }
+        Task { await registerServers() }
         globalMediaKeys = GlobalMediaKeys(env: self)
         // Настройки Audio живут в UserDefaults, но до этого применялись только
         // при открытии Settings — плеер стартовал с дефолтным конфигом и терял
@@ -153,6 +175,8 @@ final class AppEnvironment {
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
         Task {
+            guard items.indices.contains(start) else { return }
+            await fetchIfRemote(items[start].track)
             await player.play(items: items, startAt: start)
             queueRevision += 1
         }
@@ -189,6 +213,7 @@ final class AppEnvironment {
         Task {
             let items = await player.queuedItems()
             guard items.indices.contains(index) else { return }
+            await fetchIfRemote(items[index].track)
             await player.play(items: items, startAt: index)
             queueRevision += 1
         }
@@ -382,13 +407,84 @@ final class AppEnvironment {
             })
         return tracks.compactMap { track in
             // Пропавшие файлы не попадают в очередь (SPEC §9) — играем остальное.
-            guard !track.unavailable,
-                let root = roots[track.sourceId], let relative = track.relativePath
+            guard !track.unavailable else { return nil }
+            // Серверный трек встаёт в очередь адресом в кэше: файла там может
+            // ещё не быть — его дотащит `fetch` перед стартом или префетч.
+            if RemotePlayback.isRemote(track) {
+                return remote.location(for: track).map { PlaybackItem(track: track, url: $0) }
+            }
+            guard let root = roots[track.sourceId], let relative = track.relativePath
             else {
                 return nil
             }
             return PlaybackItem(track: track, url: root.appendingPathComponent(relative))
         }
+    }
+
+    // MARK: - Треки с сервера (SPEC §6.2)
+
+    /// Клиенты серверов собираются один раз за запуск — иначе связка ключей
+    /// опрашивалась бы на каждый трек.
+    private func registerServers() async {
+        guard let sources = try? sourceRepo.all() else { return }
+        for source in sources where source.kind == .subsonic {
+            await remote.register(source: source)
+            await checkServer(source)
+        }
+    }
+
+    /// Сервер молчит — его треки приглушаются и выпадают из очереди и shuffle
+    /// (SPEC §6.3). Тот же флаг, что у пропавших файлов, поэтому отдельного
+    /// оформления не нужно; в сайдбаре — строка, не алерт.
+    func checkServer(_ source: Source) async {
+        let reachable = await remote.isReachable(sourceId: source.id)
+        let changed = (try? trackRepo.setUnavailable(!reachable, inSource: source.id)) ?? 0
+        offlineServers =
+            reachable
+            ? offlineServers.subtracting([source.id])
+            : offlineServers.union([source.id])
+        serverStatus = offlineServers.isEmpty ? nil : "\(source.displayName) is offline"
+        // Списки читают библиотеку наблюдением, а очередь — нет: она собрана
+        // из старых строк и всё ещё считает молчащие треки играбельными.
+        if changed > 0 { queueRevision += 1 }
+    }
+
+    /// Файл трека до старта: локальный уже на месте, серверный качается.
+    /// На время загрузки экран показывает `.loading` — так же, как движок
+    /// показывает подготовку устройства.
+    private func fetchIfRemote(_ track: Track) async {
+        guard RemotePlayback.isRemote(track) else { return }
+        playbackState = .loading(track)
+        await remote.fetch(track)
+    }
+
+    /// Следующий трек очереди качается, пока играет текущий. Когда файл лёг,
+    /// плеер пробует склеить стык заново: в момент старта текущего трека
+    /// склеивать было нечего.
+    private func prefetchNext() async {
+        let items = await player.queuedItems()
+        let next = await player.currentIndex() + 1
+        guard items.indices.contains(next), RemotePlayback.isRemote(items[next].track) else {
+            return
+        }
+        guard await remote.fetch(items[next].track) != nil else { return }
+        await player.rearmGapless()
+    }
+
+    /// Сорванный серверный трек: файл не успел приехать к моменту, когда
+    /// движок до него дошёл. Качаем и играем ещё раз — но ровно один раз,
+    /// иначе мёртвый трек крутил бы петлю.
+    private func retryRemote(_ track: Track) async {
+        guard RemotePlayback.isRemote(track), track.id != lastRemoteRetry else { return }
+        lastRemoteRetry = track.id
+        guard await remote.fetch(track) != nil else {
+            // Не скачалось со второго раза — скорее всего сервер молчит.
+            if let source = try? sourceRepo.all().first(where: { $0.id == track.sourceId }) {
+                await checkServer(source)
+            }
+            return
+        }
+        await player.playCurrent()
     }
 
     // MARK: - Playlists
@@ -416,13 +512,47 @@ final class AppEnvironment {
         }
     }
 
+    /// ⌘R обновляет всё, что подключено: папки сканируются, серверы
+    /// синхронизируются — источник для владельца один, «моя музыка».
     func rescanAll() {
         Task {
             guard let sources = try? sourceRepo.all() else { return }
-            for source in sources where source.kind == .local && source.enabled {
-                try? await rescan(source: source)
+            for source in sources where source.enabled {
+                switch source.kind {
+                case .local: try? await rescan(source: source)
+                case .subsonic: await sync(server: source)
+                }
             }
         }
+    }
+
+    /// Синхронизация одного сервера (фаза 6, pack 3). Ошибка сети не роняет
+    /// остальные источники — она остаётся в логе, а полоска гаснет.
+    func sync(server source: Source) async {
+        guard let client = SubsonicAccount.client(for: source) else {
+            Log.library.error("subsonic source without credentials: \(source.id, privacy: .public)")
+            return
+        }
+        // Свежесохранённый сервер играет сразу, без перезапуска приложения.
+        await remote.register(source: source)
+        let sync = SubsonicSync(client: client, sourceId: source.id, db: db, covers: covers)
+        do {
+            for try await progress in await sync.run() {
+                switch progress {
+                case .albums(let done, let total):
+                    scanProgress = .reading(done: done, total: total)
+                case .finished(let tracks, let removed):
+                    Log.library.info(
+                        "subsonic sync: +\(tracks, privacy: .public) −\(removed, privacy: .public)")
+                }
+            }
+        } catch {
+            Log.library.error("subsonic sync failed: \(error, privacy: .public)")
+        }
+        scanProgress = nil
+        // Синхронизация — самый честный ответ на вопрос «сервер жив?»:
+        // после неё состояние источника переставляется по факту.
+        await checkServer(source)
     }
 
     private func rescan(source: Source) async throws {

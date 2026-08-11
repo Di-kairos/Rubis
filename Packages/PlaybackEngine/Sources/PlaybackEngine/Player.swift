@@ -140,6 +140,14 @@ public actor Player {
 
     public func currentIndex() -> Int { index }
 
+    /// Повторная попытка склеить с следующим треком. Нужна серверным трекам
+    /// (SPEC §6.2): в момент старта текущего файл следующего ещё качается,
+    /// поэтому склейка не собирается — приложение зовёт это, когда файл лёг.
+    public func rearmGapless() {
+        guard case .playing = state else { return }
+        armGapless()
+    }
+
     /// Треки сразу после текущего — не трогая остальную очередь.
     public func playNext(items: [PlaybackItem]) {
         guard !items.isEmpty else { return }

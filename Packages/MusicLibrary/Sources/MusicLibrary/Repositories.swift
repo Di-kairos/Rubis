@@ -62,6 +62,24 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Серверные идентификаторы источника → id строк. Синхронизация каталога
+    /// (фаза 6) узнаёт свои треки только по `remote_id`: путей у сервера нет.
+    public func remoteIds(inSource sourceId: String) throws -> [String: Int64] {
+        try db.reader.read { database in
+            let rows = try Row.fetchAll(
+                database,
+                sql:
+                    "SELECT id, remote_id FROM track WHERE source_id = ? AND remote_id IS NOT NULL",
+                arguments: [sourceId])
+            return Dictionary(
+                rows.compactMap { row -> (String, Int64)? in
+                    guard let remote: String = row["remote_id"], let id: Int64 = row["id"]
+                    else { return nil }
+                    return (remote, id)
+                }, uniquingKeysWith: { first, _ in first })
+        }
+    }
+
     public func recentlyAdded(limit: Int = 100) throws -> [Track] {
         try db.reader.read {
             try Track.order(Column("added_at").desc).limit(limit).fetchAll($0)
@@ -100,6 +118,24 @@ public struct TrackRepository: Sendable {
 
     public func count() throws -> Int {
         try db.reader.read { try Track.fetchCount($0) }
+    }
+
+    /// Разом помечает весь источник недоступным или снова доступным
+    /// (сервер не отвечает — SPEC §6.3). Тот же флаг, что у пропавших файлов:
+    /// приглушение в списках, значок и выпадение из очереди уже написаны
+    /// под него. Возвращает число изменённых строк — нулевое означает,
+    /// что состояние и так было таким, и экраны трогать незачем.
+    @discardableResult
+    public func setUnavailable(_ flag: Bool, inSource sourceId: String) throws -> Int {
+        try db.writer.write { database in
+            try database.execute(
+                sql: """
+                    UPDATE track SET unavailable = ?
+                    WHERE source_id = ? AND unavailable IS NOT ?
+                    """,
+                arguments: [flag, sourceId, flag])
+            return database.changesCount
+        }
     }
 
     /// Сколько треков помечено недоступными (файл не найден при скане).
@@ -241,6 +277,46 @@ public struct AlbumRepository: Sendable {
                 .order(Column("sort_title"))
                 .limit(limit)
                 .fetchAll($0)
+        }
+    }
+
+    /// Альбом по тому же ключу, каким его находит сканер: нормализованное
+    /// название плюс артист. Серверный каталог ложится в те же строки, что и
+    /// локальный, — у альбома нет своего `remote_id` в схеме, и не нужно.
+    public func findOrCreate(
+        title: String, artistId: Int64?, albumArtist: String?, year: Int?
+    ) throws -> Album {
+        let sortTitle = Normalize.sortName(for: title)
+        return try db.writer.write { database in
+            if let existing =
+                try Album
+                .filter(Column("sort_title") == sortTitle)
+                .filter(Column("artist_id") == artistId)
+                .fetchOne(database)
+            {
+                return existing
+            }
+            var album = Album(
+                title: title, sortTitle: sortTitle, artistId: artistId,
+                albumArtist: albumArtist, year: year)
+            try album.insert(database)
+            return album
+        }
+    }
+
+    /// Ставит альбому обложку, если её ещё нет. Найденная первой остаётся:
+    /// у сканера папок то же правило (LibraryScanner), и серверная картинка
+    /// не должна затирать вложенную в файлы.
+    /// Возвращает `true`, если запись изменилась.
+    @discardableResult
+    public func setCoverHashIfMissing(_ hash: String, albumId: Int64) throws -> Bool {
+        try db.writer.write { database in
+            guard var album = try Album.fetchOne(database, key: albumId),
+                album.coverHash == nil
+            else { return false }
+            album.coverHash = hash
+            try album.update(database)
+            return true
         }
     }
 

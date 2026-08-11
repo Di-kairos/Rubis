@@ -8,6 +8,10 @@ enum SettingsKey {
     static let miniPlayerOnTop = "ui.miniPlayerOnTop"
     static let globalMediaKeys = "keys.globalMediaKeys"
     static let appearance = "ui.appearance"
+    /// Потолок кэша скачанных с сервера треков, в гигабайтах (SPEC §6.2).
+    static let streamCacheSizeGB = "server.streamCacheSizeGB"
+
+    static let defaultStreamCacheSizeGB = 8
 }
 
 /// Оформление плеера. По умолчанию следует macOS; выбор Light/Dark прибивает
