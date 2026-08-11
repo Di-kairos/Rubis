@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d4bcc72"
+head: "1449207"
 tests: 102/102 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
@@ -376,7 +376,10 @@ Session 9 (2026-08-11): **фишка E — приватная история п�
 Now Playing перестал превращаться в кашу в низком окне: полоса заметок берёт
 долю высоты (до прежних 200 pt), обложка сжимается с 280 до 120 pt вместе с
 колонкой, а заголовок и артист на малом размере переходят на меньший кегль.
-HEAD: `d4bcc72` — fix(now-playing): scale the hero with the window.
+Тем же заходом вылечен экран после тихого восстановления очереди: он ключевался
+на id играющего трека, а тот при `idle` равен nil — раздел показывал «Queue is
+empty» до первого Play. Теперь ключ — счётчик изменений очереди.
+HEAD: `1449207` — fix(now-playing): reload after a silent queue restore.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
