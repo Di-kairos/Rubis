@@ -20,6 +20,8 @@ struct NowPlayingQueue: View {
     /// Пока писатель сочиняет (10–40 с на новый альбом), полоса не должна
     /// выглядеть пустой — иначе читается как «зависло».
     @State private var notesLoading = false
+    /// Заметки включены, но их нет — строкой, почему именно.
+    @State private var notesMissing: String?
     /// Свои указатели прокрутки вместо системных скроллбаров — тот же язык,
     /// что у полки альбомов (золотой ползунок в рубиновой оправе).
     @State private var queueScroll = ScrollTrack()
@@ -41,13 +43,16 @@ struct NowPlayingQueue: View {
                 // в ноль, стоило появиться заметке. GeometryReader убирает
                 // переговоры — верхнему ряду достаётся всё, кроме полосы заметок.
                 GeometryReader { geo in
-                    let band = notes == nil ? 0 : Self.notesHeight + DS.Space.lg
+                    let notesHeight = notesHeight(in: geo.size.height)
+                    let gap = notesHeight > 0 ? DS.Space.lg : 0
+                    let rowHeight = max(Self.rowMinHeight, geo.size.height - notesHeight - gap)
+                    let cover = Self.coverSize(rowHeight: rowHeight)
                     VStack(alignment: .leading, spacing: DS.Space.lg) {
                         // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
                         Group {
                             if geo.size.width >= 640 {
                                 HStack(alignment: .top, spacing: DS.Space.xxl) {
-                                    hero
+                                    hero(cover: cover)
                                     HStack(spacing: DS.Space.sm) {
                                         queueList
                                         verticalIndicator(queueScroll, position: $queuePosition)
@@ -55,7 +60,7 @@ struct NowPlayingQueue: View {
                                 }
                             } else {
                                 VStack(alignment: .leading, spacing: DS.Space.xl) {
-                                    hero
+                                    hero(cover: cover)
                                     HStack(spacing: DS.Space.sm) {
                                         queueList
                                         verticalIndicator(queueScroll, position: $queuePosition)
@@ -63,9 +68,9 @@ struct NowPlayingQueue: View {
                                 }
                             }
                         }
-                        .frame(height: max(120, geo.size.height - band))
+                        .frame(height: rowHeight)
                         // Низ: liner notes широкой полосой под обеими колонками.
-                        notesSection
+                        notesSection(height: notesHeight)
                     }
                 }
                 .padding(DS.Space.xl)
@@ -75,25 +80,29 @@ struct NowPlayingQueue: View {
         .keyboardNavigable(count: tracks.count, index: $focused) { index in
             env.playQueueItem(at: index)
         }
-        // Перезагрузка на смене трека; enqueue без смены трека догонит
-        // при следующем заходе в раздел.
-        .task(id: env.currentTrack?.id) { await reload() }
+        // Перезагрузка на смене трека и на тихом восстановлении очереди: restore
+        // оставляет playbackState idle, поэтому currentTrack сам не меняется.
+        .task(id: reloadID) { await reload() }
     }
 
     /// Играющий альбом крупно — как на экране альбома (DESIGN §5.4),
-    /// только про «сейчас звучит».
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: DS.Space.lg) {
-            DSCoverImage(image: coverImage, size: 280, radius: DS.Radius.card)
+    /// только про «сейчас звучит». Обложка и шрифты идут за высотой окна:
+    /// в низком окне блок ужимается целиком, а не вылезает на заметки.
+    private func hero(cover: CGFloat) -> some View {
+        // Ниже этого размера крупный кегль перестаёт быть уместным —
+        // заголовок звучит громче обложки, которая уже с ноготь.
+        let compact = cover < 200
+        return VStack(alignment: .leading, spacing: compact ? DS.Space.sm : DS.Space.lg) {
+            DSCoverImage(image: coverImage, size: cover, radius: DS.Radius.card)
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                if let track = env.currentTrack {
-                    DSText(track.title, style: .display)
+                if let track = displayTrack {
+                    DSText(track.title, style: compact ? .title : .display, lines: compact ? 1 : 2)
                 }
                 if let album {
                     Text(album.albumArtist ?? "")
-                        .font(DS.Font.displayArtist)
+                        .font(compact ? DS.Font.headline : DS.Font.displayArtist)
                         .foregroundStyle(DS.Color.accent)
-                        .lineLimit(2)
+                        .lineLimit(compact ? 1 : 2)
                     DSText(album.title, style: .body, color: DS.Color.textSecondary)
                 }
                 // Сводка очереди между линейками — язык liner notes.
@@ -106,26 +115,23 @@ struct NowPlayingQueue: View {
                 .padding(.top, DS.Space.xs)
             }
         }
-        .frame(width: 280, alignment: .leading)
+        .frame(width: cover, alignment: .leading)
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
     /// Liner notes широкой полосой внизу, под обложкой и очередью сразу —
-    /// как текст на обороте конверта (вердикт владельца). Высота полосы
-    /// ЖЁСТКАЯ: с «потолком» (maxHeight) два гибких скролла в одном VStack
-    /// делили высоту как попало и очередь схлопывалась в ноль, стоило
+    /// как текст на обороте конверта (вердикт владельца). Высота приходит
+    /// сверху числом: с «потолком» (maxHeight) два гибких скролла в одном
+    /// VStack делили высоту как попало и очередь схлопывалась в ноль, стоило
     /// заметке появиться (та же болезнь, что в 0.6.1).
     @ViewBuilder
-    private var notesSection: some View {
+    private func notesSection(height: CGFloat) -> some View {
         if notes == nil, notesLoading {
-            VStack(alignment: .leading, spacing: DS.Space.sm) {
-                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                DSText(
-                    "Writing liner notes…", style: .label, color: DS.Color.textTertiary
-                )
-                .padding(.top, DS.Space.sm)
-            }
-            .frame(height: Self.notesHeight, alignment: .top)
+            notice("Writing liner notes…")
+        } else if notes == nil, let notesMissing {
+            // Включённые заметки, которых нет, раньше оставляли пустое место
+            // без единого слова — и это читалось как поломка.
+            notice(notesMissing)
         } else if let notes {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
@@ -150,12 +156,44 @@ struct NowPlayingQueue: View {
                     verticalIndicator(notesScroll, position: $notesPosition)
                 }
             }
-            .frame(height: Self.notesHeight)
+            .frame(height: height)
         }
     }
 
-    /// Высота полосы заметок — та же константа в расчёте верхнего ряда.
-    private static let notesHeight: CGFloat = 200
+    /// Одна строка под чертой: «пишем…» или почему заметки нет.
+    private func notice(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
+            Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+            DSText(text, style: .label, color: DS.Color.textTertiary)
+                .padding(.top, DS.Space.sm)
+        }
+        .frame(height: Self.noticeHeight, alignment: .top)
+    }
+
+    /// Потолок полосы заметок в высоком окне.
+    private static let notesMaxHeight: CGFloat = 200
+    /// Полоса под одну строку: раньше «пишем…» занимало все 200 pt, а верхний
+    /// ряд об этом не знал — и очередь уезжала под черту.
+    private static let noticeHeight: CGFloat = 44
+    /// Ниже этого верхний ряд не ужимается — дальше сжимать нечего.
+    private static let rowMinHeight: CGFloat = 200
+    /// Что резервируем под заголовок, артиста, альбом и сводку под обложкой.
+    private static let heroTextHeight: CGFloat = 170
+
+    /// Заметка забирает долю высоты, а не жёсткие 200 pt: в низком окне
+    /// полоса ужимается вместе со всем остальным, а не выдавливает hero.
+    private func notesHeight(in available: CGFloat) -> CGFloat {
+        if notes != nil { return min(Self.notesMaxHeight, max(90, available * 0.3)) }
+        if notesLoading || notesMissing != nil { return Self.noticeHeight }
+        return 0
+    }
+
+    /// Обложка идёт за высотой ряда: 280 pt в просторном окне, до 120 —
+    /// в тесном. Ширина колонки hero равна обложке, поэтому вместе с ней
+    /// сужается и текстовый блок.
+    static func coverSize(rowHeight: CGFloat) -> CGFloat {
+        min(280, max(120, rowHeight - heroTextHeight))
+    }
 
     /// Подпись под заметкой: писателя не называем (решение владельца) —
     /// liner notes идут от имени плеера. Wikipedia остаётся названной:
@@ -169,6 +207,18 @@ struct NowPlayingQueue: View {
             let url = env.covers.url(hash: hash, size: 256)
         else { return nil }
         return NSImage(contentsOf: url)
+    }
+
+    private var reloadID: String {
+        "\(env.queueRevision):\(env.currentTrack?.id ?? -1)"
+    }
+
+    private var displayTrack: Track? {
+        env.currentTrack ?? currentQueueTrack
+    }
+
+    private var currentQueueTrack: Track? {
+        tracks.indices.contains(currentIndex) ? tracks[currentIndex] : nil
     }
 
     private var summary: String {
@@ -238,16 +288,29 @@ struct NowPlayingQueue: View {
         let snapshot = await env.queueSnapshot()
         tracks = snapshot.tracks
         currentIndex = snapshot.index
-        if let albumId = env.currentTrack?.albumId {
+        let current =
+            snapshot.tracks.indices.contains(snapshot.index)
+            ? snapshot.tracks[snapshot.index]
+            : env.currentTrack
+        if let albumId = current?.albumId {
             album = try? env.albumRepo.album(id: albumId)
         } else {
             album = nil
         }
         notes = nil
+        notesMissing = nil
         if albumNotes, let album {
             notesLoading = true
             notes = await env.albumInfo.info(for: album)
             notesLoading = false
+            if notes == nil {
+                let writer = AlbumInfoService.selectedProvider.displayName
+                notesMissing =
+                    await env.albumInfo.writerKeyIsSet()
+                    ? "No liner notes: nothing in Wikipedia, and \(writer) had nothing to add"
+                    : "No liner notes: nothing in Wikipedia, and no \(writer) key is set "
+                        + "— Settings → Album notes"
+            }
         }
     }
 }

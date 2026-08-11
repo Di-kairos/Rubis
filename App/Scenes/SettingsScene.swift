@@ -3,15 +3,20 @@ import DesignSystem
 import EscapementCore
 import MusicLibrary
 import PlaybackEngine
+import Sparkle
 import SwiftUI
 
 /// Settings (SPEC §8): Library / Audio / Server / Keys.
 /// ASSUMPTION: вкладка General добавлена сверх списка §8 — присутствие в системе
 /// (меню-бар, mini player поверх окон) не относится ни к одной из четырёх.
 struct SettingsScene: View {
+    /// Sparkle приходит из приложения: обновления настраиваются здесь, а
+    /// живёт контроллер там же, где создан (без синглтонов).
+    let updater: SPUUpdater
+
     var body: some View {
         TabView {
-            GeneralSettings()
+            GeneralSettings(updater: updater)
                 .tabItem { Label("General", systemImage: "gearshape") }
             LibrarySettings()
                 .tabItem { Label("Library", systemImage: "folder") }
@@ -19,6 +24,8 @@ struct SettingsScene: View {
                 .tabItem { Label("Audio", systemImage: "hifispeaker") }
             ServerSettings()
                 .tabItem { Label("Server", systemImage: "server.rack") }
+            NetworkSettings()
+                .tabItem { Label("Network", systemImage: "antenna.radiowaves.left.and.right") }
             KeysSettings()
                 .tabItem { Label("Keys", systemImage: "keyboard") }
         }
@@ -106,6 +113,7 @@ struct KeysSettings: View {
 /// Присутствие приложения в системе (SPEC §7.5): обе опции выключены по
 /// умолчанию — ничего не лезет в меню-бар и поверх чужих окон без спроса.
 struct GeneralSettings: View {
+    let updater: SPUUpdater
     @Environment(AppEnvironment.self) private var env
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
@@ -155,6 +163,7 @@ struct GeneralSettings: View {
                     }
                     .help("Stored in the Keychain, sent only to the selected provider")
             }
+            UpdateSettings(updater: updater)
         }
         .padding(DS.Space.xl)
         .frame(width: 520)
@@ -252,10 +261,17 @@ struct AudioSettings: View {
     /// Пустая строка — следовать системному default-выходу.
     @AppStorage("preferredDeviceUID") private var preferredDeviceUID = ""
     @State private var devices: [AudioDeviceController.DeviceInfo] = []
+    /// Устройство, о котором показываем досье: выбранное или системное.
+    @State private var dossierDeviceID: UInt32?
 
     /// Свой экземпляр только для перечисления — HAL-запросы дёшевы,
     /// трогать актор плеера ради списка не нужно.
     private let enumerator = AudioDeviceController()
+
+    private var isPlaying: Bool {
+        if case .playing = env.playbackState { return true }
+        return false
+    }
 
     var body: some View {
         Form {
@@ -275,8 +291,11 @@ struct AudioSettings: View {
             Picker("If exact rate unavailable", selection: $rateFallback) {
                 Text("Nearest family multiple").tag("nearestFamilyMultiple")
                 Text("Allow cross-family resample").tag("allowCrossFamily")
-                Text("Refuse to play").tag("refuse")
+                Text("Bit-perfect or silence — refuse to play").tag("refuse")
             }
+            .help(
+                "The last option never resamples: a track the device cannot play exactly "
+                    + "stays silent and says so, instead of playing altered.")
             Picker("DSD mode", selection: $dsdMode) {
                 Text("DoP if available").tag("dopIfAvailable")
                 Text("Always convert to PCM").tag("alwaysConvertToPCM")
@@ -286,6 +305,9 @@ struct AudioSettings: View {
             }
             .disabled(true)
             .help("ReplayGain is stored but never applied in v1 — bit-perfect first (SPEC §5.3)")
+            Section("What this device can do") {
+                DeviceDossierCard(deviceID: dossierDeviceID, playing: isPlaying)
+            }
         }
         .padding(DS.Space.xl)
         .frame(width: 520)
@@ -293,10 +315,23 @@ struct AudioSettings: View {
         .onChange(of: rateChangeDelayMs) { pushConfig() }
         .onChange(of: rateFallback) { pushConfig() }
         .onChange(of: dsdMode) { pushConfig() }
-        .onChange(of: preferredDeviceUID) { pushConfig() }
+        .onChange(of: preferredDeviceUID) {
+            pushConfig()
+            Task { await resolveDossierDevice() }
+        }
         .task {
             devices = (try? await enumerator.outputDevices()) ?? []
+            await resolveDossierDevice()
             pushConfig()
+        }
+    }
+
+    /// Пустой UID — досье на системный выход: именно в него и будет играть.
+    private func resolveDossierDevice() async {
+        if preferredDeviceUID.isEmpty {
+            dossierDeviceID = try? await enumerator.defaultOutputDevice()?.id
+        } else {
+            dossierDeviceID = devices.first { $0.uid == preferredDeviceUID }?.id
         }
     }
 

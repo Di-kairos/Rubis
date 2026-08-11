@@ -328,7 +328,7 @@ public actor Player {
         }
 
         let available = try await devices.availableSampleRates(deviceID: device.id)
-        let plan = try ratePlan(for: track, available: available)
+        let plan = try ratePlan(for: track, available: available, deviceName: device.name)
         currentUsesDoP = plan.usesDoP
 
         let currentRate = try await devices.nominalSampleRate(deviceID: device.id)
@@ -357,7 +357,9 @@ public actor Player {
     }
 
     /// Device rate plan for a track (SPEC §4.2.3 PCM, §4.2.6 DSD).
-    private func ratePlan(for track: Track, available: [Double]) throws -> RatePlan {
+    private func ratePlan(for track: Track, available: [Double], deviceName: String) throws
+        -> RatePlan
+    {
         let isDSD = track.codec == "dsf" || track.codec == "dff"
         if isDSD {
             // DoP carries DSD in PCM frames at dsdRate/16 (DSD64 → 176.4k).
@@ -372,7 +374,7 @@ public actor Player {
             case .exact(let rate), .familyMultiple(let rate), .crossFamily(let rate):
                 return RatePlan(target: rate, exact: false, isDSD: true, usesDoP: false)
             case .refuse:
-                throw PlaybackError.deviceUnavailable
+                throw PlaybackError.rateRefused(source: 176_400, device: deviceName)
             }
         }
         switch SampleRatePolicy.choose(
@@ -383,7 +385,8 @@ public actor Player {
         case .familyMultiple(let rate), .crossFamily(let rate):
             return RatePlan(target: rate, exact: false, isDSD: false, usesDoP: false)
         case .refuse:
-            throw PlaybackError.deviceUnavailable
+            throw PlaybackError.rateRefused(
+                source: Double(track.sampleRate), device: deviceName)
         }
     }
 

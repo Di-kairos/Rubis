@@ -18,7 +18,7 @@ struct EscapementApp: App {
             timeIntervalSince1970: Double(tv.tv_sec) + Double(tv.tv_usec) / 1_000_000)
     }
 
-    @State private var env = Self.makeEnvironment()
+    @State private var env: AppEnvironment
     @State private var media: MediaIntegration?
     @State private var menuBar: MenuBarPresence?
     @AppStorage(SettingsKey.menuBarIcon) private var menuBarIcon = false
@@ -26,8 +26,26 @@ struct EscapementApp: App {
     @AppStorage(SettingsKey.miniPlayerOnTop) private var miniPlayerOnTop = false
     @AppStorage(SettingsKey.appearance) private var appearance = AppAppearance.system.rawValue
     /// Sparkle (D-005): проверка и установка обновлений из rubis-releases.
-    private let updater = SPUStandardUpdaterController(
-        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    /// Делегат нужен ради журнала соединений — проверка обновления такой же
+    /// исходящий запрос, как и всё остальное.
+    private let updateLedger: UpdateLedgerDelegate
+    private let updater: SPUStandardUpdaterController
+
+    init() {
+        // Композиция руками, без синглтонов: журнал рождается вместе со средой
+        // и оттуда же попадает в делегат Sparkle.
+        let environment = Self.makeEnvironment()
+        _env = State(initialValue: environment)
+        let delegate = UpdateLedgerDelegate(ledger: environment.networkLedger)
+        updateLedger = delegate
+        updater = SPUStandardUpdaterController(
+            startingUpdater: true, updaterDelegate: delegate, userDriverDelegate: nil)
+        // Первый запуск: обновления ставятся сами. Дальше решает галка в
+        // Settings → General — трогаем только пока выбора не было.
+        if UserDefaults.standard.object(forKey: "SUAutomaticallyUpdate") == nil {
+            updater.updater.automaticallyDownloadsUpdates = true
+        }
+    }
 
     private static func makeEnvironment() -> AppEnvironment {
         do {
@@ -44,6 +62,12 @@ struct EscapementApp: App {
                 .environment(env)
                 .task {
                     AppAppearance.apply(appearance)
+                    // Проверка при каждом запуске. Фоновая — молчит, когда
+                    // обновления нет, и показывает окно, когда оно есть:
+                    // «you're up to date» при старте никому не нужно.
+                    if updater.updater.automaticallyChecksForUpdates {
+                        updater.updater.checkForUpdatesInBackground()
+                    }
                     if let start = Self.processStartDate() {
                         let ms = Int(Date().timeIntervalSince(start) * 1000)
                         Log.ui.info("launch to interactive window: \(ms, privacy: .public) ms")
@@ -101,7 +125,7 @@ struct EscapementApp: App {
         }
 
         Settings {
-            SettingsScene()
+            SettingsScene(updater: updater.updater)
                 .environment(env)
         }
 

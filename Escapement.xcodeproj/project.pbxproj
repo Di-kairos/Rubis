@@ -28,6 +28,11 @@
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
 		3B25C991D6914B819F79D9F2 /* SubsonicAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76FEF2AB5E64CA98F761C92 /* SubsonicAccount.swift */; };
 		34E3B63EA06B457A9F095275 /* ServerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009C86AC4D145C69D4FDE1A /* ServerSettings.swift */; };
+		C6544F8066934A55AE141AE6 /* UpdateLedgerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDBD814819B4D6FAF5C0E47 /* UpdateLedgerDelegate.swift */; };
+		347F7F9642F34A23AE5DA4F5 /* NetworkSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C178F9A49A164D1781614824 /* NetworkSettings.swift */; };
+		F0A62D3B85C147E9B3720D56 /* UpdateSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51B7C4A0D96238F41AA6E17 /* UpdateSettings.swift */; };
+		A28F6B90D71C3E4582D4901F /* DeviceDossierCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C93A5D18E24B70F1A6033B45 /* DeviceDossierCard.swift */; };
+		D4E90A17C6B24F8390A11C33 /* ListeningHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C41F02A9D3486E15F00A21 /* ListeningHistoryView.swift */; };
 		7BC8170DC2655E8546452F14 /* NowPlayingQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */; };
 		803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB66BEAD427530E18C9938 /* Playlists.swift */; };
 		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
@@ -70,6 +75,11 @@
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		C76FEF2AB5E64CA98F761C92 /* SubsonicAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubsonicAccount.swift; sourceTree = "<group>"; };
 		A009C86AC4D145C69D4FDE1A /* ServerSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettings.swift; sourceTree = "<group>"; };
+		CFDBD814819B4D6FAF5C0E47 /* UpdateLedgerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLedgerDelegate.swift; sourceTree = "<group>"; };
+		C178F9A49A164D1781614824 /* NetworkSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettings.swift; sourceTree = "<group>"; };
+		E51B7C4A0D96238F41AA6E17 /* UpdateSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSettings.swift; sourceTree = "<group>"; };
+		C93A5D18E24B70F1A6033B45 /* DeviceDossierCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceDossierCard.swift; sourceTree = "<group>"; };
+		B7C41F02A9D3486E15F00A21 /* ListeningHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningHistoryView.swift; sourceTree = "<group>"; };
 		DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingQueue.swift; sourceTree = "<group>"; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
@@ -99,6 +109,7 @@
 			children = (
 				45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */,
 				C76FEF2AB5E64CA98F761C92 /* SubsonicAccount.swift */,
+				CFDBD814819B4D6FAF5C0E47 /* UpdateLedgerDelegate.swift */,
 				90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */,
 				A0F4C769CDF187F104033B37 /* DebugHarness.swift */,
 				DE71AC18E03B0F7794196742 /* EscapementApp.swift */,
@@ -169,6 +180,10 @@
 				2030066472ADBF7ECD20D373 /* MiniPlayer.swift */,
 				DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */,
 				A009C86AC4D145C69D4FDE1A /* ServerSettings.swift */,
+				C178F9A49A164D1781614824 /* NetworkSettings.swift */,
+				E51B7C4A0D96238F41AA6E17 /* UpdateSettings.swift */,
+				C93A5D18E24B70F1A6033B45 /* DeviceDossierCard.swift */,
+				B7C41F02A9D3486E15F00A21 /* ListeningHistoryView.swift */,
 				66FB66BEAD427530E18C9938 /* Playlists.swift */,
 				817449642A07EC521CC919DE /* ScrollTrack.swift */,
 				2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */,
@@ -306,6 +321,11 @@
 				7BC8170DC2655E8546452F14 /* NowPlayingQueue.swift in Sources */,
 				34E3B63EA06B457A9F095275 /* ServerSettings.swift in Sources */,
 				3B25C991D6914B819F79D9F2 /* SubsonicAccount.swift in Sources */,
+				347F7F9642F34A23AE5DA4F5 /* NetworkSettings.swift in Sources */,
+				F0A62D3B85C147E9B3720D56 /* UpdateSettings.swift in Sources */,
+				A28F6B90D71C3E4582D4901F /* DeviceDossierCard.swift in Sources */,
+				D4E90A17C6B24F8390A11C33 /* ListeningHistoryView.swift in Sources */,
+				C6544F8066934A55AE141AE6 /* UpdateLedgerDelegate.swift in Sources */,
 				803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */,
 				5656BA90898277FA56D71F60 /* ScrollTrack.swift in Sources */,
 				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,

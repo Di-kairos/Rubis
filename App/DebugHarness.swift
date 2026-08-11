@@ -12,6 +12,7 @@ import SwiftUI
 /// - `RUBIS_SNAPSHOT_PATH` — куда положить PNG окна;
 /// - `RUBIS_SCROLL_BENCH` — прогнать скролл и напечатать статистику кадров;
 /// - `RUBIS_HARNESS_DELAY` — сколько секунд ждать загрузки (по умолчанию 6);
+/// - `RUBIS_WINDOW_SIZE` — задать размер окна (`1000x640`) перед снимком;
 /// - `RUBIS_HARNESS_EXIT` — выйти после замера (для скриптов).
 @MainActor
 enum DebugHarness {
@@ -24,6 +25,12 @@ enum DebugHarness {
         // Тёмная тема для снимка: `RUBIS_APPEARANCE=dark`.
         if env["RUBIS_APPEARANCE"] == "dark" {
             NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+
+        // Размер задаём сразу: до снимка должно пройти всё ожидание, иначе
+        // в кадр попадает окно, ещё не перерисованное под новый размер.
+        if let size = env["RUBIS_WINDOW_SIZE"] {
+            DispatchQueue.main.async { MainActor.assumeIsolated { resizeWindow(to: size) } }
         }
 
         let delay = Double(env["RUBIS_HARNESS_DELAY"] ?? "") ?? 6
@@ -42,6 +49,16 @@ enum DebugHarness {
                 }
             }
         }
+    }
+
+    /// Размер окна для снимка: «ширинаxвысота» в точках. Нужен, чтобы
+    /// проверять вёрстку в тесном окне, не двигая его руками.
+    private static func resizeWindow(to size: String) {
+        let parts = size.split(separator: "x").compactMap { Double($0) }
+        guard parts.count == 2,
+            let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil })
+        else { return }
+        window.setContentSize(NSSize(width: parts[0], height: parts[1]))
     }
 
     private static func finish(_ env: [String: String]) {

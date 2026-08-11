@@ -20,6 +20,8 @@
 	<string>1</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/Di-kairos/rubis-releases/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>

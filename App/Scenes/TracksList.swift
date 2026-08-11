@@ -16,6 +16,20 @@ private enum Col {
     static let secondary: CGFloat = 200
 }
 
+/// Какие колонки показываем при данной ширине. В узкой колонке (три панели
+/// в небольшом окне) все шесть не помещаются, и раньше они делили ширину
+/// поровну — от названий оставалось «A…», а от артиста «Seb…». Лучше меньше
+/// колонок, но читаемых: сначала уходит формат, потом альбом, потом артист.
+struct TrackColumns: Equatable {
+    let artist: Bool
+    let album: Bool
+    let format: Bool
+
+    static func fitting(width: CGFloat) -> TrackColumns {
+        TrackColumns(artist: width >= 560, album: width >= 740, format: width >= 480)
+    }
+}
+
 /// Tracks section: вся библиотека с сортировкой по колонкам и
 /// мультивыделением (⌘/⇧-клик, стрелки — от List). Двойной клик или Return
 /// играет с этой строки в текущем порядке сортировки.
@@ -34,16 +48,19 @@ struct TracksList: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        VStack(spacing: 0) {
-            TrackListHeader(column: $column, ascending: $ascending)
-            Rectangle()
-                .fill(DS.Contrast.stroke(increased: contrast == .increased))
-                .frame(height: 1)
-            if isLoading {
-                DSText("Loading library…", style: .body, color: DS.Color.textTertiary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                trackList
+        GeometryReader { geo in
+            let columns = TrackColumns.fitting(width: geo.size.width)
+            VStack(spacing: 0) {
+                TrackListHeader(column: $column, ascending: $ascending, columns: columns)
+                Rectangle()
+                    .fill(DS.Contrast.stroke(increased: contrast == .increased))
+                    .frame(height: 1)
+                if isLoading {
+                    DSText("Loading library…", style: .body, color: DS.Color.textTertiary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    trackList(columns: columns)
+                }
             }
         }
         .background(DS.Color.bgBase)
@@ -73,14 +90,15 @@ struct TracksList: View {
     /// не в подмене поддерева на время загрузки и не в `onKeyPress` — остаётся
     /// сам `List(selection:)`; разделы со списком без выделения молчат.
     /// Поведение не ломается, но AppKit обещает сделать из этого assert.
-    private var trackList: some View {
+    private func trackList(columns: TrackColumns) -> some View {
         List(selection: $selection) {
             ForEach(rows) { row in
                 TrackListRow(
                     row: row,
                     index: (positions[row.id] ?? 0) + 1,
                     isCurrent: isCurrent(row.track),
-                    isSelected: selection.contains(row.id)
+                    isSelected: selection.contains(row.id),
+                    columns: columns
                 )
                 .onTapGesture(count: 2) { play(from: positions[row.id]) }
                 .draggable(row.track.dragPayload)
@@ -146,6 +164,7 @@ struct TracksList: View {
 struct TrackListHeader: View {
     @Binding var column: TrackSort
     @Binding var ascending: Bool
+    var columns = TrackColumns(artist: true, album: true, format: true)
 
     var body: some View {
         HStack(spacing: DS.Space.md) {
@@ -153,10 +172,16 @@ struct TrackListHeader: View {
             DSText("#", style: .label, color: DS.Color.textTertiary)
                 .frame(width: Col.index, alignment: .trailing)
             button(.title).frame(maxWidth: .infinity, alignment: .leading)
-            button(.artist).frame(maxWidth: Col.secondary, alignment: .leading)
-            button(.album).frame(maxWidth: Col.secondary, alignment: .leading)
+            if columns.artist {
+                button(.artist).frame(maxWidth: Col.secondary, alignment: .leading)
+            }
+            if columns.album {
+                button(.album).frame(maxWidth: Col.secondary, alignment: .leading)
+            }
             button(.duration).frame(width: Col.duration, alignment: .trailing)
-            button(.format).frame(width: Col.format, alignment: .trailing)
+            if columns.format {
+                button(.format).frame(width: Col.format, alignment: .trailing)
+            }
         }
         .padding(.horizontal, DS.Space.md)
         .frame(height: DS.Metrics.trackRowCompact)
@@ -199,6 +224,7 @@ struct TrackListRow: View {
     let index: Int
     let isCurrent: Bool
     let isSelected: Bool
+    var columns = TrackColumns(artist: true, album: true, format: true)
 
     var body: some View {
         DSListRow(isSelected: isSelected) {
@@ -218,20 +244,26 @@ struct TrackListRow: View {
                     color: row.track.titleColor(isPlaying: isCurrent)
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
-                DSText(row.artistName ?? "—", style: .body, color: DS.Color.textSecondary)
-                    .frame(maxWidth: Col.secondary, alignment: .leading)
-                DSText(row.albumTitle ?? "—", style: .body, color: DS.Color.textSecondary)
-                    .frame(maxWidth: Col.secondary, alignment: .leading)
+                if columns.artist {
+                    DSText(row.artistName ?? "—", style: .body, color: DS.Color.textSecondary)
+                        .frame(maxWidth: Col.secondary, alignment: .leading)
+                }
+                if columns.album {
+                    DSText(row.albumTitle ?? "—", style: .body, color: DS.Color.textSecondary)
+                        .frame(maxWidth: Col.secondary, alignment: .leading)
+                }
                 DSText(
                     AlbumDetail.format(duration: row.track.duration), style: .numeric,
                     color: DS.Color.textTertiary
                 )
                 .frame(width: Col.duration, alignment: .trailing)
-                DSText(
-                    row.track.codec.uppercased(), style: .caption,
-                    color: DS.Color.textTertiary
-                )
-                .frame(width: Col.format, alignment: .trailing)
+                if columns.format {
+                    DSText(
+                        row.track.codec.uppercased(), style: .caption,
+                        color: DS.Color.textTertiary
+                    )
+                    .frame(width: Col.format, alignment: .trailing)
+                }
             }
         }
     }

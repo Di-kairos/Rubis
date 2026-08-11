@@ -14,8 +14,28 @@ final class AppEnvironment {
     let devices: AudioDeviceController
     let scanner: LibraryScanner
     let covers: CoverCache
+    /// Журнал исходящих соединений (SPEC §1.2): один на приложение, чтобы
+    /// в панели сходились все запросы — и заметки, и проверки обновлений.
+    let networkLedger = NetworkLedger(fileURL: AppEnvironment.ledgerURL)
+    /// История прослушиваний (фишка E): файл рядом с журналом соединений —
+    /// схема БД после фазы 2 не меняется, и наружу история не уходит.
+    let listeningHistory = ListeningHistory(fileURL: AppEnvironment.historyURL)
     /// Аннотации альбомов (D-008): Wikipedia → Claude, кеш на диске.
-    let albumInfo = AlbumInfoService()
+    let albumInfo: AlbumInfoService
+
+    static var ledgerURL: URL {
+        supportDirectory.appendingPathComponent("network-ledger.json")
+    }
+
+    static var historyURL: URL {
+        supportDirectory.appendingPathComponent("listening-history.json")
+    }
+
+    private static var supportDirectory: URL {
+        FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Escapement")
+    }
 
     var trackRepo: TrackRepository { TrackRepository(db: db) }
     var albumRepo: AlbumRepository { AlbumRepository(db: db) }
@@ -30,6 +50,10 @@ final class AppEnvironment {
     private(set) var scanProgress: ScanProgress?
     private(set) var repeatMode: RepeatMode = .off
     private(set) var shuffleMode: ShuffleMode = .off
+    /// Счётчик изменений очереди. Нужен экранам: очередь меняется и без смены
+    /// состояния воспроизведения — тихое восстановление при запуске оставляет
+    /// `playbackState` в `idle`, и подписка на трек ничего бы не заметила.
+    private(set) var queueRevision = 0
 
     // MARK: - Search (SPEC §7.2)
 
@@ -79,6 +103,7 @@ final class AppEnvironment {
         player = Player(devices: devices)
         covers = try CoverCache()
         scanner = LibraryScanner(db: db, covers: covers)
+        albumInfo = AlbumInfoService(ledger: networkLedger)
 
         Task { [player] in
             for await state in await player.stateStream() {
@@ -93,12 +118,13 @@ final class AppEnvironment {
         Task { [player] in await player.update(configuration: Self.storedAudioConfiguration()) }
         Task { await restoreQueue() }
         // Позиция внутри трека нигде больше не хранится — пишем её раз в
-        // секунду, чтобы ⌘Q в любой момент терял не больше секунды.
+        // секунду, чтобы ⌘Q в любой момент терял не больше секунды. Тот же
+        // тик считает прослушанное для истории.
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
-                await self.saveTrackProgress()
+                await self.tick()
             }
         }
         Task { [player] in
@@ -126,19 +152,30 @@ final class AppEnvironment {
         // по самому треку, а не по индексу исходного списка.
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
-        Task { await player.play(items: items, startAt: start) }
+        Task {
+            await player.play(items: items, startAt: start)
+            queueRevision += 1
+        }
     }
 
     /// Треки сразу после текущего.
     func playNext(tracks: [Track]) {
         let items = resolveItems(tracks: tracks)
-        Task { await player.playNext(items: items) }
+        guard !items.isEmpty else { return }
+        Task {
+            await player.playNext(items: items)
+            queueRevision += 1
+        }
     }
 
     /// Треки в конец очереди.
     func addToQueue(tracks: [Track]) {
         let items = resolveItems(tracks: tracks)
-        Task { await player.enqueue(items: items) }
+        guard !items.isEmpty else { return }
+        Task {
+            await player.enqueue(items: items)
+            queueRevision += 1
+        }
     }
 
     /// Текущая очередь для экрана Now Playing: состав и индекс играющего.
@@ -153,6 +190,7 @@ final class AppEnvironment {
             let items = await player.queuedItems()
             guard items.indices.contains(index) else { return }
             await player.play(items: items, startAt: index)
+            queueRevision += 1
         }
     }
 
@@ -182,7 +220,10 @@ final class AppEnvironment {
         let modes = ShuffleMode.allCases
         let next = modes[(modes.firstIndex(of: shuffleMode).map { $0 + 1 } ?? 0) % modes.count]
         shuffleMode = next
-        Task { await player.setShuffleMode(next) }
+        Task {
+            await player.setShuffleMode(next)
+            queueRevision += 1
+        }
     }
 
     func cycleRepeatMode() {
@@ -237,14 +278,56 @@ final class AppEnvironment {
     /// Прогресс — раз в секунду. Индекс идёт вместе с позицией, иначе они
     /// разъезжаются на переходе трека. Пауза тоже сохраняется: закрыть плеер
     /// на паузе и вернуться туда же — нормальное ожидание.
-    private func saveTrackProgress() async {
+    private func tick() async {
         switch playbackState {
-        case .playing, .paused:
+        case .playing(let track), .paused(let track):
             guard let time = await player.playbackTime() else { return }
             PlaybackSnapshot.saveProgress(
                 index: await player.currentIndex(), offset: time.current, to: .standard)
+            // На паузе секунды не капают: слушают только то, что звучит.
+            if case .playing = playbackState {
+                countListening(track: track, position: time.current)
+            }
         default:
             return
+        }
+    }
+
+    // MARK: - История прослушиваний (фишка E)
+
+    /// Текущее проигрывание: сколько секунд уже прозвучало и записано ли оно.
+    private var listening: (trackId: Int64, seconds: Double, position: Double, recorded: Bool)?
+
+    /// Прослушивание засчитывается один раз за проигрывание. Прыжок назад по
+    /// таймлайну (повтор трека, перемотка в начало) начинает счёт заново —
+    /// иначе repeat-one за вечер дал бы одну запись.
+    private func countListening(track: Track, position: Double) {
+        guard let id = track.id else { return }
+        if var state = listening, state.trackId == id, position >= state.position - 2 {
+            state.seconds += 1
+            state.position = position
+            listening = state
+        } else {
+            listening = (id, 1, position, false)
+        }
+        guard var state = listening, !state.recorded,
+            ListeningHistory.counts(listened: state.seconds, duration: track.duration)
+        else { return }
+        state.recorded = true
+        listening = state
+        record(play: track, seconds: state.seconds)
+    }
+
+    /// Имена артиста и альбома снимаются один раз на засчитанное
+    /// прослушивание и уезжают в историю строками — она не должна ломаться
+    /// от пересканирования библиотеки.
+    private func record(play track: Track, seconds: Double) {
+        guard let id = track.id else { return }
+        let artist = track.artistId.flatMap { try? artistRepo.artist(id: $0) }?.name ?? ""
+        let album = track.albumId.flatMap { try? albumRepo.album(id: $0) }?.title ?? ""
+        Task { [listeningHistory, title = track.title] in
+            await listeningHistory.record(
+                trackId: id, title: title, artist: artist, album: album, seconds: seconds)
         }
     }
 
@@ -254,9 +337,21 @@ final class AppEnvironment {
         guard let snapshot = PlaybackSnapshot.load(from: .standard),
             let tracks = try? trackRepo.tracks(ids: snapshot.trackIds)
         else { return }
-        let items = resolveItems(tracks: tracks)
+        var items = resolveItems(tracks: tracks)
+        #if DEBUG
+        // Снимки вёрстки: ad-hoc сборка не резолвит bookmark подписанного
+        // релиза, и очередь оказывается пустой. `RUBIS_FAKE_QUEUE=1` наполняет
+        // её теми же треками с несуществующими путями — звука нет (restore не
+        // играет), а экран рисуется целиком.
+        if items.isEmpty, ProcessInfo.processInfo.environment["RUBIS_FAKE_QUEUE"] != nil {
+            items = tracks.map {
+                PlaybackItem(track: $0, url: URL(fileURLWithPath: $0.relativePath ?? "/dev/null"))
+            }
+        }
+        #endif
         guard !items.isEmpty else { return }
         await player.restore(items: items, at: snapshot.index, offset: snapshot.offset)
+        queueRevision += 1
     }
 
     func next() {

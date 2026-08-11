@@ -11,6 +11,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
     case tracks = "Tracks"
     case recentlyAdded = "Recently Added"
     case playlists = "Playlists"
+    case history = "History"
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
         case .tracks: return "music.note.list"
         case .recentlyAdded: return "clock"
         case .playlists: return "text.badge.plus"
+        case .history: return "clock.arrow.circlepath"
         }
     }
 }
@@ -36,8 +38,10 @@ struct MainWindow: View {
     @State private var forcedSection: LibrarySection? = MainWindow.debugStartSection
 
     /// Разделы, занимающие всю площадь окна (двухколонный режим, Jewel Box II).
+    /// Tracks и Playlists здесь же: колонку деталей они не заполняют — там
+    /// вечно висело «Select an album», отъедая у списка полокна.
     private var fullBleedSection: Bool {
-        section.wrappedValue == .nowPlaying || section.wrappedValue == .albums
+        [.nowPlaying, .albums, .history, .tracks, .playlists].contains(section.wrappedValue)
     }
 
     private var section: Binding<LibrarySection> {
@@ -68,9 +72,16 @@ struct MainWindow: View {
                             ideal: DS.Metrics.sidebarWidth,
                             max: DS.Metrics.sidebarWidthMax)
                 } detail: {
-                    if section.wrappedValue == .nowPlaying {
+                    switch section.wrappedValue {
+                    case .nowPlaying:
                         NowPlayingQueue()
-                    } else {
+                    case .history:
+                        ListeningHistoryView()
+                    case .tracks:
+                        TracksList()
+                    case .playlists:
+                        PlaylistsView()
+                    default:
                         AlbumsShowcase(featured: $selectedAlbum, source: sourceFilter)
                     }
                 }
@@ -154,18 +165,14 @@ struct MainWindow: View {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
             switch section.wrappedValue {
-            case .albums, .nowPlaying:
-                // Недостижимо: оба раздела живут в двухколонном режиме выше;
+            case .albums, .nowPlaying, .history, .tracks, .playlists:
+                // Недостижимо: эти разделы живут в двухколонном режиме выше;
                 // сюда попадает только активный поиск (ветка выше).
                 DS.Color.bgBase
             case .artists:
                 ArtistsList(selectedAlbum: $selectedAlbum)
-            case .tracks:
-                TracksList()
             case .recentlyAdded:
                 RecentlyAddedGrid(selectedAlbum: $selectedAlbum)
-            case .playlists:
-                PlaylistsView()
             }
         }
     }
