@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "1449207"
+head: "ed3e8cd"
 tests: 102/102 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
@@ -379,7 +379,12 @@ Now Playing перестал превращаться в кашу в низко�
 Тем же заходом вылечен экран после тихого восстановления очереди: он ключевался
 на id играющего трека, а тот при `idle` равен nil — раздел показывал «Queue is
 empty» до первого Play. Теперь ключ — счётчик изменений очереди.
-HEAD: `1449207` — fix(now-playing): reload after a silent queue restore.
+Та же болезнь вылечена ещё в трёх местах: Tracks прячет колонки по ширине
+(формат → альбом → артист) вместо «A…» и «Seb…», Albums считает обложку
+витрины и полку от высоты окна (раньше на минимальной высоте полка и
+транспорт уезжали за край), Tracks и Playlists переехали в полноширинный
+режим — колонку деталей они не заполняют, там вечно висело «Select an album».
+HEAD: `ed3e8cd` — fix(layout): let the small window keep every section readable.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
