@@ -2,6 +2,7 @@ import AppKit
 import DesignSystem
 import EscapementCore
 import MusicLibrary
+import PlaybackEngine
 import SwiftUI
 
 /// Transport panel (DESIGN §5.1): cover, titles, transport, progress,
@@ -12,6 +13,14 @@ struct TransportBar: View {
     @State private var timeText = "0:00"
     @State private var totalText = "0:00"
     @State private var showStatusPopover = false
+    /// «Copied» на пару секунд вместо алерта.
+    @State private var copied = false
+    /// Транспорт устройства для отчёта — HAL спрашиваем при открытии поповера.
+    @State private var deviceTransport = "—"
+
+    /// Свой экземпляр для справочных чтений: актор плеера ради транспорта
+    /// устройства трогать незачем.
+    private let hal = AudioDeviceController()
 
     private let tick = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
@@ -207,10 +216,93 @@ struct TransportBar: View {
                         : "No exclusive access — mixed by CoreAudio",
                     style: .caption, color: DS.Color.warning)
             }
+            // Отчёт о тракте (фишка A): то же состояние текстом, который можно
+            // унести куда угодно — с отпечатком, чтобы правку было видно.
+            Divider().padding(.vertical, DS.Space.xs)
+            HStack(spacing: DS.Space.sm) {
+                Button(copied ? "Copied" : "Copy receipt") { copyReceipt(status) }
+                Button("Save…") { saveReceipt(status) }
+                Spacer()
+            }
+            .font(DS.Font.caption)
         }
         .padding(DS.Space.lg)
         .frame(width: 280, alignment: .leading)
         .background(DS.Color.bgOverlay)
+        .task(id: status.deviceName) { await loadTransport(named: status.deviceName) }
+    }
+
+    // MARK: - Signal path receipt (фишка A)
+
+    /// ponytail: устройство ищется по имени — id в `OutputStatus` не приходит.
+    /// Два одинаково названных ЦАПа дадут транспорт первого; тянуть id через
+    /// весь плеер ради строчки в отчёте не стоит.
+    private func loadTransport(named name: String) async {
+        guard let device = (try? await hal.outputDevices())?.first(where: { $0.name == name }),
+            let dossier = try? await hal.dossier(deviceID: device.id)
+        else {
+            deviceTransport = "—"
+            return
+        }
+        deviceTransport = dossier.transport
+    }
+
+    private var trackArtist: String? {
+        guard let id = env.currentTrack?.artistId else { return nil }
+        return (try? env.artistRepo.artist(id: id))?.name
+    }
+
+    /// Отчёт из живого состояния: то, что реально настроено сейчас, а не то,
+    /// что записано в настройках «на будущее».
+    private func receipt(_ status: OutputStatus) -> SignalPathReceipt {
+        let defaults = UserDefaults.standard
+        let track = env.currentTrack
+        let bundle = Bundle.main.infoDictionary
+        let version = bundle?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = bundle?["CFBundleVersion"] as? String ?? "?"
+        return SignalPathReceipt(
+            date: Date(),
+            appVersion: "\(version) (\(build))",
+            track: track.map { "\($0.title)\(trackArtist.map { " — \($0)" } ?? "")" },
+            codec: track?.codec ?? "—",
+            sourceRate: status.sourceSampleRate,
+            sourceBits: status.sourceBitDepth,
+            channels: track?.channels ?? 2,
+            deviceName: status.deviceName,
+            deviceTransport: deviceTransport,
+            deviceRate: status.deviceSampleRate,
+            exclusive: status.isExclusive,
+            // Микшер снимается вместе с эксклюзивом и только с ним.
+            mixingDisabled: status.isExclusive ? true : nil,
+            dsd: status.dsdMode.map { $0 == .dopIfAvailable ? "DoP if available" : "PCM" },
+            fallback: Self.fallbackName(defaults.string(forKey: "rateFallback")),
+            bitPerfect: status.isBitPerfect)
+    }
+
+    private static func fallbackName(_ raw: String?) -> String {
+        switch raw {
+        case "allowCrossFamily": return "Allow cross-family resample"
+        case "refuse": return "Bit-perfect or silence"
+        default: return "Nearest family multiple"
+        }
+    }
+
+    private func copyReceipt(_ status: OutputStatus) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(receipt(status).rendered(), forType: .string)
+        copied = true
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            copied = false
+        }
+    }
+
+    private func saveReceipt(_ status: OutputStatus) {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "signal-path.txt"
+        panel.allowedContentTypes = [.plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? receipt(status).rendered().write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
