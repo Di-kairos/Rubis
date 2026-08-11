@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "07a4ad9"
-tests: 87/87 (swift test, 5 packages)
+head: "000a386"
+tests: 98/98 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -15,7 +15,6 @@ next_actions:
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
   - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
   - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
-  - "Фишка E (история прослушиваний): файл или таблица в БД — решает Di-kairos (миграция схемы после фазы 2)"
   - "Рамка продукта: список фишек написан языком запуска, а SPEC §1.3 говорит «личный плеер, не продукт» — решает Di-kairos"
   - "Публичная база ЦАПов (вторая половина фишки B) — против SPEC §1.2, решает Di-kairos"
   - "Mac App Store (D-009) — отложено, старт по команде владельца; первыми два гейта: hog под песочницей и LGPL lame/libsndfile"
@@ -357,8 +356,14 @@ pack 2 — Settings → Server с живым Test connection и паролем �
 SHA256 опубликованных DMG сверены (`fdda5a72…`, `447125e0…`), appcast запушен.
 `gh release create` в этой сессии сперва резался предохранителем среды, потом
 прошёл — ограничение непостоянное, релиз выпускается целиком без владельца.
-HEAD: `917f004` — feat(privacy): network ledger — every outgoing request, on the record.
-Отчёт сессии — `docs/sessions/progress-report-session08.md`.
+Session 9 (2026-08-11): **фишка E — приватная история прослушиваний**. Журнал
+прослушанного — файл рядом с журналом соединений (`listening-history.json`),
+схема БД после фазы 2 не тронута. Прослушивание засчитывается на половине
+трека или на четвёртой минуте, прыжок назад по таймлайну начинает новое
+(repeat-one считается). Раздел **History** в сайдбаре: период, топ артистов,
+топ треков, лента последних, Clear history. Тесты 98/98.
+HEAD: `000a386` — feat(history): private listening history.
+Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
 
