@@ -52,8 +52,10 @@
   ссылки, не синхронизированные группы) — иначе «cannot find X in scope».
 - Версии: `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` в
   `Config/Escapement.xcconfig`.
-- `security` (keychain) у Claude режется классификатором целиком — команды
-  отдавать владельцу строкой.
+- `security` (keychain) у Claude режется предохранителем среды целиком —
+  команды отдавать владельцу строкой. А вот `gh release create` режется
+  через раз: в S08 сперва отбился, со второй попытки прошёл — пробовать
+  самому, релиз доводить до конца без владельца.
 - У владельца висит keychain-диалог на входе в Settings: записи ключей созданы
   старыми подписями. Лечение — удалить `claude-api-key` / `deepseek-api-key`
   (сервис `com.dikairos.escapement`) и ввести ключ заново.
