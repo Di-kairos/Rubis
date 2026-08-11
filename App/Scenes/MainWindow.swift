@@ -11,6 +11,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
     case tracks = "Tracks"
     case recentlyAdded = "Recently Added"
     case playlists = "Playlists"
+    case history = "History"
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
         case .tracks: return "music.note.list"
         case .recentlyAdded: return "clock"
         case .playlists: return "text.badge.plus"
+        case .history: return "clock.arrow.circlepath"
         }
     }
 }
@@ -37,7 +39,7 @@ struct MainWindow: View {
 
     /// Разделы, занимающие всю площадь окна (двухколонный режим, Jewel Box II).
     private var fullBleedSection: Bool {
-        section.wrappedValue == .nowPlaying || section.wrappedValue == .albums
+        [.nowPlaying, .albums, .history].contains(section.wrappedValue)
     }
 
     private var section: Binding<LibrarySection> {
@@ -68,9 +70,12 @@ struct MainWindow: View {
                             ideal: DS.Metrics.sidebarWidth,
                             max: DS.Metrics.sidebarWidthMax)
                 } detail: {
-                    if section.wrappedValue == .nowPlaying {
+                    switch section.wrappedValue {
+                    case .nowPlaying:
                         NowPlayingQueue()
-                    } else {
+                    case .history:
+                        ListeningHistoryView()
+                    default:
                         AlbumsShowcase(featured: $selectedAlbum, source: sourceFilter)
                     }
                 }
@@ -154,8 +159,8 @@ struct MainWindow: View {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
             switch section.wrappedValue {
-            case .albums, .nowPlaying:
-                // Недостижимо: оба раздела живут в двухколонном режиме выше;
+            case .albums, .nowPlaying, .history:
+                // Недостижимо: эти разделы живут в двухколонном режиме выше;
                 // сюда попадает только активный поиск (ветка выше).
                 DS.Color.bgBase
             case .artists:

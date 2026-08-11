@@ -173,6 +173,10 @@ public struct ArtistRepository: Sendable {
         try db.reader.read { try Artist.order(Column("sort_name")).fetchAll($0) }
     }
 
+    public func artist(id: Int64) throws -> Artist? {
+        try db.reader.read { try Artist.fetchOne($0, key: id) }
+    }
+
     /// Группа Artists в поиске (SPEC §7.2): префикс по нормализованному имени,
     /// поэтому «bjork» находит «Björk», а «beatles» — «The Beatles».
     public func search(_ query: String, limit: Int = 8) throws -> [Artist] {

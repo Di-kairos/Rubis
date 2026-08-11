@@ -17,13 +17,24 @@ final class AppEnvironment {
     /// Журнал исходящих соединений (SPEC §1.2): один на приложение, чтобы
     /// в панели сходились все запросы — и заметки, и проверки обновлений.
     let networkLedger = NetworkLedger(fileURL: AppEnvironment.ledgerURL)
+    /// История прослушиваний (фишка E): файл рядом с журналом соединений —
+    /// схема БД после фазы 2 не меняется, и наружу история не уходит.
+    let listeningHistory = ListeningHistory(fileURL: AppEnvironment.historyURL)
     /// Аннотации альбомов (D-008): Wikipedia → Claude, кеш на диске.
     let albumInfo: AlbumInfoService
 
     static var ledgerURL: URL {
+        supportDirectory.appendingPathComponent("network-ledger.json")
+    }
+
+    static var historyURL: URL {
+        supportDirectory.appendingPathComponent("listening-history.json")
+    }
+
+    private static var supportDirectory: URL {
         FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Escapement/network-ledger.json")
+            .appendingPathComponent("Escapement")
     }
 
     var trackRepo: TrackRepository { TrackRepository(db: db) }
@@ -103,12 +114,13 @@ final class AppEnvironment {
         Task { [player] in await player.update(configuration: Self.storedAudioConfiguration()) }
         Task { await restoreQueue() }
         // Позиция внутри трека нигде больше не хранится — пишем её раз в
-        // секунду, чтобы ⌘Q в любой момент терял не больше секунды.
+        // секунду, чтобы ⌘Q в любой момент терял не больше секунды. Тот же
+        // тик считает прослушанное для истории.
         Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
-                await self.saveTrackProgress()
+                await self.tick()
             }
         }
         Task { [player] in
@@ -247,14 +259,56 @@ final class AppEnvironment {
     /// Прогресс — раз в секунду. Индекс идёт вместе с позицией, иначе они
     /// разъезжаются на переходе трека. Пауза тоже сохраняется: закрыть плеер
     /// на паузе и вернуться туда же — нормальное ожидание.
-    private func saveTrackProgress() async {
+    private func tick() async {
         switch playbackState {
-        case .playing, .paused:
+        case .playing(let track), .paused(let track):
             guard let time = await player.playbackTime() else { return }
             PlaybackSnapshot.saveProgress(
                 index: await player.currentIndex(), offset: time.current, to: .standard)
+            // На паузе секунды не капают: слушают только то, что звучит.
+            if case .playing = playbackState {
+                countListening(track: track, position: time.current)
+            }
         default:
             return
+        }
+    }
+
+    // MARK: - История прослушиваний (фишка E)
+
+    /// Текущее проигрывание: сколько секунд уже прозвучало и записано ли оно.
+    private var listening: (trackId: Int64, seconds: Double, position: Double, recorded: Bool)?
+
+    /// Прослушивание засчитывается один раз за проигрывание. Прыжок назад по
+    /// таймлайну (повтор трека, перемотка в начало) начинает счёт заново —
+    /// иначе repeat-one за вечер дал бы одну запись.
+    private func countListening(track: Track, position: Double) {
+        guard let id = track.id else { return }
+        if var state = listening, state.trackId == id, position >= state.position - 2 {
+            state.seconds += 1
+            state.position = position
+            listening = state
+        } else {
+            listening = (id, 1, position, false)
+        }
+        guard var state = listening, !state.recorded,
+            ListeningHistory.counts(listened: state.seconds, duration: track.duration)
+        else { return }
+        state.recorded = true
+        listening = state
+        record(play: track, seconds: state.seconds)
+    }
+
+    /// Имена артиста и альбома снимаются один раз на засчитанное
+    /// прослушивание и уезжают в историю строками — она не должна ломаться
+    /// от пересканирования библиотеки.
+    private func record(play track: Track, seconds: Double) {
+        guard let id = track.id else { return }
+        let artist = track.artistId.flatMap { try? artistRepo.artist(id: $0) }?.name ?? ""
+        let album = track.albumId.flatMap { try? albumRepo.album(id: $0) }?.title ?? ""
+        Task { [listeningHistory, title = track.title] in
+            await listeningHistory.record(
+                trackId: id, title: title, artist: artist, album: album, seconds: seconds)
         }
     }
 
