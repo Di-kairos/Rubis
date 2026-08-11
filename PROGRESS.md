@@ -6,14 +6,12 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "3fb5d42"
+head: "4772ebb"
 tests: 109/109 (swift test, 5 packages)
 last_session: 9
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Выпустить 0.8.9 — в main лежат невыпущенными C, D, E, B-local, автообновление и Signal Path Receipt; нужна машина с сертификатом Developer ID"
-  - "Перенос ключа на вторую машину: экспорт .p12 + notarytool store-credentials (инструкция в SESSION_10_KICKOFF)"
   - "Фаза 6, packs 4-8 в ветке phase/06-subsonic: обложки, download-then-play, LRU-кэш, офлайн"
   - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
@@ -398,6 +396,17 @@ receipt и Save… — текстовый отчёт о том, что прои�
 audio-verify внутри приложения — отдельный пак, ему нужен loopback.
 HEAD: `3fb5d42` — feat(audio): signal path receipt.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
+Session 10 (2026-08-11): выпущена **0.8.9** (build 26) — всё, что копилось в main
+с 0.8.8: фишки C (человеческий текст ошибок), D (журнал соединений + Settings →
+Network), E (приватная история прослушиваний), B-local (DAC Dossier),
+автообновление, Signal Path Receipt и правки вёрстки. Эта машина оказалась с
+Developer ID и профилем нотаризации `rubis` — перенос ключа не понадобился.
+Конвейер `Tools/make-dmg.sh` отработал сам: нотаризация `Accepted` с первой
+попытки, staple, `spctl → accepted / source=Notarized Developer ID`. SHA256
+опубликованного DMG сверён скачиванием (`990d2c03…`, 10722164 байта), appcast
+запушен. Тесты 109/109. `gh release create` резался предохранителем три раза
+подряд — релиз создан владельцем строкой.
+HEAD: `4772ebb` — chore(release): bump version to 0.8.9 (26).
 
 ## Фазы (из TASKS.md)
 
