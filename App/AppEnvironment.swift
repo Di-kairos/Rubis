@@ -59,6 +59,10 @@ final class AppEnvironment {
     private(set) var queueRevision = 0
     /// Трек, который уже перезапускали после сорванной загрузки.
     private var lastRemoteRetry: Int64?
+    /// Серверы, которые не отвечают (SPEC §6.3).
+    private(set) var offlineServers: Set<String> = []
+    /// Строка о молчащем сервере для сайдбара — одна строка, не алерт.
+    private(set) var serverStatus: String?
 
     // MARK: - Search (SPEC §7.2)
 
@@ -425,7 +429,24 @@ final class AppEnvironment {
         guard let sources = try? sourceRepo.all() else { return }
         for source in sources where source.kind == .subsonic {
             await remote.register(source: source)
+            await checkServer(source)
         }
+    }
+
+    /// Сервер молчит — его треки приглушаются и выпадают из очереди и shuffle
+    /// (SPEC §6.3). Тот же флаг, что у пропавших файлов, поэтому отдельного
+    /// оформления не нужно; в сайдбаре — строка, не алерт.
+    func checkServer(_ source: Source) async {
+        let reachable = await remote.isReachable(sourceId: source.id)
+        let changed = (try? trackRepo.setUnavailable(!reachable, inSource: source.id)) ?? 0
+        offlineServers =
+            reachable
+            ? offlineServers.subtracting([source.id])
+            : offlineServers.union([source.id])
+        serverStatus = offlineServers.isEmpty ? nil : "\(source.displayName) is offline"
+        // Списки читают библиотеку наблюдением, а очередь — нет: она собрана
+        // из старых строк и всё ещё считает молчащие треки играбельными.
+        if changed > 0 { queueRevision += 1 }
     }
 
     /// Файл трека до старта: локальный уже на месте, серверный качается.
@@ -456,7 +477,13 @@ final class AppEnvironment {
     private func retryRemote(_ track: Track) async {
         guard RemotePlayback.isRemote(track), track.id != lastRemoteRetry else { return }
         lastRemoteRetry = track.id
-        guard await remote.fetch(track) != nil else { return }
+        guard await remote.fetch(track) != nil else {
+            // Не скачалось со второго раза — скорее всего сервер молчит.
+            if let source = try? sourceRepo.all().first(where: { $0.id == track.sourceId }) {
+                await checkServer(source)
+            }
+            return
+        }
         await player.playCurrent()
     }
 
@@ -523,6 +550,9 @@ final class AppEnvironment {
             Log.library.error("subsonic sync failed: \(error, privacy: .public)")
         }
         scanProgress = nil
+        // Синхронизация — самый честный ответ на вопрос «сервер жив?»:
+        // после неё состояние источника переставляется по факту.
+        await checkServer(source)
     }
 
     private func rescan(source: Source) async throws {

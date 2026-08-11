@@ -111,6 +111,30 @@ struct RemoteCatalogTests {
         #expect(try repo.album(id: id)?.coverHash == "local")
     }
 
+    // MARK: - Сервер молчит (pack 7)
+
+    @Test func silentServerDimsItsTracksAndOnlyItsTracks() throws {
+        let db = try AppDatabase.inMemory()
+        let server = try makeServerSource(db)
+        let local = Source(kind: .local, displayName: "Folder")
+        try SourceRepository(db: db).upsert(local)
+        let repo = TrackRepository(db: db)
+        _ = try repo.insert([
+            remoteTrack("so-1", source: server),
+            Track(
+                sourceId: local.id, relativePath: "a.flac", title: "Local", duration: 10,
+                codec: "flac", sampleRate: 44100),
+        ])
+
+        #expect(try repo.setUnavailable(true, inSource: server.id) == 1)
+        #expect(try repo.unavailableCount() == 1)
+
+        // Сервер вернулся — приглушение снимается, второй заход ничего не меняет.
+        #expect(try repo.setUnavailable(false, inSource: server.id) == 1)
+        #expect(try repo.unavailableCount() == 0)
+        #expect(try repo.setUnavailable(false, inSource: server.id) == 0)
+    }
+
     @Test func coverForAMissingAlbumChangesNothing() throws {
         let db = try AppDatabase.inMemory()
         #expect(try AlbumRepository(db: db).setCoverHashIfMissing("beef", albumId: 999) == false)

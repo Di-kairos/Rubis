@@ -12,8 +12,9 @@ struct UnavailableMark: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 11))
                 .foregroundStyle(DS.Color.warning)
-                .help(track.relativePath ?? "file not found")
-                .accessibilityLabel("File not found")
+                .help(track.relativePath ?? "server is not answering")
+                .accessibilityLabel(
+                    track.relativePath == nil ? "Server unavailable" : "File not found")
         }
     }
 }

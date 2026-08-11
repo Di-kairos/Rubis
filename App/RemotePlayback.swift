@@ -55,6 +55,22 @@ actor RemotePlayback {
         clients[source.id] = client
     }
 
+    /// Сервер отвечает? Один `ping` (SPEC §6.3). Источник без пароля в связке
+    /// считается недоступным: играть с него всё равно нечем.
+    func isReachable(sourceId: String) async -> Bool {
+        guard let client = clients[sourceId] else { return false }
+        do {
+            try await client.ping()
+            await ledger.record(
+                host: client.host, purpose: "Server check", succeeded: true, bytes: 0)
+            return true
+        } catch {
+            await ledger.record(
+                host: client.host, purpose: "Server check", succeeded: false, bytes: 0)
+            return false
+        }
+    }
+
     /// Файл трека на диске: уже скачанный или скачанный сейчас.
     /// Локальные треки и треки без клиента возвращают `nil` — вызывающая
     /// сторона играет их как обычно или пропускает.

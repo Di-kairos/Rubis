@@ -43,6 +43,9 @@ public struct SubsonicClient: Sendable {
         self.makeSalt = makeSalt
     }
 
+    /// Хост сервера — для журнала соединений: путь и параметры туда не идут.
+    public var host: String { baseURL.host ?? "" }
+
     // MARK: - Эндпоинты
 
     /// Проверка соединения при сохранении настроек. Молчит при успехе,

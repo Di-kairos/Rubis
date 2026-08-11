@@ -19,7 +19,10 @@ final class UpdateLedgerDelegate: NSObject, SPUUpdaterDelegate {
         error: (any Error)?
     ) {
         let host = updater.feedURL?.host ?? "raw.githubusercontent.com"
-        let succeeded = error == nil
+        // «Обновлений нет» Sparkle отдаёт ошибкой — но запрос при этом прошёл.
+        // Считать его неуспехом значило бы врать в панели: связь была.
+        let succeeded =
+            error == nil || (error as NSError?)?.code == Int(SUError.noUpdateError.rawValue)
         Task { [ledger] in
             // Размер ответа Sparkle нам не отдаёт — в журнале это честный ноль,
             // а не выдуманное число.

@@ -120,6 +120,24 @@ public struct TrackRepository: Sendable {
         try db.reader.read { try Track.fetchCount($0) }
     }
 
+    /// Разом помечает весь источник недоступным или снова доступным
+    /// (сервер не отвечает — SPEC §6.3). Тот же флаг, что у пропавших файлов:
+    /// приглушение в списках, значок и выпадение из очереди уже написаны
+    /// под него. Возвращает число изменённых строк — нулевое означает,
+    /// что состояние и так было таким, и экраны трогать незачем.
+    @discardableResult
+    public func setUnavailable(_ flag: Bool, inSource sourceId: String) throws -> Int {
+        try db.writer.write { database in
+            try database.execute(
+                sql: """
+                    UPDATE track SET unavailable = ?
+                    WHERE source_id = ? AND unavailable IS NOT ?
+                    """,
+                arguments: [flag, sourceId, flag])
+            return database.changesCount
+        }
+    }
+
     /// Сколько треков помечено недоступными (файл не найден при скане).
     public func unavailableCount() throws -> Int {
         try db.reader.read { try Track.filter(Column("unavailable") == true).fetchCount($0) }
