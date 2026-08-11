@@ -6,53 +6,17 @@
 
 ## Состояние
 - Ветка `main`, head `917f004`. Тесты **87/87**, Debug без warnings.
-- Опубликовано: **0.8.7** (build 24) — appcast обновлён, SHA сверен.
-- **0.8.8 (build 25) собрана и нотаризована, но НЕ опубликована.**
+- Опубликовано: **0.8.8** (build 25) — appcast обновлён, SHA сверен.
 - Ветка `phase/06-subsonic` (запушена): packs 1–2 фазы 6, SubsonicKit 17 тестов.
 
-## Первое дело — доиздать 0.8.8
+## 0.8.8 уже опубликована
 
-DMG лежит на Рабочем столе владельца (`~/Desktop/RubisMusic-0.8.8.dmg`).
-Если файла нет — пересобрать: `./Tools/make-dmg.sh` (подпись/нотаризация
-пройдут заново, EdDSA и SHA256 напечатаются новые, тогда данные ниже
-не годятся).
+Выпущена в конце S08: релиз `v0.8.8` в `rubis-releases`, SHA256 скачанного
+ассета сверен (`447125e0…`), appcast запушен (`9adb425`). Отдельных действий
+не требует.
 
-Команда владельцу (у Claude `gh release create` режет классификатор):
-
-```
-gh release create v0.8.8 ~/Desktop/RubisMusic-0.8.8.dmg \
-  --repo Di-kairos/rubis-releases \
-  --title "Rubis Music 0.8.8" \
-  --notes "Play works again after the output device comes back. A file moved between source folders now moves instead of appearing twice."
-```
-
-После публикации: скачать ассет, сверить SHA256 с
-`447125e0ae27970609fc2a3a701386cc2849f2c7ac685e8636a22a27e54de35f`,
-затем добавить в `appcast.xml` первым item'ом и запушить:
-
-```xml
-<item>
-  <title>0.8.8</title>
-  <pubDate>Mon, 10 Aug 2026 22:05:00 +0300</pubDate>
-  <sparkle:version>25</sparkle:version>
-  <sparkle:shortVersionString>0.8.8</sparkle:shortVersionString>
-  <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-  <description><![CDATA[
-    <ul>
-      <li>Unplug your headphones and plug them back in: Play works again. Before, the player kept refusing to start until the track was launched by hand.</li>
-      <li>Moving an album from one source folder to another now moves it. It used to arrive in the new folder while a dimmed, unplayable copy stayed behind in the old one.</li>
-    </ul>
-  ]]></description>
-  <enclosure
-    url="https://github.com/Di-kairos/rubis-releases/releases/download/v0.8.8/RubisMusic-0.8.8.dmg"
-    sparkle:edSignature="oJS1Hsl5RnzcxGgc3KUHw7kj0jN0lYECGq+8SAF7im1wexCFDzRRL3oO27b9ubGiJnKoXFhgsvZOA4B0+FJwCw=="
-    length="10571542"
-    type="application/octet-stream"/>
-</item>
-```
-
-Внимание: в main после 0.8.8 уже легли C и D (`39d3dc5`, `917f004`) — они
-поедут следующим релизом, 0.8.8 их не содержит.
+В main после 0.8.8 лежат невыпущенные фишки C и D — они уедут следующим
+релизом (0.8.9), собирается он одной командой `./Tools/make-dmg.sh`.
 
 ## Фокус S09 — продолжение списка фишек
 
