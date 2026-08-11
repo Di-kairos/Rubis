@@ -5,7 +5,7 @@
 <h1 align="center">Rubis Music</h1>
 
 <p align="center">
-  A local hi-fi player for macOS that plays the file, not an interpretation of it.
+  A hi-fi player for macOS that plays the file, not an interpretation of it.
 </p>
 
 <p align="center">
@@ -32,9 +32,10 @@
   <img src="docs/assets/now-playing.png" alt="Now Playing: the album cover and the queue side by side, liner notes underneath">
 </p>
 
-Rubis plays a local lossless library the way the file was mastered: the device
-sample rate follows the track, the mixer is bypassed, the signal leaves the app
-untouched. That claim is not taken on trust — `Tools/audio-verify` compares
+Rubis plays a lossless library — on your disk or on your own Navidrome server —
+the way the file was mastered: the device sample rate follows the track, the
+mixer is bypassed, the signal leaves the app untouched. Server tracks take the
+same path: they are downloaded whole, never transcoded, and played as files. That claim is not taken on trust — `Tools/audio-verify` compares
 output against 24 fixtures (44.1–192 kHz, 16/24-bit, FLAC/ALAC/WAV) and has to
 pass before any change to the engine is committed.
 
@@ -76,6 +77,21 @@ Requires macOS 15 or newer on Apple silicon.
   search answers under 50 ms, the shelf scrolls at 59–60 fps.
 - **Sources** — folders on any volume; a disconnected disk greys tracks out
   instead of destroying history. A scan never deletes anything.
+- **Your own server** — a Subsonic/Navidrome library appears next to the local
+  one. Tracks are downloaded whole before they play, never transcoded
+  (`format=raw`), so the bit-perfect path is the same one local files take; the
+  next track is prefetched while the current one plays. The download cache has a
+  ceiling you set and clears by hand. A server that stops answering greys out its
+  own tracks and says so in one line — no alert.
+- **A receipt for the signal path** — copy or save a plain-text report of
+  everything between the file and the DAC, fingerprinted with SHA-256.
+- **DAC dossier** — Settings → Audio asks the device what it can actually do:
+  rates, bit depths, DoP ceiling, hardware volume, exclusive access, tested live.
+- **A private history** — what you played, kept in a file on your Mac: top
+  artists, top tracks, a recent feed, and one button that erases it.
+- **Every outgoing request, listed** — Settings → Network names each connection
+  the app has made: host, reason, outcome, bytes. On a clean install the list is
+  empty.
 - **Liner notes** — an optional note about the playing album, from Wikipedia and,
   for records Wikipedia does not cover, from Claude or DeepSeek with your own API
   key. Off by default: the app makes no network call you did not ask for.
@@ -102,13 +118,14 @@ token in the `DesignSystem` package; literals outside it are forbidden.
 
 ## Architecture
 
-Four SPM packages carry the work, and dependencies point one way:
+Five SPM packages carry the work, and dependencies point one way:
 
 | Package | Role |
 |---|---|
 | `EscapementCore` | Shared models and contracts; depends on nothing |
 | `PlaybackEngine` | Core Audio HAL, hog mode, rate switching, gapless queue |
 | `MusicLibrary` | Scanner, metadata, GRDB/SQLite, FTS5 search, cover cache |
+| `SubsonicKit` | OpenSubsonic client, catalog mapping, download cache |
 | `DesignSystem` | Every colour, font, spacing and radius token in the app |
 
 The app target is a thin SwiftUI shell; the logic lives in the packages. Swift 6
@@ -132,6 +149,7 @@ xcodebuild -scheme Escapement -configuration Release
 
 | File | What's inside |
 |---|---|
+| [MANIFESTO.md](MANIFESTO.md) | Why this player exists, and what each claim rests on in the code (Russian) |
 | [SPEC.md](SPEC.md) | Architecture, the audio contract, DB schema, performance budgets |
 | [DESIGN.md](DESIGN.md) | Palette, typography, grid, components, motion |
 | [TASKS.md](TASKS.md) | Phases with acceptance criteria |
@@ -142,10 +160,11 @@ xcodebuild -scheme Escapement -configuration Release
 
 ## Status
 
-Seven of the eight planned phases are done — scaffold, design system, database,
-audio engine, local library, interface, system integration — and the eighth,
-Subsonic/Navidrome support, is deliberately postponed
-([D-003](DECISIONS.md)). Releases live in
+All eight planned phases are done — scaffold, design system, database, audio
+engine, local library, interface, system integration, and Subsonic/Navidrome
+support, the last of which was built and verified against a live Navidrome
+instance. What is left is the part only ears and hardware can sign off:
+[the manual checklist](docs/manual-checklist.md). Releases live in
 [rubis-releases](https://github.com/Di-kairos/rubis-releases); the current one is
 signed, notarized, and verified by checksum against the file published there.
 
