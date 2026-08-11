@@ -6,21 +6,26 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "3fb5d42"
+head: "4772ebb"
 tests: 109/109 (swift test, 5 packages)
-last_session: 8
+last_session: 9
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Фаза 6, packs 4-8 в ветке phase/06-subsonic: обложки, download-then-play, LRU-кэш, офлайн"
+  - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
-  - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
-  - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
-  - "Рамка продукта: список фишек написан языком запуска, а SPEC §1.3 говорит «личный плеер, не продукт» — решает Di-kairos"
-  - "Публичная база ЦАПов (вторая половина фишки B) — против SPEC §1.2, решает Di-kairos"
-  - "Mac App Store (D-009) — отложено, старт по команде владельца; первыми два гейта: hog под песочницей и LGPL lame/libsndfile"
-  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
-  - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
-  - "Проверить на живом внешнем ЦАПе стартовый глоток после смены частоты (hog-путь)"
+  - "Рамка продукта: манифест написан продуктовым языком, SPEC §1.3 говорит «личный плеер»; конкурент Bòcan бесплатен и open source — решает Di-kairos"
+  - "Класть ли audio-verify в DMG — решает Di-kairos (даёт то, чего нет у конкурентов)"
+  - "Криптоподпись отчёта о тракте вместо SHA-256-отпечатка — решает Di-kairos"
+  - "CUE sheets в бэклог или нет — единственный функциональный пробел из разбора конкурентов"
+  - "Личный манифест (S10): черновик docs/manifesto/ru-personal-draft.md — заменить личные детали, решить место публикации, нужен ли английский перевод"
+  - "Судьба продуктовой версии манифеста: оставить для форумных постов или отказаться; в цифрах указать MacBook Pro M5 Max"
+  - "Тёмные скриншоты для README и лого на прозрачном фоне"
+  - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
+  - "Mac App Store (D-009) — отложено, старт по команде владельца"
+  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
+  - "Прогнать замер скролла на 120-Гц панели: RUBIS_SCROLL_BENCH"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
@@ -30,8 +35,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session08.md
-  latest_kickoff: docs/sessions/SESSION_09_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session09.md
+  latest_kickoff: docs/sessions/SESSION_10_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -391,6 +396,17 @@ receipt и Save… — текстовый отчёт о том, что прои�
 audio-verify внутри приложения — отдельный пак, ему нужен loopback.
 HEAD: `3fb5d42` — feat(audio): signal path receipt.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
+Session 10 (2026-08-11): выпущена **0.8.9** (build 26) — всё, что копилось в main
+с 0.8.8: фишки C (человеческий текст ошибок), D (журнал соединений + Settings →
+Network), E (приватная история прослушиваний), B-local (DAC Dossier),
+автообновление, Signal Path Receipt и правки вёрстки. Эта машина оказалась с
+Developer ID и профилем нотаризации `rubis` — перенос ключа не понадобился.
+Конвейер `Tools/make-dmg.sh` отработал сам: нотаризация `Accepted` с первой
+попытки, staple, `spctl → accepted / source=Notarized Developer ID`. SHA256
+опубликованного DMG сверён скачиванием (`990d2c03…`, 10722164 байта), appcast
+запушен. Тесты 109/109. `gh release create` резался предохранителем три раза
+подряд — релиз создан владельцем строкой.
+HEAD: `4772ebb` — chore(release): bump version to 0.8.9 (26).
 
 ## Фазы (из TASKS.md)
 
