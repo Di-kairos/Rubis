@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "718e06e"
-tests: 98/98 (swift test, 5 packages)
+head: "1fc5150"
+tests: 102/102 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -366,7 +366,14 @@ Session 9 (2026-08-11): **фишка E — приватная история п�
 теперь говорят строкой, какая дверь не открылась (нет статьи в Wikipedia,
 нет ключа писателя), и «Writing liner notes…» больше не задвигает очередь
 под черту.
-HEAD: `718e06e` — fix(notes): say why liner notes are missing.
+Там же **B-local — DAC Dossier**: карточка в Settings → Audio опрашивает HAL
+(реальные частоты, разрядности, потолок DoP, ручка громкости, рычаг микшера)
+и проверяет hog живьём — берёт эксклюзив и сразу отдаёт; на встроенном выходе
+и во время воспроизведения кнопка закрыта. Публичной базы ЦАПов нет намеренно.
+И **обновления**: фоновая проверка при каждом запуске (молчит, когда нечего
+показать), автоскачивание с установкой при выходе — по умолчанию включено,
+переключается в Settings → General → Updates.
+HEAD: `1fc5150` — feat(updates): check at every launch, install automatically.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
