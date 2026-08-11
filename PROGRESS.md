@@ -6,15 +6,19 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "2611349"
-tests: 72/72 (swift test, 5 packages)
-last_session: 7
-last_reviewed: 2026-08-10
+head: "917f004"
+tests: 87/87 (swift test, 5 packages)
+last_session: 8
+last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
   - "Тёмные скриншоты для README (Settings → General → Appearance → Dark, ⌘⇧3) и лого на прозрачном фоне без впечатанного текста"
   - "Развилка: фаза 6 Navidrome (D-003) или бэклог D-006 — решает Di-kairos"
+  - "Опубликовать 0.8.8: DMG собран и нотаризован, gh release create за владельцем — данные appcast в SESSION_09_KICKOFF.md"
+  - "Фишка E (история прослушиваний): файл или таблица в БД — решает Di-kairos (миграция схемы после фазы 2)"
+  - "Рамка продукта: список фишек написан языком запуска, а SPEC §1.3 говорит «личный плеер, не продукт» — решает Di-kairos"
+  - "Публичная база ЦАПов (вторая половина фишки B) — против SPEC §1.2, решает Di-kairos"
   - "Mac App Store (D-009) — отложено, старт по команде владельца; первыми два гейта: hog под песочницей и LGPL lame/libsndfile"
   - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver, обе a11y-настройки"
   - "Прогнать замер скролла на 120-Гц панели (здесь дисплей 60 Гц): RUBIS_SCROLL_BENCH"
@@ -28,8 +32,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session07.md
-  latest_kickoff: docs/sessions/SESSION_08_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session08.md
+  latest_kickoff: docs/sessions/SESSION_09_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -322,6 +326,39 @@ source=Notarized Developer ID`. SHA256 опубликованного DMG све
 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` (make-dmg.sh это
 уже делает сам).
 HEAD: `2611349` — chore(release): bump version to 0.8.7 (24).
+Session 08 продолжение (2026-08-10 → 11): два бага с живого плеера.
+(1) Play умирал после возврата устройства: наушники вынули → `handleDeviceLoss`
+поднимал `outputDeviceLost` и ставил паузу, а `resume()` при поднятом флаге
+молча отказывался работать; сбрасывался флаг только в `startCurrent`, то есть
+при запуске трека с нуля. Теперь Play поднимает трек с секунды пропажи —
+запрет SPEC §9 на авто-возобновление цел (без нажатия ничего не происходит),
+решение вынесено в чистый `ResumePolicy` с тестами. (2) Альбом, переехавший
+из источника AMBIENT в ELECTRO, раздваивался: распознавание переноса работало
+только внутри одного источника, поэтому старые треки оставались недоступными
+(D-004), а новый скан заводил их заново — 46 треков вместо 23. Теперь новые
+файлы сверяются с недоступными треками ДРУГИХ источников по подписи size+mtime
+(строка меняет хозяина, id/плейлисты/история целы), плюс уборка в конце скана
+для неудачного порядка сканирования. Оба порядка закрыты тестами (MusicLibrary
+41/41).
+Фишки по списку владельца: **C** — политика `rateFallback = .refuse` перестала
+притворяться поломкой (`rateRefused` называет устройство и частоту, все ошибки
+воспроизведения получили человеческий текст вместо `Error: deviceUnavailable`);
+**D** — `NetworkLedger` в EscapementCore и раздел Settings → Network: каждый
+исходящий запрос записан (хост без пути, причина, исход, размер), заметки
+ходят через одну дверь, проверки Sparkle снимаются делегатом — иначе панель
+врала бы нулём; хранилище файл, не таблица (схема заморожена после фазы 2).
+**F** (аппаратная громкость) оказалась сделанной ещё в §4.4.
+Фаза 6 в ветке `phase/06-subsonic`: pack 1 — клиент OpenSubsonic (соль+токен,
+`stream` с `format=raw`, тесты офлайн на записанных ответах Navidrome),
+pack 2 — Settings → Server с живым Test connection и паролем в связке
+(`kSecClassInternetPassword`). Схему БД не трогали: поля под сервер в v1.
+**D-009**: Mac App Store принят как цель, работа отложена до команды владельца
+(два гейта — hog под песочницей и LGPL `lame`/`libsndfile`).
+Выпущена **0.8.7** (build 24), SHA256 сверен, appcast запушен. **0.8.8**
+(build 25) собрана и нотаризована, но НЕ опубликована — `gh release create`
+за владельцем, данные appcast лежат в `SESSION_09_KICKOFF.md`.
+HEAD: `917f004` — feat(privacy): network ledger — every outgoing request, on the record.
+Отчёт сессии — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
 

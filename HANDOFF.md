@@ -2,17 +2,25 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **07** (2026-08-10, переключатель Appearance) — отчёт
-  `docs/sessions/progress-report-session07.md`
-- Следующая: **08** — kickoff `docs/sessions/SESSION_08_KICKOFF.md`
-- Ветка: `main`, head `ea65c6a`. Тесты 72/72, Debug без warnings
-- **В main лежит невыпущенное**: Settings → General → Appearance
-  (System / Light / Dark), палитра больше не привязана к macOS.
-  Релиз с этой машины невозможен — `security find-identity` → 0 identities,
-  Developer ID на второй машине
-- Статус продукта: **Rubis Music 0.8.6** (build 23) в фиде `rubis-releases`.
-  0.8.5 и 0.8.6 подписаны `Developer ID Application: Daniel Diamant (TA24A89R8H)`
-  и нотаризованы Apple — на чужой машине открываются двойным кликом
+- Последняя сессия: **08** (2026-08-10 → 11: релиз 0.8.7, два бага с живого
+  плеера, фишки C и D, фаза 6 packs 1–2) — отчёт
+  `docs/sessions/progress-report-session08.md`
+- Следующая: **09** — kickoff `docs/sessions/SESSION_09_KICKOFF.md`
+- Ветка: `main`, head `917f004`. Тесты **87/87**, Debug без warnings
+- Вторая ветка: `phase/06-subsonic` (запушена) — клиент OpenSubsonic и
+  Settings → Server, SubsonicKit 17 тестов
+- **0.8.8 (build 25) собрана и нотаризована, но НЕ опубликована**: DMG на
+  Рабочем столе, `gh release create` за владельцем, готовый item для appcast
+  (EdDSA, length, SHA256) лежит в `SESSION_09_KICKOFF.md`. Локальную правку
+  appcast откатили намеренно — запись про неопубликованный ассет ломает
+  обновление 404-й
+- **В main после 0.8.8 лежит невыпущенное**: фишки C (отказ говорит словами)
+  и D (Network Ledger) — уедут следующим релизом
+- Статус продукта: **Rubis Music 0.8.7** (build 24) в фиде `rubis-releases`,
+  подписан `Developer ID Application: Daniel Diamant (TA24A89R8H)` и
+  нотаризован Apple — на чужой машине открывается двойным кликом
+- Developer ID и профиль нотаризации `rubis` есть **на этой машине**
+  (в S08 отсюда и выпускали)
 - **Репозиторий кода публичный**: https://github.com/Di-kairos/Rubis
 - Релиз одной командой: `./Tools/make-dmg.sh` — сборка, подпись (включая
   вложенные бинари Sparkle), подпись образа, нотаризация, staple, EdDSA-подпись
@@ -29,9 +37,28 @@
    полосы внизу) — снимаются без переключения всей macOS: Settings → General →
    Appearance → Dark, ⌘⇧3. И **лого на прозрачном фоне** без впечатанных
    «RUBIS» и «HI-FI MUSIC PLAYER» — сейчас они дублируют заголовок и таглайн
-3. **Развилка разработки**: фаза 6 Navidrome (D-003) или бэклог D-006
+3. **Рамка продукта**: список фишек написан языком запуска («маркетинг»,
+   «платно», «форумы»), а SPEC §1.3 и README говорят «личный плеер, не
+   продукт». Смена рамки тянет non-goals, лицензию и статус D-009
+4. **Фишка E** (история прослушиваний): файл как `NetworkLedger` или таблица
+   в БД — схема после фазы 2 меняется только с разрешения владельца
+5. **Публичная база ЦАПов** (вторая половина фишки B) — против SPEC §1.2,
+   локальное досье делаем и без неё
+6. **Mac App Store** (D-009) — по команде, начинать со спайка, не с кода
 
 ## Знать до того, как копать
+
+- **`swift test` без Xcode-тулчейна не идёт**: `xcode-select -p` смотрит в
+  CommandLineTools → «no such module 'Testing'». Гонять с
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`
+- **Новые файлы App-таргета** прописываются в `project.pbxproj` руками
+  (явные ссылки, не синхронизированные группы), иначе «cannot find X in scope»
+- **`security` (keychain) у Claude режется классификатором** — команды
+  владельцу строкой. У него висит диалог на входе в Settings: записи
+  `claude-api-key`/`deepseek-api-key` созданы старыми подписями, лечение —
+  удалить обе и ввести ключ заново
+- **Журнал соединений — файл**, не таблица (`Application Support/Escapement/
+  network-ledger.json`): схема БД заморожена после фазы 2
 
 - **Keychain**: у владельца диалог пароля всплывает, пока не нажат `Always Allow`
   (записи созданы старыми подписями). У новых пользователей его нет — запись
