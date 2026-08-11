@@ -20,6 +20,8 @@ struct NowPlayingQueue: View {
     /// Пока писатель сочиняет (10–40 с на новый альбом), полоса не должна
     /// выглядеть пустой — иначе читается как «зависло».
     @State private var notesLoading = false
+    /// Заметки включены, но их нет — строкой, почему именно.
+    @State private var notesMissing: String?
     /// Свои указатели прокрутки вместо системных скроллбаров — тот же язык,
     /// что у полки альбомов (золотой ползунок в рубиновой оправе).
     @State private var queueScroll = ScrollTrack()
@@ -41,7 +43,7 @@ struct NowPlayingQueue: View {
                 // в ноль, стоило появиться заметке. GeometryReader убирает
                 // переговоры — верхнему ряду достаётся всё, кроме полосы заметок.
                 GeometryReader { geo in
-                    let band = notes == nil ? 0 : Self.notesHeight + DS.Space.lg
+                    let band = notesBand
                     VStack(alignment: .leading, spacing: DS.Space.lg) {
                         // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
                         Group {
@@ -118,14 +120,11 @@ struct NowPlayingQueue: View {
     @ViewBuilder
     private var notesSection: some View {
         if notes == nil, notesLoading {
-            VStack(alignment: .leading, spacing: DS.Space.sm) {
-                Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                DSText(
-                    "Writing liner notes…", style: .label, color: DS.Color.textTertiary
-                )
-                .padding(.top, DS.Space.sm)
-            }
-            .frame(height: Self.notesHeight, alignment: .top)
+            notice("Writing liner notes…")
+        } else if notes == nil, let notesMissing {
+            // Включённые заметки, которых нет, раньше оставляли пустое место
+            // без единого слова — и это читалось как поломка.
+            notice(notesMissing)
         } else if let notes {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
@@ -154,8 +153,27 @@ struct NowPlayingQueue: View {
         }
     }
 
+    /// Одна строка под чертой: «пишем…» или почему заметки нет.
+    private func notice(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
+            Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
+            DSText(text, style: .label, color: DS.Color.textTertiary)
+                .padding(.top, DS.Space.sm)
+        }
+        .frame(height: Self.noticeHeight, alignment: .top)
+    }
+
     /// Высота полосы заметок — та же константа в расчёте верхнего ряда.
     private static let notesHeight: CGFloat = 200
+    /// Полоса под одну строку: раньше «пишем…» занимало все 200 pt, а верхний
+    /// ряд об этом не знал — и очередь уезжала под черту.
+    private static let noticeHeight: CGFloat = 44
+
+    private var notesBand: CGFloat {
+        if notes != nil { return Self.notesHeight + DS.Space.lg }
+        if notesLoading || notesMissing != nil { return Self.noticeHeight + DS.Space.lg }
+        return 0
+    }
 
     /// Подпись под заметкой: писателя не называем (решение владельца) —
     /// liner notes идут от имени плеера. Wikipedia остаётся названной:
@@ -244,10 +262,19 @@ struct NowPlayingQueue: View {
             album = nil
         }
         notes = nil
+        notesMissing = nil
         if albumNotes, let album {
             notesLoading = true
             notes = await env.albumInfo.info(for: album)
             notesLoading = false
+            if notes == nil {
+                let writer = AlbumInfoService.selectedProvider.displayName
+                notesMissing =
+                    await env.albumInfo.writerKeyIsSet()
+                    ? "No liner notes: nothing in Wikipedia, and \(writer) had nothing to add"
+                    : "No liner notes: nothing in Wikipedia, and no \(writer) key is set "
+                        + "— Settings → Album notes"
+            }
         }
     }
 }

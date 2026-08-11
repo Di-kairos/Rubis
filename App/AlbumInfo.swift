@@ -72,11 +72,7 @@ actor AlbumInfoService {
 
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
         if result == nil {
-            let provider =
-                NotesProvider(
-                    rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? ""
-                ) ?? .claude
-            switch provider {
+            switch Self.selectedProvider {
             case .claude:
                 result = await fetchClaude(
                     title: title, artist: album.albumArtist, year: album.year)
@@ -88,6 +84,16 @@ actor AlbumInfoService {
         if let result { writeCache(albumId: id, info: result) }
         return result
     }
+
+    /// Выбранный писатель (Settings → Album notes).
+    static var selectedProvider: NotesProvider {
+        NotesProvider(rawValue: UserDefaults.standard.string(forKey: "notesProvider") ?? "")
+            ?? .claude
+    }
+
+    /// Ключ писателя на месте? Пустая полоса заметок должна уметь объяснить
+    /// себя словами, а не молчать (та же рамка, что у отказа по частоте).
+    func writerKeyIsSet() -> Bool { apiKey(for: Self.selectedProvider) != nil }
 
     // MARK: - Wikipedia
 
