@@ -416,13 +416,42 @@ final class AppEnvironment {
         }
     }
 
+    /// ⌘R обновляет всё, что подключено: папки сканируются, серверы
+    /// синхронизируются — источник для владельца один, «моя музыка».
     func rescanAll() {
         Task {
             guard let sources = try? sourceRepo.all() else { return }
-            for source in sources where source.kind == .local && source.enabled {
-                try? await rescan(source: source)
+            for source in sources where source.enabled {
+                switch source.kind {
+                case .local: try? await rescan(source: source)
+                case .subsonic: await sync(server: source)
+                }
             }
         }
+    }
+
+    /// Синхронизация одного сервера (фаза 6, pack 3). Ошибка сети не роняет
+    /// остальные источники — она остаётся в логе, а полоска гаснет.
+    func sync(server source: Source) async {
+        guard let client = SubsonicAccount.client(for: source) else {
+            Log.library.error("subsonic source without credentials: \(source.id, privacy: .public)")
+            return
+        }
+        let sync = SubsonicSync(client: client, sourceId: source.id, db: db)
+        do {
+            for try await progress in await sync.run() {
+                switch progress {
+                case .albums(let done, let total):
+                    scanProgress = .reading(done: done, total: total)
+                case .finished(let tracks, let removed):
+                    Log.library.info(
+                        "subsonic sync: +\(tracks, privacy: .public) −\(removed, privacy: .public)")
+                }
+            }
+        } catch {
+            Log.library.error("subsonic sync failed: \(error, privacy: .public)")
+        }
+        scanProgress = nil
     }
 
     private func rescan(source: Source) async throws {

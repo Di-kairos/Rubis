@@ -16,6 +16,8 @@ struct ServerSettings: View {
     @State private var password = ""
     @State private var status = Status.idle
     @State private var existing: Source?
+    /// Идёт синхронизация каталога — кнопка занята.
+    @State private var syncing = false
 
     /// Результат «Test connection» — явный, как требует acceptance фазы 6.
     private enum Status: Equatable {
@@ -44,7 +46,11 @@ struct ServerSettings: View {
                     .disabled(!isFilled || status == .testing)
                 Button("Save") { save() }
                     .disabled(!isFilled)
-                if existing != nil {
+                if let existing {
+                    // Каталог тянется по явной команде: приложение не ходит
+                    // в сеть само (SPEC §1.2). ⌘R делает то же для всех источников.
+                    Button(syncing ? "Syncing…" : "Sync now") { syncNow(existing) }
+                        .disabled(syncing)
                     Button("Remove", role: .destructive) { remove() }
                 }
                 Spacer()
@@ -87,6 +93,16 @@ struct ServerSettings: View {
     }
 
     // MARK: - Действия
+
+    /// Синхронизация каталога по кнопке. Прогресс показывает та же полоска
+    /// в сайдбаре, что и скан папок.
+    private func syncNow(_ source: Source) {
+        syncing = true
+        Task {
+            await env.sync(server: source)
+            syncing = false
+        }
+    }
 
     private func load() {
         existing = (try? env.sourceRepo.all())?.first { $0.kind == .subsonic }
