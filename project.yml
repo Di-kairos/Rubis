@@ -41,6 +41,7 @@ targets:
         SUFeedURL: https://raw.githubusercontent.com/Di-kairos/rubis-releases/main/appcast.xml
         SUPublicEDKey: B9ET1V4F1uNjHOjG+kJROT8Z1oajNxBbAX9UNrQ/sjg=
         SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 3600
     dependencies:
       - package: EscapementCore
       - package: PlaybackEngine
