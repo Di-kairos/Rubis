@@ -110,6 +110,65 @@ public actor AudioDeviceController {
         return status == noErr
     }
 
+    // MARK: - Досье устройства (фишка B)
+
+    /// Физический формат DSD объявляется четырёхсимвольным кодом `dsd `.
+    /// Константы для него в SDK нет, поэтому код собран руками.
+    /// ponytail: признак эвристический — драйверы без родного DSD везут
+    /// поток через DoP и в списке форматов его не показывают.
+    private static let dsdFormatID: UInt32 = 0x6473_6420
+
+    /// Опрос железа: частоты, разрядности, DSD, ручка громкости, микшер.
+    /// Ничего не переключает — только читает.
+    public func dossier(deviceID: UInt32) throws -> DeviceDossier {
+        let device = try requireDevice(deviceID)
+        let ranges = try device.availableNominalSampleRates
+        let rates = DeviceDossier.probedRates.filter { rate in
+            ranges.contains { $0.contains(rate) }
+        }
+
+        var depths: Set<Int> = []
+        var nativeDSD = false
+        for stream in (try? device.streams(inScope: .output)) ?? [] {
+            for (format, _) in (try? stream.availablePhysicalFormats) ?? [] {
+                if format.mFormatID == kAudioFormatLinearPCM, format.mBitsPerChannel > 0 {
+                    depths.insert(Int(format.mBitsPerChannel))
+                }
+                if format.mFormatID == Self.dsdFormatID { nativeDSD = true }
+            }
+        }
+
+        return DeviceDossier(
+            name: (try? device.name) ?? "Unknown Device",
+            uid: (try? device.deviceUID) ?? "",
+            transport: (try? device.transportType)?.debugDescription ?? "Unknown",
+            sampleRates: rates,
+            bitDepths: depths.sorted(),
+            nativeDSD: nativeDSD,
+            hardwareVolume: hasVolumeControl(deviceID: deviceID),
+            mixingControl: supportsMixingControl(deviceID: deviceID),
+            builtIn: isBuiltInDevice(deviceID: deviceID))
+    }
+
+    /// Отдаёт ли устройство эксклюзивный доступ. Проверка настоящая: берём
+    /// hog и тут же отпускаем. Если он уже наш (идёт воспроизведение) —
+    /// отвечаем «да», не отпуская: иначе проверка глушила бы музыку.
+    public func probeHogging(deviceID: UInt32) -> Bool {
+        if isHogOwner(deviceID: deviceID) { return true }
+        guard startHogging(deviceID: deviceID) else { return false }
+        stopHogging(deviceID: deviceID)
+        return true
+    }
+
+    /// Есть ли у HAL рычаг микшера — читаем наличие свойства, не трогая его.
+    public func supportsMixingControl(deviceID: UInt32) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertySupportsMixing,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain)
+        return AudioObjectHasProperty(deviceID, &address)
+    }
+
     // MARK: - Hardware volume (SPEC §4.4 — never software gain)
 
     public func hasVolumeControl(deviceID: UInt32) -> Bool {

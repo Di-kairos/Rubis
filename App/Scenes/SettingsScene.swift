@@ -250,10 +250,17 @@ struct AudioSettings: View {
     /// Пустая строка — следовать системному default-выходу.
     @AppStorage("preferredDeviceUID") private var preferredDeviceUID = ""
     @State private var devices: [AudioDeviceController.DeviceInfo] = []
+    /// Устройство, о котором показываем досье: выбранное или системное.
+    @State private var dossierDeviceID: UInt32?
 
     /// Свой экземпляр только для перечисления — HAL-запросы дёшевы,
     /// трогать актор плеера ради списка не нужно.
     private let enumerator = AudioDeviceController()
+
+    private var isPlaying: Bool {
+        if case .playing = env.playbackState { return true }
+        return false
+    }
 
     var body: some View {
         Form {
@@ -287,6 +294,9 @@ struct AudioSettings: View {
             }
             .disabled(true)
             .help("ReplayGain is stored but never applied in v1 — bit-perfect first (SPEC §5.3)")
+            Section("What this device can do") {
+                DeviceDossierCard(deviceID: dossierDeviceID, playing: isPlaying)
+            }
         }
         .padding(DS.Space.xl)
         .frame(width: 520)
@@ -294,10 +304,23 @@ struct AudioSettings: View {
         .onChange(of: rateChangeDelayMs) { pushConfig() }
         .onChange(of: rateFallback) { pushConfig() }
         .onChange(of: dsdMode) { pushConfig() }
-        .onChange(of: preferredDeviceUID) { pushConfig() }
+        .onChange(of: preferredDeviceUID) {
+            pushConfig()
+            Task { await resolveDossierDevice() }
+        }
         .task {
             devices = (try? await enumerator.outputDevices()) ?? []
+            await resolveDossierDevice()
             pushConfig()
+        }
+    }
+
+    /// Пустой UID — досье на системный выход: именно в него и будет играть.
+    private func resolveDossierDevice() async {
+        if preferredDeviceUID.isEmpty {
+            dossierDeviceID = try? await enumerator.defaultOutputDevice()?.id
+        } else {
+            dossierDeviceID = devices.first { $0.uid == preferredDeviceUID }?.id
         }
     }
 
