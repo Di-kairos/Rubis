@@ -10,6 +10,8 @@ import SwiftUI
 struct AlbumDetail: View {
     let album: Album
     var showcase = false
+    /// Размер обложки витрины — витрина считает его от высоты окна.
+    var showcaseCover: CGFloat = 240
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
 
@@ -20,8 +22,9 @@ struct AlbumDetail: View {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom, spacing: DS.Space.xl) {
                     // 240 в витрине: 300 вместе с полкой отжимали у трек-листа
-                    // всю высоту на невысоких окнах.
-                    cover(size: showcase ? 240 : 200)
+                    // всю высоту на невысоких окнах. В низком окне витрина
+                    // присылает размер меньше — иначе экран не влезает целиком.
+                    cover(size: showcase ? showcaseCover : 200)
                     metadata
                     Spacer(minLength: 0)
                 }

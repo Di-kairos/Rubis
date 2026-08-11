@@ -38,8 +38,10 @@ struct MainWindow: View {
     @State private var forcedSection: LibrarySection? = MainWindow.debugStartSection
 
     /// Разделы, занимающие всю площадь окна (двухколонный режим, Jewel Box II).
+    /// Tracks и Playlists здесь же: колонку деталей они не заполняют — там
+    /// вечно висело «Select an album», отъедая у списка полокна.
     private var fullBleedSection: Bool {
-        [.nowPlaying, .albums, .history].contains(section.wrappedValue)
+        [.nowPlaying, .albums, .history, .tracks, .playlists].contains(section.wrappedValue)
     }
 
     private var section: Binding<LibrarySection> {
@@ -75,6 +77,10 @@ struct MainWindow: View {
                         NowPlayingQueue()
                     case .history:
                         ListeningHistoryView()
+                    case .tracks:
+                        TracksList()
+                    case .playlists:
+                        PlaylistsView()
                     default:
                         AlbumsShowcase(featured: $selectedAlbum, source: sourceFilter)
                     }
@@ -159,18 +165,14 @@ struct MainWindow: View {
             SearchResults(selectedAlbum: $selectedAlbum)
         } else {
             switch section.wrappedValue {
-            case .albums, .nowPlaying, .history:
+            case .albums, .nowPlaying, .history, .tracks, .playlists:
                 // Недостижимо: эти разделы живут в двухколонном режиме выше;
                 // сюда попадает только активный поиск (ветка выше).
                 DS.Color.bgBase
             case .artists:
                 ArtistsList(selectedAlbum: $selectedAlbum)
-            case .tracks:
-                TracksList()
             case .recentlyAdded:
                 RecentlyAddedGrid(selectedAlbum: $selectedAlbum)
-            case .playlists:
-                PlaylistsView()
             }
         }
     }

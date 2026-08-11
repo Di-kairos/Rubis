@@ -31,16 +31,25 @@ struct AlbumsShowcase: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                VStack(spacing: 0) {
-                    if let featured {
-                        AlbumDetail(album: featured, showcase: true)
+                // Обложка витрины и полка идут за высотой окна: на минимальной
+                // высоте прежние 240 + 108 не оставляли места ни трек-листу,
+                // ни транспорту — полка уезжала за нижний край.
+                GeometryReader { geo in
+                    let compact = geo.size.height < 640
+                    VStack(spacing: 0) {
+                        if let featured {
+                            AlbumDetail(
+                                album: featured, showcase: true,
+                                showcaseCover: compact ? 170 : 240
+                            )
                             .id(featured.id)
                             // Явный top: дефолтное центрирование обрезало
                             // обложку сверху и выталкивало трек-лист под полку.
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             .clipped()
+                        }
+                        shelf(cover: compact ? 72 : 108)
                     }
-                    shelf
                 }
             }
         }
@@ -64,7 +73,7 @@ struct AlbumsShowcase: View {
     }
 
     /// Полка коллекции: горизонтальный ряд обложек на волосяной кромке.
-    private var shelf: some View {
+    private func shelf(cover: CGFloat) -> some View {
         VStack(spacing: 0) {
             Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
             ScrollViewReader { proxy in
@@ -73,7 +82,7 @@ struct AlbumsShowcase: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .bottom, spacing: DS.Space.lg) {
                         ForEach(Array(albums.enumerated()), id: \.element.id) { index, album in
-                            shelfCover(album, index: index)
+                            shelfCover(album, index: index, size: cover)
                                 .id(album.id)
                         }
                     }
@@ -89,7 +98,7 @@ struct AlbumsShowcase: View {
                 .scrollPosition($shelfPosition)
                 // Фиксированная высота: без неё горизонтальный скроллер
                 // раздувался и отжимал у трек-листа всю высоту (frame=0).
-                .frame(height: 108 + DS.Space.lg * 2)
+                .frame(height: cover + DS.Space.lg * 2)
                 .onChange(of: focused) {
                     guard let focused, albums.indices.contains(focused) else { return }
                     featured = albums[focused]
@@ -108,9 +117,9 @@ struct AlbumsShowcase: View {
         }
     }
 
-    private func shelfCover(_ album: Album, index: Int) -> some View {
+    private func shelfCover(_ album: Album, index: Int, size: CGFloat) -> some View {
         let isFeatured = featured?.id == album.id
-        return DSCoverImage(image: shelfImage(album), size: 108, radius: DS.Radius.small)
+        return DSCoverImage(image: shelfImage(album), size: size, radius: DS.Radius.small)
             // Непроигрываемое приглушено, featured — золотое кольцо (D-007).
             .opacity(isFeatured ? 1 : 0.78)
             .overlay(
