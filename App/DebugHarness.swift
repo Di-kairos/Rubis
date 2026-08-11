@@ -27,10 +27,15 @@ enum DebugHarness {
             NSApp.appearance = NSAppearance(named: .darkAqua)
         }
 
+        // Размер задаём сразу: до снимка должно пройти всё ожидание, иначе
+        // в кадр попадает окно, ещё не перерисованное под новый размер.
+        if let size = env["RUBIS_WINDOW_SIZE"] {
+            DispatchQueue.main.async { MainActor.assumeIsolated { resizeWindow(to: size) } }
+        }
+
         let delay = Double(env["RUBIS_HARNESS_DELAY"] ?? "") ?? 6
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             MainActor.assumeIsolated {
-                if let size = env["RUBIS_WINDOW_SIZE"] { resizeWindow(to: size) }
                 if let snapshotPath { writeSnapshot(to: snapshotPath) }
                 if benchmark {
                     ScrollBenchmark.shared.run {
@@ -54,8 +59,6 @@ enum DebugHarness {
             let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil })
         else { return }
         window.setContentSize(NSSize(width: parts[0], height: parts[1]))
-        // Ресайз применяется не мгновенно — снимок ждёт один прогон цикла.
-        RunLoop.main.run(until: Date().addingTimeInterval(1))
     }
 
     private static func finish(_ env: [String: String]) {

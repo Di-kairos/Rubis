@@ -50,6 +50,10 @@ final class AppEnvironment {
     private(set) var scanProgress: ScanProgress?
     private(set) var repeatMode: RepeatMode = .off
     private(set) var shuffleMode: ShuffleMode = .off
+    /// Счётчик изменений очереди. Нужен экранам: очередь меняется и без смены
+    /// состояния воспроизведения — тихое восстановление при запуске оставляет
+    /// `playbackState` в `idle`, и подписка на трек ничего бы не заметила.
+    private(set) var queueRevision = 0
 
     // MARK: - Search (SPEC §7.2)
 
@@ -148,19 +152,30 @@ final class AppEnvironment {
         // по самому треку, а не по индексу исходного списка.
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
-        Task { await player.play(items: items, startAt: start) }
+        Task {
+            await player.play(items: items, startAt: start)
+            queueRevision += 1
+        }
     }
 
     /// Треки сразу после текущего.
     func playNext(tracks: [Track]) {
         let items = resolveItems(tracks: tracks)
-        Task { await player.playNext(items: items) }
+        guard !items.isEmpty else { return }
+        Task {
+            await player.playNext(items: items)
+            queueRevision += 1
+        }
     }
 
     /// Треки в конец очереди.
     func addToQueue(tracks: [Track]) {
         let items = resolveItems(tracks: tracks)
-        Task { await player.enqueue(items: items) }
+        guard !items.isEmpty else { return }
+        Task {
+            await player.enqueue(items: items)
+            queueRevision += 1
+        }
     }
 
     /// Текущая очередь для экрана Now Playing: состав и индекс играющего.
@@ -175,6 +190,7 @@ final class AppEnvironment {
             let items = await player.queuedItems()
             guard items.indices.contains(index) else { return }
             await player.play(items: items, startAt: index)
+            queueRevision += 1
         }
     }
 
@@ -204,7 +220,10 @@ final class AppEnvironment {
         let modes = ShuffleMode.allCases
         let next = modes[(modes.firstIndex(of: shuffleMode).map { $0 + 1 } ?? 0) % modes.count]
         shuffleMode = next
-        Task { await player.setShuffleMode(next) }
+        Task {
+            await player.setShuffleMode(next)
+            queueRevision += 1
+        }
     }
 
     func cycleRepeatMode() {
@@ -318,9 +337,21 @@ final class AppEnvironment {
         guard let snapshot = PlaybackSnapshot.load(from: .standard),
             let tracks = try? trackRepo.tracks(ids: snapshot.trackIds)
         else { return }
-        let items = resolveItems(tracks: tracks)
+        var items = resolveItems(tracks: tracks)
+        #if DEBUG
+        // Снимки вёрстки: ad-hoc сборка не резолвит bookmark подписанного
+        // релиза, и очередь оказывается пустой. `RUBIS_FAKE_QUEUE=1` наполняет
+        // её теми же треками с несуществующими путями — звука нет (restore не
+        // играет), а экран рисуется целиком.
+        if items.isEmpty, ProcessInfo.processInfo.environment["RUBIS_FAKE_QUEUE"] != nil {
+            items = tracks.map {
+                PlaybackItem(track: $0, url: URL(fileURLWithPath: $0.relativePath ?? "/dev/null"))
+            }
+        }
+        #endif
         guard !items.isEmpty else { return }
         await player.restore(items: items, at: snapshot.index, offset: snapshot.offset)
+        queueRevision += 1
     }
 
     func next() {

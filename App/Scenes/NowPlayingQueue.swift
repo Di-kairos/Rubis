@@ -80,9 +80,9 @@ struct NowPlayingQueue: View {
         .keyboardNavigable(count: tracks.count, index: $focused) { index in
             env.playQueueItem(at: index)
         }
-        // Перезагрузка на смене трека; enqueue без смены трека догонит
-        // при следующем заходе в раздел.
-        .task(id: env.currentTrack?.id) { await reload() }
+        // Перезагрузка на смене трека и на тихом восстановлении очереди: restore
+        // оставляет playbackState idle, поэтому currentTrack сам не меняется.
+        .task(id: reloadID) { await reload() }
     }
 
     /// Играющий альбом крупно — как на экране альбома (DESIGN §5.4),
@@ -95,7 +95,7 @@ struct NowPlayingQueue: View {
         return VStack(alignment: .leading, spacing: compact ? DS.Space.sm : DS.Space.lg) {
             DSCoverImage(image: coverImage, size: cover, radius: DS.Radius.card)
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                if let track = env.currentTrack {
+                if let track = displayTrack {
                     DSText(track.title, style: compact ? .title : .display, lines: compact ? 1 : 2)
                 }
                 if let album {
@@ -209,6 +209,18 @@ struct NowPlayingQueue: View {
         return NSImage(contentsOf: url)
     }
 
+    private var reloadID: String {
+        "\(env.queueRevision):\(env.currentTrack?.id ?? -1)"
+    }
+
+    private var displayTrack: Track? {
+        env.currentTrack ?? currentQueueTrack
+    }
+
+    private var currentQueueTrack: Track? {
+        tracks.indices.contains(currentIndex) ? tracks[currentIndex] : nil
+    }
+
     private var summary: String {
         let total = tracks.reduce(0) { $0 + $1.duration }
         return "\(tracks.count) tracks · \(AlbumDetail.format(duration: total))"
@@ -276,7 +288,11 @@ struct NowPlayingQueue: View {
         let snapshot = await env.queueSnapshot()
         tracks = snapshot.tracks
         currentIndex = snapshot.index
-        if let albumId = env.currentTrack?.albumId {
+        let current =
+            snapshot.tracks.indices.contains(snapshot.index)
+            ? snapshot.tracks[snapshot.index]
+            : env.currentTrack
+        if let albumId = current?.albumId {
             album = try? env.albumRepo.album(id: albumId)
         } else {
             album = nil
