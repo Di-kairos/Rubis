@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "000a386"
+head: "718e06e"
 tests: 98/98 (swift test, 5 packages)
 last_session: 8
 last_reviewed: 2026-08-11
@@ -362,7 +362,11 @@ Session 9 (2026-08-11): **фишка E — приватная история п�
 трека или на четвёртой минуте, прыжок назад по таймлайну начинает новое
 (repeat-one считается). Раздел **History** в сайдбаре: период, топ артистов,
 топ треков, лента последних, Clear history. Тесты 98/98.
-HEAD: `000a386` — feat(history): private listening history.
+Там же вылечена немая полоса заметок: включённые liner notes без результата
+теперь говорят строкой, какая дверь не открылась (нет статьи в Wikipedia,
+нет ключа писателя), и «Writing liner notes…» больше не задвигает очередь
+под черту.
+HEAD: `718e06e` — fix(notes): say why liner notes are missing.
 Отчёт сессии 08 — `docs/sessions/progress-report-session08.md`.
 
 ## Фазы (из TASKS.md)
