@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "a3f9592"
-tests: 152/152 (swift test, 5 packages)
+head: "24d7216"
+tests: 163/163 (swift test, 5 packages)
 last_session: 10
 last_reviewed: 2026-08-11
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -440,6 +440,14 @@ Session 11 (2026-08-12): вёрстка окна перестала игнори
 обложки — название не обрезается в широком окне; в одноколонном режиме
 обложка ужимается, и очередь перестала схлопываться в одну строку.
 HEAD: `a3f9592` — fix(ui): make the window layout adapt to its width.
+Дальше сессия 11 закрывала список владельца: лицензия **MIT** (D-010),
+`audio-verify` теперь едет внутри бандла (`Contents/MacOS/audio-verify`,
+D-011) и релиз падает, если утилита не стартует оттуда, отчёт о тракте
+подписывается ключом установки Ed25519 вместо SHA-256-отпечатка (D-012,
+проверка `audio-verify --verify-receipt` и через `openssl`). Ревью Codex
+на крипто-пути закрыло три способа подделать проходящий проверку отчёт.
+Тесты 163/163.
+HEAD: `24d7216` — feat(receipt): sign the signal path receipt with a per-install Ed25519 key.
 
 ## Фазы (из TASKS.md)
 
