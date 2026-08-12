@@ -16,43 +16,22 @@ struct AlbumDetail: View {
     @State private var tracks: [Track] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xl) {
-            // Обложка рядом с метаданными, пока это влезает; в узкой колонке —
-            // друг под другом. Без этого название альбома схлопывалось в «Dea…».
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .bottom, spacing: DS.Space.xl) {
-                    // 240 в витрине: 300 вместе с полкой отжимали у трек-листа
-                    // всю высоту на невысоких окнах. В низком окне витрина
-                    // присылает размер меньше — иначе экран не влезает целиком.
-                    cover(size: showcase ? showcaseCover : 200)
-                    metadata
-                    Spacer(minLength: 0)
+        // Разворот конверта: в широком окне метаданные слева, трек-лист справа.
+        // Стопкой сверху вниз лист уезжал в подвал, а справа от обложки
+        // оставалось полокна пустоты.
+        GeometryReader { geo in
+            if geo.size.width >= DS.Metrics.spreadMinWidth {
+                HStack(alignment: .top, spacing: DS.Space.xxl) {
+                    coverAndMetadata
+                        .frame(width: leftColumnWidth, alignment: .leading)
+                    trackList
                 }
-                VStack(alignment: .leading, spacing: DS.Space.lg) {
-                    cover(size: 140)
-                    metadata
-                }
-            }
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // Liner notes (Jewel Box II): многодисковый альбом делится
-                    // на секции, трек-лист — с точечными лидерами.
-                    ForEach(discs, id: \.no) { disc in
-                        if let no = disc.no {
-                            DSText(
-                                "Disc \(no)", style: .label, color: DS.Color.accent
-                            )
-                            .padding(.top, DS.Space.lg)
-                            .padding(.bottom, DS.Space.xs)
-                        }
-                        ForEach(disc.rows, id: \.offset) { index, track in
-                            trackRow(track, at: index)
-                        }
-                    }
+            } else {
+                VStack(alignment: .leading, spacing: DS.Space.xl) {
+                    coverAndMetadata
+                    trackList
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .padding(DS.Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -67,6 +46,59 @@ struct AlbumDetail: View {
                 Log.ui.error("track observation failed: \(error, privacy: .public)")
             }
         }
+    }
+
+    /// 240 в витрине: 300 вместе с полкой отжимали у трек-листа всю высоту
+    /// на невысоких окнах. В низком окне витрина присылает размер меньше —
+    /// иначе экран не влезает целиком.
+    private var coverSize: CGFloat { showcase ? showcaseCover : 200 }
+
+    /// Колонка разворота не у́же меры под название: иначе `display` обрезается.
+    private var leftColumnWidth: CGFloat { max(coverSize, DS.Metrics.metadataColumnMin) }
+
+    /// Обложка рядом с метаданными, пока это влезает; в узкой колонке —
+    /// друг под другом. Без этого название альбома схлопывалось в «Dea…».
+    private var coverAndMetadata: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .bottom, spacing: DS.Space.xl) {
+                cover(size: coverSize)
+                metadata
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: DS.Space.lg) {
+                cover(size: coverSize)
+                metadata
+            }
+            VStack(alignment: .leading, spacing: DS.Space.lg) {
+                cover(size: 140)
+                metadata
+            }
+        }
+    }
+
+    private var trackList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // Liner notes (Jewel Box II): многодисковый альбом делится
+                // на секции, трек-лист — с точечными лидерами.
+                ForEach(discs, id: \.no) { disc in
+                    if let no = disc.no {
+                        DSText(
+                            "Disc \(no)", style: .label, color: DS.Color.accent
+                        )
+                        .padding(.top, DS.Space.lg)
+                        .padding(.bottom, DS.Space.xs)
+                    }
+                    ForEach(disc.rows, id: \.offset) { index, track in
+                        trackRow(track, at: index)
+                    }
+                }
+            }
+            // Мера строки: лидер на всю ширину окна тянется через полтора
+            // метра пустоты и строка перестаёт читаться.
+            .frame(maxWidth: DS.Metrics.contentMeasure, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     /// Строка секции: диск (nil у однодискового альбома) и его треки

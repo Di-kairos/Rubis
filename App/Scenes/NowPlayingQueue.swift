@@ -46,11 +46,17 @@ struct NowPlayingQueue: View {
                     let notesHeight = notesHeight(in: geo.size.height)
                     let gap = notesHeight > 0 ? DS.Space.lg : 0
                     let rowHeight = max(Self.rowMinHeight, geo.size.height - notesHeight - gap)
-                    let cover = Self.coverSize(rowHeight: rowHeight)
+                    let wide = geo.size.width >= DS.Metrics.twoColumnMinWidth
+                    // В колонку обложка съедает высоту у очереди: в стопке
+                    // от неё остаётся строка-две. Сверху вниз обложка мельче.
+                    let cover =
+                        wide
+                        ? Self.coverSize(rowHeight: rowHeight)
+                        : min(Self.coverSize(rowHeight: rowHeight), rowHeight * 0.35)
                     VStack(alignment: .leading, spacing: DS.Space.lg) {
                         // Верх: обложка слева, очередь справа (узкое окно — сверху вниз).
                         Group {
-                            if geo.size.width >= 640 {
+                            if wide {
                                 HStack(alignment: .top, spacing: DS.Space.xxl) {
                                     hero(cover: cover)
                                     HStack(spacing: DS.Space.sm) {
@@ -115,7 +121,9 @@ struct NowPlayingQueue: View {
                 .padding(.top, DS.Space.xs)
             }
         }
-        .frame(width: cover, alignment: .leading)
+        // Колонка шире обложки: раньше текст жил ровно по её ширине и
+        // название обрезалось «Plays at the Wrong…» даже в широком окне.
+        .frame(width: max(cover, DS.Metrics.metadataColumnMin), alignment: .leading)
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
@@ -258,6 +266,8 @@ struct NowPlayingQueue: View {
                         .trackQueueMenu(track, env: env)
                     }
                 }
+                // Та же мера строки, что на экране альбома.
+                .frame(maxWidth: DS.Metrics.contentMeasure, alignment: .leading)
             }
             .onScrollGeometryChange(for: ScrollTrack.self, of: ScrollTrack.vertical) { _, new in
                 queueScroll = new

@@ -102,6 +102,17 @@ extension DS {
         public static let iconPlay: CGFloat = 28
         public static let windowMinWidth: CGFloat = 900
         public static let windowMinHeight: CGFloat = 600
+        /// Предельная мера строки трек-листа: дальше точечный лидер тянется
+        /// на полэкрана и глаз теряет строку по дороге к длительности.
+        public static let contentMeasure: CGFloat = 720
+        /// Минимум под колонку «обложка + метаданные»: у́же название альбома
+        /// (`display`, serif 28) обрезается многоточием.
+        public static let metadataColumnMin: CGFloat = 320
+        /// Экран альбома раскладывается разворотом (метаданные слева,
+        /// трек-лист справа) от этой ширины.
+        public static let spreadMinWidth: CGFloat = 1000
+        /// Now Playing раскладывается в две колонки от этой ширины.
+        public static let twoColumnMinWidth: CGFloat = 640
         public static let progressBarHeight: CGFloat = 3
         public static let progressBarHeightHover: CGFloat = 5
         public static let miniPlayerSize = CGSize(width: 240, height: 80)
