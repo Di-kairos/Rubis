@@ -87,6 +87,10 @@ Requires macOS 15 or newer on Apple silicon.
   search answers under 50 ms, the shelf scrolls at 59–60 fps.
 - **Sources** — folders on any volume; a disconnected disk greys tracks out
   instead of destroying history. A scan never deletes anything.
+- **CUE sheets** — a disc ripped as one file plus a `.cue` becomes the tracks it
+  actually holds. The sheet's titles and performers win over the file's tags,
+  because that is where they live. Boundaries are handed to the decoder as a
+  frame region, so seams stay gapless and the bit-perfect path is untouched.
 - **Your own server** — a Subsonic/Navidrome library appears next to the local
   one. Tracks are downloaded whole before they play, never transcoded
   (`format=raw`), so the bit-perfect path is the same one local files take; the
