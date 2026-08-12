@@ -173,6 +173,6 @@ see [docs/third-party.md](docs/third-party.md).
 
 ## Licence
 
-None yet, which by default means all rights reserved: read the code freely, but
-copying it into your own project is not permitted until a licence file says
-otherwise.
+[MIT](LICENSE) — take it, fork it, ship it. The libraries the binary bundles
+keep their own terms, two of them LGPL; see
+[docs/third-party.md](docs/third-party.md).
