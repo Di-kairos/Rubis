@@ -407,8 +407,7 @@ public actor Player {
         // ponytail: DSD-рип с CUE играет файлом целиком — DSDDecoder региона
         // не умеет, а DSD раздают образом SACD, а не диском с листом.
         if !isDSD, let region = CueRegion(track: item.track) {
-            return try AudioRegionDecoder(
-                url: item.url, startFrame: region.startFrame, frameLength: region.frameLength)
+            return try region.decoder(url: item.url)
         }
         guard isDSD else {
             return try AudioDecoder(url: item.url)
