@@ -35,9 +35,16 @@
 Rubis plays a lossless library — on your disk or on your own Navidrome server —
 the way the file was mastered: the device sample rate follows the track, the
 mixer is bypassed, the signal leaves the app untouched. Server tracks take the
-same path: they are downloaded whole, never transcoded, and played as files. That claim is not taken on trust — `Tools/audio-verify` compares
+same path: they are downloaded whole, never transcoded, and played as files. That claim is not taken on trust — `audio-verify` compares
 output against 24 fixtures (44.1–192 kHz, 16/24-bit, FLAC/ALAC/WAV) and has to
-pass before any change to the engine is committed.
+pass before any change to the engine is committed. **The tool ships with the
+app**, so the proof is yours to re-run, not a screenshot to believe:
+
+```bash
+brew install blackhole-2ch ffmpeg          # loopback device + fixture generator
+git clone https://github.com/Di-kairos/Rubis && Rubis/Tools/make-fixtures.sh
+"/Applications/Rubis Music.app/Contents/MacOS/audio-verify" Rubis/Fixtures
+```
 
 | Measured | |
 |---|---|
