@@ -38,7 +38,10 @@
 ---
 
 <p align="center">
-  <img src="docs/assets/now-playing.png" alt="Now Playing: the album cover and the queue side by side, liner notes underneath">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/now-playing-dark.png">
+    <img src="docs/assets/now-playing.png" alt="Now Playing: the album cover and the queue side by side, liner notes underneath">
+  </picture>
 </p>
 
 Rubis plays a lossless library — on your disk or on your own Navidrome server —
@@ -141,7 +144,10 @@ a thread of gold marking selection rather than a filled bar, and a single garnet
 window: one record lit from the front, the collection on a shelf below it.
 
 <p align="center">
-  <img src="docs/assets/albums.png" alt="Albums: the featured record with its track list, the rest of the collection on a shelf">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/albums-dark.png">
+    <img src="docs/assets/albums.png" alt="Albums: the featured record with its track list, the rest of the collection on a shelf">
+  </picture>
 </p>
 
 The full system — palette, type scale, spacing grid, motion rules — is in
