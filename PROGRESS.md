@@ -6,13 +6,13 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "387b0cf"
-tests: 181/181 (swift test, 5 packages; ветка phase/09-cue — 193/193)
-last_session: 11
+head: "85f133e"
+tests: 193/193 (swift test, 5 packages)
+last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "CUE: прогнать audio-verify (0/24 на M5 Max — пустая запись, похоже на TCC), затем merge phase/09-cue + D-013 + README"
+  - "CUE: живая проверка на настоящем рипе (диск одним FLAC + .cue) — границы на слух, бейдж на стыке"
   - "Английский манифест — после вердикта владельца по русскому тексту"
   - "Тёмные скриншоты README — только руками владельца (харнесс не снимает vibrancy-сайдбар); рецепт в SESSION_12_KICKOFF"
   - "Релиз 0.10.0: в main накопились вёрстка, D-010, D-011, D-012, лого"
@@ -460,6 +460,15 @@ D-011) и релиз падает, если утилита не стартует
 на крипто-пути закрыло три способа подделать проходящий проверку отчёт.
 Тесты 163/163.
 HEAD: `24d7216` — feat(receipt): sign the signal path receipt with a per-install Ed25519 key.
+Session 12 (2026-08-12): **CUE влит в `main`** (D-013). Блокер сессии 11 оказался
+не регрессом: `audio-verify` давал 0/24 с пустой записью, потому что захват не
+имел разрешения TCC — теперь `mic permission status: 3`, и утилита выдаёт
+**24/24 bit-perfect** и на `main`, и на `phase/09-cue` (правка за
+`cueStart != nil`, обычные файлы её не видят). Ветка слита `--no-ff`, тесты
+**193/193** (8+51+73+25+36), D-013 записано, README получил абзац про рипы с CUE.
+Осталось по CUE только живое: рип «диск одним FLAC + .cue» в источник, границы
+на слух и бейдж тракта на стыке.
+HEAD: `85f133e` — docs(cue): D-013 and the README entry for CUE rips.
 
 ## Фазы (из TASKS.md)
 
