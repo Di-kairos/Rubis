@@ -56,6 +56,54 @@ public actor LibraryScanner {
             .appendingPathComponent("Logs/Escapement/scan.log")
     }
 
+    /// Строка трека глазами скана: чего хватает, чтобы решить судьбу файла,
+    /// не вычитывая всю таблицу.
+    struct KnownTrack: Codable, FetchableRecord {
+        var id: Int64
+        var relativePath: String
+        var fileSize: Int64?
+        var modifiedAt: Date?
+        var unavailable: Bool
+        var cueStart: Double?
+
+        static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
+            .convertFromSnakeCase
+    }
+
+    /// Лист и его дорожки, привязанные к аудиофайлу (D-013).
+    struct CueContext: Sendable {
+        var sheet: CueSheet
+        var tracks: [CueSheet.Track]
+    }
+
+    /// Разбирает найденные `.cue` и раскладывает их по путям аудиофайлов.
+    ///
+    /// Один лист описывает один диск, но ссылаться может на несколько файлов
+    /// (рип «дорожка в файл»): каждый FILE получает свои дорожки. Пути,
+    /// которых нет на диске, отбрасываются здесь же — дальше по коду CUE уже
+    /// означает «файл существует и режется».
+    static func cueSegments(
+        from cueURLs: [URL], root: URL,
+        onDisk: [String: (url: URL, size: Int64, mtime: Date)]
+    ) -> [String: CueContext] {
+        var result: [String: CueContext] = [:]
+        for cueURL in cueURLs {
+            guard let sheet = (try? CueSheet.read(contentsOf: cueURL)) ?? nil else { continue }
+            let directory = cueURL.deletingLastPathComponent()
+            for file in sheet.files {
+                let audioURL = directory.appendingPathComponent(file.name)
+                let relative = String(
+                    audioURL.path.dropFirst(root.path.count).drop(while: { $0 == "/" }))
+                guard onDisk[relative] != nil, !file.tracks.isEmpty else { continue }
+                // Файл на одну дорожку резать нечего: это обычный трек,
+                // и лишняя строка cue_start только мешала бы переезду.
+                guard file.tracks.count > 1 || file.tracks[0].start > 0 else { continue }
+                result[relative] = CueContext(sheet: sheet, tracks: file.tracks)
+            }
+        }
+        return result
+    }
+
     // MARK: - Bookmarks (SPEC §5.2)
 
     public static func makeBookmark(for url: URL) throws -> Data {
@@ -101,9 +149,15 @@ public actor LibraryScanner {
         else {
             throw PlaybackError.fileNotFound(rootURL.path)
         }
+        var cueURLs: [URL] = []
         while let next = enumerator.nextObject() {
             guard let url = next as? URL else { continue }
-            guard Self.audioExtensions.contains(url.pathExtension.lowercased()) else { continue }
+            let ext = url.pathExtension.lowercased()
+            if ext == "cue" {
+                cueURLs.append(url)
+                continue
+            }
+            guard Self.audioExtensions.contains(ext) else { continue }
             let values = try? url.resourceValues(forKeys: Set(keys))
             guard values?.isRegularFile == true else { continue }
             let relative = String(url.path.dropFirst(rootURL.path.count).drop(while: { $0 == "/" }))
@@ -116,45 +170,49 @@ public actor LibraryScanner {
         }
         onProgress?(.enumerating(found: onDisk.count))
 
-        // 2. Что уже в базе
-        struct KnownTrack: Codable, FetchableRecord {
-            var id: Int64
-            var relativePath: String
-            var fileSize: Int64?
-            var modifiedAt: Date?
-            var unavailable: Bool
+        // 1b. CUE-листы: рип диска одним файлом плюс границы дорожек (D-013).
+        //     Лист, чей аудиофайл не найден, молча пропускается — рядом с
+        //     .cue часто лежит ссылка на .wav, которого давно нет.
+        let cues = Self.cueSegments(from: cueURLs, root: rootURL, onDisk: onDisk)
 
-            static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
-                .convertFromSnakeCase
-        }
-        let known: [String: KnownTrack] = try await db.reader.read { database in
-            let rows = try KnownTrack.fetchAll(
+        // 2. Что уже в базе. Путь больше не ключ: у рипа с CUE на один файл
+        //    приходится столько строк, сколько в листе дорожек.
+        let knownRows: [KnownTrack] = try await db.reader.read { database in
+            try KnownTrack.fetchAll(
                 database,
                 sql: """
-                    SELECT id, relative_path, file_size, modified_at, unavailable
+                    SELECT id, relative_path, file_size, modified_at, unavailable, cue_start
                     FROM track WHERE source_id = ?
                     """,
                 arguments: [source.id])
-            return Dictionary(uniqueKeysWithValues: rows.map { ($0.relativePath, $0) })
         }
+        let known: [String: [KnownTrack]] = Dictionary(grouping: knownRows, by: \.relativePath)
 
         // 3. Инкрементальность: только новые и изменённые (mtime или size)
         var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
         /// Вернувшиеся файлы — снять пометку недоступности.
         var restoredIDs: [Int64] = []
         for (relative, info) in onDisk {
-            if let existing = known[relative] {
-                let sameSize = existing.fileSize == info.size
+            let rows = known[relative] ?? []
+            if !rows.isEmpty {
+                let sameSize = rows[0].fileSize == info.size
                 let sameTime =
-                    existing.modifiedAt.map {
+                    rows[0].modifiedAt.map {
                         abs($0.timeIntervalSince(info.mtime)) < 1.0
                     } ?? false
-                if sameSize && sameTime {
-                    summary.unchanged += 1
-                    if existing.unavailable { restoredIDs.append(existing.id) }
+                // Файл не тронут, но рядом появился (или пропал) CUE-лист —
+                // строк в базе столько же, сколько дорожек в листе, только
+                // если разбор уже случился. Иначе перечитываем.
+                let expected = cues[relative]?.tracks.count ?? 1
+                if sameSize && sameTime && rows.count == expected {
+                    summary.unchanged += rows.count
+                    restoredIDs.append(contentsOf: rows.filter(\.unavailable).map(\.id))
                     continue
                 }
-                toRead.append((relative, info.url, existing.id))
+                // Единственная строка — обычный трек, её id сохраняем вместе
+                // с плейлистами и историей. Сегменты CUE сопоставляются по
+                // началу дорожки уже при записи.
+                toRead.append((relative, info.url, rows.count == 1 ? rows[0].id : nil))
             } else {
                 toRead.append((relative, info.url, nil))
             }
@@ -164,17 +222,21 @@ public actor LibraryScanner {
         //    именем. Узнали → трек сохраняет id (а с ним плейлисты и историю),
         //    просто меняет путь. Не узнали → помечаем недоступным, не удаляем:
         //    том мог быть отключён (D-002), файл может вернуться.
-        var missing = known.filter { onDisk[$0.key] == nil }.map(\.value)
+        var missing = known.filter { onDisk[$0.key] == nil }.flatMap(\.value)
         if !missing.isEmpty {
             var newIndexBySignature: [String: Int] = [:]
             for (index, item) in toRead.enumerated() where item.existingID == nil {
-                if let info = onDisk[item.relative] {
+                if let info = onDisk[item.relative], cues[item.relative] == nil {
                     newIndexBySignature[Self.signature(size: info.size, mtime: info.mtime)] = index
                 }
             }
             var stillMissing: [KnownTrack] = []
             for candidate in missing {
-                guard let size = candidate.fileSize, let mtime = candidate.modifiedAt,
+                // Сегменты одного файла делят подпись на всех: узнать по ней
+                // переезд нельзя. Переехавший рип с CUE войдёт заново, а
+                // прежние строки погасит уборка двойников ниже.
+                guard candidate.cueStart == nil,
+                    let size = candidate.fileSize, let mtime = candidate.modifiedAt,
                     let index =
                         newIndexBySignature
                         .removeValue(forKey: Self.signature(size: size, mtime: mtime))
@@ -283,7 +345,8 @@ public actor LibraryScanner {
                 case .success(let meta):
                     batch.append((relative, existingID, meta))
                     if batch.count >= Self.batchSize {
-                        try await commit(batch: batch, source: source, summary: &summary)
+                        try await commit(
+                            batch: batch, cues: cues, source: source, summary: &summary)
                         batch.removeAll(keepingCapacity: true)
                     }
                 case .failure(let error):
@@ -293,7 +356,7 @@ public actor LibraryScanner {
             }
         }
         if !batch.isEmpty {
-            try await commit(batch: batch, source: source, summary: &summary)
+            try await commit(batch: batch, cues: cues, source: source, summary: &summary)
         }
 
         // 6. Уборка двойников. Пункт 4b ловит переезд, только когда старый
@@ -350,6 +413,7 @@ public actor LibraryScanner {
 
     private func commit(
         batch: [(relative: String, existingID: Int64?, meta: FileMetadata)],
+        cues: [String: CueContext],
         source: Source,
         summary: inout ScanSummary
     ) async throws {
@@ -375,26 +439,32 @@ public actor LibraryScanner {
                 for (relative, existingID, meta, diskValues, folderCover) in batchValues {
                     let item = (relative: relative, existingID: existingID, meta: meta)
                     let values = diskValues
+                    // Лист главнее тегов файла: у рипа одним куском теги
+                    // описывают весь диск, а названия дорожек есть только в CUE.
+                    let cue = cues[relative]
                     let meta = item.meta
+                    let albumTitleTag = cue?.sheet.title ?? meta.albumTitle
+                    let artistTag = cue?.sheet.performer ?? meta.artist
+                    let yearTag = cue?.sheet.date ?? meta.year
                     // Тег важнее файла в папке (SPEC §5.4).
                     let cover = meta.embeddedCover ?? folderCover
 
                     // Артист трека
                     let trackArtistID = try Self.resolveArtist(
-                        name: meta.artist, sortTag: meta.artistSortTag,
+                        name: artistTag, sortTag: meta.artistSortTag,
                         cache: &artists, database: database)
 
                     // Album artist по правилам §5.3
                     let albumArtistName =
-                        meta.albumArtistTag
-                        ?? (meta.isCompilationTagged ? "Various Artists" : meta.artist)
+                        cue?.sheet.performer ?? meta.albumArtistTag
+                        ?? (meta.isCompilationTagged ? "Various Artists" : artistTag)
                     let albumArtistID = try Self.resolveArtist(
                         name: albumArtistName, sortTag: meta.albumSortTag == nil ? nil : nil,
                         cache: &artists, database: database)
 
                     // Альбом
                     var albumID: Int64?
-                    if let albumTitle = meta.albumTitle {
+                    if let albumTitle = albumTitleTag {
                         let key = "\(albumArtistName ?? "")\u{1F}\(albumTitle)"
                         if let cached = albums[key] {
                             albumID = cached
@@ -409,7 +479,7 @@ public actor LibraryScanner {
                                 var new = Album(
                                     title: albumTitle, sortTitle: sortTitle,
                                     artistId: albumArtistID,
-                                    albumArtist: albumArtistName, year: meta.year, date: meta.date,
+                                    albumArtist: albumArtistName, year: yearTag, date: meta.date,
                                     discCount: nil, isCompilation: meta.isCompilationTagged)
                                 if let cover, let hash = try? coverCache.store(cover) {
                                     new.coverHash = hash
@@ -426,6 +496,75 @@ public actor LibraryScanner {
                             albumID = album?.id
                             if let id = album?.id { albums[key] = id }
                         }
+                    }
+
+                    if let cue {
+                        // Рип с CUE: строк столько, сколько дорожек в листе.
+                        // Прежние строки этого файла узнаются по началу
+                        // сегмента — так правка листа не плодит двойников и не
+                        // теряет id (а с ним плейлисты и историю).
+                        var existing: [Double: Track] = [:]
+                        for row
+                            in try Track
+                            .filter(Column("source_id") == source.id)
+                            .filter(Column("relative_path") == item.relative)
+                            .fetchAll(database)
+                        {
+                            if let start = row.cueStart { existing[start] = row }
+                        }
+                        var written: Set<Double> = []
+                        for entry in cue.tracks {
+                            let end = entry.end
+                            let performer = entry.performer ?? artistTag
+                            let artistID = try Self.resolveArtist(
+                                name: performer, sortTag: nil, cache: &artists,
+                                database: database)
+                            var segment = Track(
+                                id: existing[entry.start]?.id,
+                                sourceId: source.id,
+                                relativePath: item.relative,
+                                fileSize: values.size,
+                                modifiedAt: values.mtime,
+                                title: entry.title ?? "\(meta.title) (\(entry.number))",
+                                artistId: artistID,
+                                albumId: albumID,
+                                trackNo: entry.number,
+                                discNo: meta.discNo,
+                                duration: (end ?? meta.duration) - entry.start,
+                                codec: meta.codec,
+                                sampleRate: meta.sampleRate,
+                                bitDepth: meta.bitDepth,
+                                channels: meta.channels,
+                                bitrate: meta.bitrate,
+                                replaygainTrack: meta.replaygainTrack,
+                                replaygainAlbum: meta.replaygainAlbum,
+                                cueStart: entry.start,
+                                cueEnd: end)
+                            if segment.id != nil {
+                                try segment.update(database)
+                                updated += 1
+                            } else {
+                                try segment.insert(database)
+                                added += 1
+                            }
+                            written.insert(entry.start)
+                        }
+                        // Дорожки, исчезнувшие из листа, вместе со строкой
+                        // «весь файл», если он раньше играл целиком.
+                        let stale =
+                            try Track
+                            .filter(Column("source_id") == source.id)
+                            .filter(Column("relative_path") == item.relative)
+                            .fetchAll(database)
+                            .filter { row in
+                                guard let start = row.cueStart else { return true }
+                                return !written.contains(start)
+                            }
+                        for row in stale {
+                            guard let id = row.id else { continue }
+                            try Track.deleteOne(database, key: id)
+                        }
+                        continue
                     }
 
                     var track = Track(
