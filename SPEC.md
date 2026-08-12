@@ -274,9 +274,16 @@ CREATE TABLE track (
     replaygain_track REAL,
     replaygain_album REAL,
     added_at       DATETIME NOT NULL,
-    UNIQUE(source_id, relative_path),
+    unavailable    INTEGER NOT NULL DEFAULT 0,  -- D-004: файл пропал, трек жив
+    cue_start      REAL,                     -- D-013: границы внутри общего
+    cue_end        REAL,                     --        файла (рип с CUE)
     UNIQUE(source_id, remote_id)
 );
+
+-- Путь уникален для обычных треков и различает дорожки CUE по началу
+-- сегмента: у обычного трека coalesce даёт общий −1 (миграция v3).
+CREATE UNIQUE INDEX idx_track_path
+    ON track(source_id, relative_path, coalesce(cue_start, -1));
 
 CREATE TABLE playlist (
     id          INTEGER PRIMARY KEY,

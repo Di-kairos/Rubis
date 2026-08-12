@@ -117,6 +117,14 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
     /// Файла нет на месте: том отключён или файл удалён. Строка приглушена
     /// в UI, трек не попадает в воспроизведение, но живёт в плейлистах.
     public var unavailable: Bool
+    /// Границы дорожки внутри общего файла — рип диска одним FLAC с CUE-листом
+    /// (D-013). `nil` у обычного трека: он и есть весь файл.
+    public var cueStart: Double?
+    /// Конец сегмента; `nil` у последней дорожки — она играет до конца файла.
+    public var cueEnd: Double?
+
+    /// Трек живёт внутри общего файла, а не занимает его целиком.
+    public var isCueSegment: Bool { cueStart != nil }
 
     public init(
         id: Int64? = nil,
@@ -139,7 +147,9 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         replaygainTrack: Double? = nil,
         replaygainAlbum: Double? = nil,
         addedAt: Date = Date(),
-        unavailable: Bool = false
+        unavailable: Bool = false,
+        cueStart: Double? = nil,
+        cueEnd: Double? = nil
     ) {
         self.id = id
         self.sourceId = sourceId
@@ -162,6 +172,8 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         self.replaygainAlbum = replaygainAlbum
         self.addedAt = addedAt
         self.unavailable = unavailable
+        self.cueStart = cueStart
+        self.cueEnd = cueEnd
     }
 }
 

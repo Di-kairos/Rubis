@@ -151,6 +151,100 @@ enum Migrations {
                 sql: "ALTER TABLE track ADD COLUMN unavailable INTEGER NOT NULL DEFAULT 0")
         }
 
+        // CUE-лист: несколько треков живут в одном файле, каждый со своими
+        // границами (D-013). Одними столбцами не обойтись — прежний
+        // UNIQUE(source_id, relative_path) запрещал второй трек с тем же
+        // путём, а его в SQLite можно снять только перестройкой таблицы.
+        // Идентификаторы сохраняются, поэтому плейлисты, история и индекс
+        // track_fts переезд переживают.
+        migrator.registerMigration("v3_track_cue", foreignKeyChecks: .deferred) { db in
+            try db.execute(
+                sql: """
+                    CREATE TABLE track_new (
+                        id             INTEGER PRIMARY KEY,
+                        source_id      TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
+                        remote_id      TEXT,
+                        relative_path  TEXT,
+                        file_size      INTEGER,
+                        modified_at    DATETIME,
+                        title          TEXT NOT NULL,
+                        artist_id      INTEGER REFERENCES artist(id),
+                        album_id       INTEGER REFERENCES album(id),
+                        track_no       INTEGER,
+                        disc_no        INTEGER,
+                        duration       REAL NOT NULL,
+                        codec          TEXT NOT NULL,
+                        sample_rate    INTEGER NOT NULL,
+                        bit_depth      INTEGER,
+                        channels       INTEGER NOT NULL,
+                        bitrate        INTEGER,
+                        replaygain_track REAL,
+                        replaygain_album REAL,
+                        added_at       DATETIME NOT NULL,
+                        unavailable    INTEGER NOT NULL DEFAULT 0,
+                        cue_start      REAL,
+                        cue_end        REAL,
+                        UNIQUE(source_id, remote_id)
+                    );
+
+                    INSERT INTO track_new (
+                        id, source_id, remote_id, relative_path, file_size, modified_at,
+                        title, artist_id, album_id, track_no, disc_no, duration, codec,
+                        sample_rate, bit_depth, channels, bitrate, replaygain_track,
+                        replaygain_album, added_at, unavailable
+                    )
+                    SELECT
+                        id, source_id, remote_id, relative_path, file_size, modified_at,
+                        title, artist_id, album_id, track_no, disc_no, duration, codec,
+                        sample_rate, bit_depth, channels, bitrate, replaygain_track,
+                        replaygain_album, added_at, unavailable
+                    FROM track;
+
+                    DROP TABLE track;
+                    ALTER TABLE track_new RENAME TO track;
+                    """)
+
+            // Путь остаётся уникальным для обычных треков (coalesce даёт им
+            // общий −1) и различает дорожки CUE по началу сегмента.
+            try db.execute(
+                sql: """
+                    CREATE UNIQUE INDEX idx_track_path
+                        ON track(source_id, relative_path, coalesce(cue_start, -1));
+                    CREATE INDEX idx_track_album ON track(album_id, disc_no, track_no);
+                    CREATE INDEX idx_track_artist ON track(artist_id);
+                    CREATE INDEX idx_track_added ON track(added_at DESC);
+                    """)
+
+            // Триггеры ушли вместе со старой таблицей — ставим заново теми же.
+            try db.execute(
+                sql: """
+                    CREATE TRIGGER track_fts_insert AFTER INSERT ON track BEGIN
+                        INSERT INTO track_fts(rowid, title, artist_name, album_title)
+                        VALUES (
+                            new.id,
+                            new.title,
+                            coalesce((SELECT name FROM artist WHERE id = new.artist_id), ''),
+                            coalesce((SELECT title FROM album WHERE id = new.album_id), '')
+                        );
+                    END;
+
+                    CREATE TRIGGER track_fts_delete AFTER DELETE ON track BEGIN
+                        DELETE FROM track_fts WHERE rowid = old.id;
+                    END;
+
+                    CREATE TRIGGER track_fts_update AFTER UPDATE ON track BEGIN
+                        DELETE FROM track_fts WHERE rowid = old.id;
+                        INSERT INTO track_fts(rowid, title, artist_name, album_title)
+                        VALUES (
+                            new.id,
+                            new.title,
+                            coalesce((SELECT name FROM artist WHERE id = new.artist_id), ''),
+                            coalesce((SELECT title FROM album WHERE id = new.album_id), '')
+                        );
+                    END;
+                    """)
+        }
+
         return migrator
     }
 }
