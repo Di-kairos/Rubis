@@ -90,8 +90,20 @@ Requires macOS 15 or newer on Apple silicon.
   next track is prefetched while the current one plays. The download cache has a
   ceiling you set and clears by hand. A server that stops answering greys out its
   own tracks and says so in one line — no alert.
-- **A receipt for the signal path** — copy or save a plain-text report of
-  everything between the file and the DAC, fingerprinted with SHA-256.
+- **A signed receipt for the signal path** — copy or save a plain-text report of
+  everything between the file and the DAC, signed with an Ed25519 key that
+  belongs to your install (private half in the keychain, public half printed in
+  the receipt). Edit one number in a receipt someone posts and the signature
+  stops matching:
+
+  ```bash
+  "/Applications/Rubis Music.app/Contents/MacOS/audio-verify" --verify-receipt receipt.txt
+  ```
+
+  It proves the text was not altered after it was issued, and that two receipts
+  came from the same install. It does not certify the binary — the key is local,
+  not a seal from us. The same check runs under `openssl pkeyutl -verify` for
+  anyone who would rather not trust our tool with it.
 - **DAC dossier** — Settings → Audio asks the device what it can actually do:
   rates, bit depths, DoP ceiling, hardware volume, exclusive access, tested live.
 - **A private history** — what you played, kept in a file on your Mac: top

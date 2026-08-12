@@ -305,6 +305,34 @@ func verifyFixture(
 
 // MARK: - Entry point
 
+// Проверка чужого отчёта о тракте (D-012): `audio-verify --verify-receipt
+// <файл>`. Живёт здесь, а не отдельной утилитой, потому что бинарь и так едет
+// в бандле — подписанный отчёт должен проверяться тем, что уже есть у слушателя.
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "--verify-receipt" {
+    guard CommandLine.arguments.count > 2,
+        let text = try? String(contentsOfFile: CommandLine.arguments[2], encoding: .utf8)
+    else {
+        print("usage: audio-verify --verify-receipt <receipt.txt>")
+        exit(2)
+    }
+    guard let parsed = ReceiptSigning.parse(receipt: text) else {
+        print("No signature in this receipt — nothing to verify.")
+        exit(2)
+    }
+    if ReceiptSigning.verify(body: parsed.body, signature: parsed.signature) {
+        // Сказать «отчёт подлинный» здесь было бы враньём: ключ печатается в
+        // том же файле, и подделыватель подпишет свой текст своим ключом.
+        // Проверка отвечает ровно на один вопрос — не правили ли текст после
+        // подписи вот этим ключом.
+        print("OK — unchanged since it was signed by this key:")
+        print("Key  \(parsed.signature.publicKey)")
+        print("Compare that key with the one you saw in earlier receipts from the same install.")
+        exit(0)
+    }
+    print("FAILED — the text does not match its signature.")
+    exit(1)
+}
+
 // Каталог фикстур: argv[1] или ./Fixtures. argv[2] — файл-отчёт (для запуска
 // через LaunchServices, где stdout уходит в системный лог).
 let fixturesDir =

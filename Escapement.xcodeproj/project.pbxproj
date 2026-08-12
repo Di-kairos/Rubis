@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		059A045E0F9CE419B5257DF7 /* AlbumsGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6186081353886B17DD038F1F /* AlbumsGrid.swift */; };
 		0D810CD658C8D8A5A61331B4 /* DebugHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0F4C769CDF187F104033B37 /* DebugHarness.swift */; };
+		10274922E1000282B347DB83 /* ReceiptSigningKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 064FD31945AAF5FF6D5DFB32 /* ReceiptSigningKey.swift */; };
 		11E8DD7236FA7842C3F35564 /* RemotePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D6D8A68C52F220E59782953 /* RemotePlayback.swift */; };
 		1544F3703AF7B857340120E6 /* ListeningHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE785E780F28894DDA0A59F7 /* ListeningHistoryView.swift */; };
 		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
@@ -50,6 +51,7 @@
 
 /* Begin PBXFileReference section */
 		052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardList.swift; sourceTree = "<group>"; };
+		064FD31945AAF5FF6D5DFB32 /* ReceiptSigningKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptSigningKey.swift; sourceTree = "<group>"; };
 		13BF8575E743C49190C7592D /* MusicLibrary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicLibrary; path = Packages/MusicLibrary; sourceTree = SOURCE_ROOT; };
 		15564070708FE5323E183E1D /* SubsonicSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubsonicSync.swift; sourceTree = "<group>"; };
 		15BAA1887C15A6BCCB348934 /* ServerSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettings.swift; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 				5283E97A9EF9A36A72C9C1BD /* GlobalMediaKeys.swift */,
 				E4654C15A6867CBA18211295 /* MediaIntegration.swift */,
 				1E1E5FEE0BD1CA78A3715F09 /* MenuBarPresence.swift */,
+				064FD31945AAF5FF6D5DFB32 /* ReceiptSigningKey.swift */,
 				9D6D8A68C52F220E59782953 /* RemotePlayback.swift */,
 				9A2B488372215BD395F1076F /* SettingsKey.swift */,
 				E8E957F0EE2C02A343E538E4 /* SubsonicAccount.swift */,
@@ -329,6 +332,7 @@
 				33A93795059E5AFC72BEAADE /* NetworkSettings.swift in Sources */,
 				7BC8170DC2655E8546452F14 /* NowPlayingQueue.swift in Sources */,
 				803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */,
+				10274922E1000282B347DB83 /* ReceiptSigningKey.swift in Sources */,
 				11E8DD7236FA7842C3F35564 /* RemotePlayback.swift in Sources */,
 				5656BA90898277FA56D71F60 /* ScrollTrack.swift in Sources */,
 				895E4596F59F576829C546C2 /* SearchResults.swift in Sources */,

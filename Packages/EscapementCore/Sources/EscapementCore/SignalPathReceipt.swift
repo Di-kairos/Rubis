@@ -65,9 +65,33 @@ public struct SignalPathReceipt: Sendable, Equatable {
         return "Not bit-perfect"
     }
 
+    /// Имена полей подписи — по ним же отчёт разбирается обратно
+    /// (`ReceiptSigning.parse`).
+    public static let keyField = "Key"
+    public static let signatureField = "Signature"
+
+    /// Готовый к вставке текст с подписью (D-012). Подписывается ровно то тело,
+    /// что видно выше подписи, — байт в байт.
+    public func rendered(signedBy key: Curve25519.Signing.PrivateKey) throws -> String {
+        let body = self.body()
+        let signature = try ReceiptSigning.sign(body, with: key)
+        return body + "\n"
+            + field(Self.keyField, signature.publicKey) + "\n"
+            + field(Self.signatureField, signature.value)
+    }
+
     /// Готовый к вставке текст. Моноширинная сетка: колонка значений начинается
     /// на одном месте, чтобы отчёт читался и в чате без форматирования.
+    ///
+    /// Без ключа — с отпечатком вместо подписи: он ловит правку цифр в
+    /// скопированном тексте, но авторства не доказывает.
     public func rendered() -> String {
+        let body = self.body()
+        return body + "\n" + field("Fingerprint", Self.fingerprint(of: body))
+    }
+
+    /// Тело отчёта: всё, кроме строк подписи.
+    public func body() -> String {
         var lines = [
             "RUBIS MUSIC — SIGNAL PATH RECEIPT",
             "\(Self.stamp(date)) · Rubis Music \(appVersion)",
@@ -89,9 +113,7 @@ public struct SignalPathReceipt: Sendable, Equatable {
         lines.append(field("Rate policy", fallback))
         lines.append(String(repeating: "-", count: 52))
         lines.append(field("VERDICT", verdict))
-
-        let body = lines.joined(separator: "\n")
-        return body + "\n" + field("Fingerprint", Self.fingerprint(of: body))
+        return lines.joined(separator: "\n")
     }
 
     /// Отпечаток тела отчёта. Не подпись — доказать авторство он не может,
@@ -101,8 +123,17 @@ public struct SignalPathReceipt: Sendable, Equatable {
         return digest.map { String(format: "%02x", $0) }.joined().prefix(16).uppercased()
     }
 
+    /// Значение всегда в одну строку. Название трека приходит из тегов файла,
+    /// то есть от кого угодно: перевод строки внутри него дорисовал бы отчёту
+    /// собственные строки `Key` и `Signature` (D-012).
     private func field(_ name: String, _ value: String) -> String {
-        name.padding(toLength: max(name.count, 12), withPad: " ", startingAt: 0) + " " + value
+        let single =
+            value
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+        return name.padding(toLength: max(name.count, 12), withPad: " ", startingAt: 0) + " "
+            + single
     }
 
     /// Килогерцы через POSIX: на русской локали `formatted()` даёт «44,1»,

@@ -287,9 +287,18 @@ struct TransportBar: View {
         }
     }
 
+    /// Подписанный отчёт (D-012); связка недоступна — отчёт с отпечатком.
+    private func renderedReceipt(_ status: OutputStatus) -> String {
+        let receipt = receipt(status)
+        guard let key = ReceiptSigningKey.load(),
+            let signed = try? receipt.rendered(signedBy: key)
+        else { return receipt.rendered() }
+        return signed
+    }
+
     private func copyReceipt(_ status: OutputStatus) {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(receipt(status).rendered(), forType: .string)
+        NSPasteboard.general.setString(renderedReceipt(status), forType: .string)
         copied = true
         Task {
             try? await Task.sleep(for: .seconds(2))
@@ -302,7 +311,7 @@ struct TransportBar: View {
         panel.nameFieldStringValue = "signal-path.txt"
         panel.allowedContentTypes = [.plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? receipt(status).rendered().write(to: url, atomically: true, encoding: .utf8)
+        try? renderedReceipt(status).write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
