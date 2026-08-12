@@ -101,7 +101,8 @@ func repairEnclosedHighlights(_ data: inout [UInt8]) {
         return max(r, g, b) - min(r, g, b) > 40 || r - max(g, b) > 8
     }
     var seen = [Bool](repeating: false, count: width * height)
-    for start in 0..<(width * height) where !visited[start] && !seen[start]
+    for start in 0..<(width * height)
+    where !visited[start] && !seen[start]
         && data[start * 4 + 3] < 60
     {
         var component: [Int] = []

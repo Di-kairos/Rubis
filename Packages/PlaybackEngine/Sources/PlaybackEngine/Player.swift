@@ -401,6 +401,15 @@ public actor Player {
     /// Builds the decoder chain: plain PCM, DoP passthrough, or DSD→PCM.
     private func makeDecoder(for item: PlaybackItem) throws -> any PCMDecoding {
         let isDSD = item.track.codec == "dsf" || item.track.codec == "dff"
+        // Дорожка внутри общего файла (рип с CUE, D-013). Регион считает
+        // SFBAudioEngine — декодер сам сообщает конец на границе сегмента,
+        // поэтому и очередь, и склейка gapless работают как с обычным файлом.
+        // ponytail: DSD-рип с CUE играет файлом целиком — DSDDecoder региона
+        // не умеет, а DSD раздают образом SACD, а не диском с листом.
+        if !isDSD, let region = CueRegion(track: item.track) {
+            return try AudioRegionDecoder(
+                url: item.url, startFrame: region.startFrame, frameLength: region.frameLength)
+        }
         guard isDSD else {
             return try AudioDecoder(url: item.url)
         }
