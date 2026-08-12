@@ -6,23 +6,19 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "24d7216"
-tests: 163/163 (swift test, 5 packages)
-last_session: 10
-last_reviewed: 2026-08-11
+head: "eb91587"
+tests: 181/181 (swift test, 5 packages; ветка phase/09-cue — 193/193)
+last_session: 11
+last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "CUE: прогнать audio-verify (0/24 на M5 Max — пустая запись, похоже на TCC), затем merge phase/09-cue + D-013 + README"
+  - "Английский манифест — после вердикта владельца по русскому тексту"
+  - "Тёмные скриншоты README — только руками владельца (харнесс не снимает vibrancy-сайдбар); рецепт в SESSION_12_KICKOFF"
+  - "Релиз 0.10.0: в main накопились вёрстка, D-010, D-011, D-012, лого"
+  - "Mac App Store (D-009) — не начат, старт по команде владельца"
   - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
-  - "Лицензия репозитория: MIT / AGPL / оставить «все права защищены» — решает Di-kairos"
-  - "Рамка продукта: манифест написан продуктовым языком, SPEC §1.3 говорит «личный плеер»; конкурент Bòcan бесплатен и open source — решает Di-kairos"
-  - "Класть ли audio-verify в DMG — решает Di-kairos (даёт то, чего нет у конкурентов)"
-  - "Криптоподпись отчёта о тракте вместо SHA-256-отпечатка — решает Di-kairos"
-  - "CUE sheets в бэклог или нет — единственный функциональный пробел из разбора конкурентов"
-  - "Манифест: английский перевод и личные детали (текст в MANIFESTO.md) — решает Di-kairos"
-  - "Судьба продуктовой версии манифеста: оставить для форумных постов или отказаться; в цифрах указать MacBook Pro M5 Max"
-  - "Тёмные скриншоты для README и лого на прозрачном фоне"
   - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
-  - "Mac App Store (D-009) — отложено, старт по команде владельца"
   - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
   - "Прогнать замер скролла на 120-Гц панели: RUBIS_SCROLL_BENCH"
 links_extra:
@@ -34,8 +30,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session10.md
-  latest_kickoff: docs/sessions/SESSION_11_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session11.md
+  latest_kickoff: docs/sessions/SESSION_12_KICKOFF.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -440,6 +436,22 @@ Session 11 (2026-08-12): вёрстка окна перестала игнори
 обложки — название не обрезается в широком окне; в одноколонном режиме
 обложка ужимается, и очередь перестала схлопываться в одну строку.
 HEAD: `a3f9592` — fix(ui): make the window layout adapt to its width.
+Дальше сессия 11 закрывала список владельца: лицензия **MIT** (D-010),
+`audio-verify` теперь едет внутри бандла (`Contents/MacOS/audio-verify`,
+D-011) и релиз падает, если утилита не стартует оттуда, отчёт о тракте
+подписывается ключом установки Ed25519 вместо SHA-256-отпечатка (D-012,
+проверка `audio-verify --verify-receipt` и через `openssl`), лого получил
+вариант на прозрачном фоне под каждую тему. Ревью Codex на релизном и
+крипто-путях сняло четыре и три реальных дефекта соответственно.
+**CUE sheets**: в `main` фундамент — парсер листа и схема v3 (владелец
+одобрил разморозку: `cue_start`/`cue_end` плюс перестройка таблицы, потому
+что `UNIQUE(source_id, relative_path)` запрещал второй трек в одном файле).
+Сканер и воспроизведение сегментов лежат в ветке `phase/09-cue` (`84cf8be`,
+193/193): в `main` не влиты, пока `audio-verify` не пройден — на M5 Max он
+дал 0/24 с пустой записью у всех фикстур (похоже на права захвата, не на
+регресс). Манифест переписан по-русски и ждёт вердикта владельца.
+Тесты 181/181 в `main`.
+HEAD: `eb91587` — feat(library): schema v3 — track boundaries inside a shared file.
 Дальше сессия 11 закрывала список владельца: лицензия **MIT** (D-010),
 `audio-verify` теперь едет внутри бандла (`Contents/MacOS/audio-verify`,
 D-011) и релиз падает, если утилита не стартует оттуда, отчёт о тракте
