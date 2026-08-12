@@ -23,6 +23,12 @@
 </p>
 
 <p align="center">
+  <b><a href="MANIFESTO.en.md">Why I wrote Rubis</a></b> — the manifesto, and what every
+  claim in it rests on in the code.<br>
+  <sub>Читать по-русски: <a href="MANIFESTO.md">Почему я написал Rubis</a></sub>
+</p>
+
+<p align="center">
   <sub>A player built for one listener, published because the audio path, the layout
   math and the release pipeline may be worth reading. Not a product: no support,
   no roadmap for feature requests. Issues and pull requests are welcome and
@@ -175,7 +181,7 @@ xcodebuild -scheme Escapement -configuration Release
 
 | File | What's inside |
 |---|---|
-| [MANIFESTO.md](MANIFESTO.md) | Why this player exists, and what each claim rests on in the code (Russian) |
+| [MANIFESTO.en.md](MANIFESTO.en.md) · [MANIFESTO.md](MANIFESTO.md) | Why this player exists, and what each claim rests on in the code (English · Russian) |
 | [SPEC.md](SPEC.md) | Architecture, the audio contract, DB schema, performance budgets |
 | [DESIGN.md](DESIGN.md) | Palette, typography, grid, components, motion |
 | [TASKS.md](TASKS.md) | Phases with acceptance criteria |
