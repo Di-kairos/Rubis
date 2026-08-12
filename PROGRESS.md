@@ -6,14 +6,13 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "cfa217d"
+head: "76a7aba"
 tests: 194/194 (swift test, 5 packages)
 last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "CUE: живая проверка на настоящем рипе (диск одним FLAC + .cue) — границы на слух, бейдж на стыке"
-  - "Тёмные скриншоты README — только руками владельца (харнесс не снимает vibrancy-сайдбар); рецепт в SESSION_12_KICKOFF"
   - "Mac App Store (D-009) — не начат, старт по команде владельца"
   - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
   - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
