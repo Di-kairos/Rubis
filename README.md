@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.png" width="220" alt="Rubis Music">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-mark-dark.png">
+    <img src="docs/assets/logo-mark.png" width="200" alt="Rubis Music">
+  </picture>
 </p>
 
 <h1 align="center">Rubis Music</h1>
