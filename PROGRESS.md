@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "14ba586"
+head: "a3f9592"
 tests: 152/152 (swift test, 5 packages)
 last_session: 10
 last_reviewed: 2026-08-11
@@ -433,6 +433,13 @@ Settings → Server показывает размер и чистит. Pack 7 �
 Невыпущенного в `main` не осталось. Тесты 152/152.
 HEAD: `4ad63f3` — chore(release): bump version to 0.9.0 (27).
 Отчёт сессии 10 — `docs/sessions/progress-report-session10.md`.
+Session 11 (2026-08-12): вёрстка окна перестала игнорировать его ширину.
+Экран альбома от 1000 pt — разворот (метаданные слева, трек-лист справа),
+у́же — стопкой; строка трек-листа ограничена мерой 720 pt (лидер больше
+не тянется через полокна). Hero в Now Playing больше не зажат шириной
+обложки — название не обрезается в широком окне; в одноколонном режиме
+обложка ужимается, и очередь перестала схлопываться в одну строку.
+HEAD: `a3f9592` — fix(ui): make the window layout adapt to its width.
 
 ## Фазы (из TASKS.md)
 
