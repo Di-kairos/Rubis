@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "85f133e"
-tests: 193/193 (swift test, 5 packages)
+head: "5d3d2f7"
+tests: 194/194 (swift test, 5 packages)
 last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -468,6 +468,18 @@ Session 12 (2026-08-12): **CUE влит в `main`** (D-013). Блокер сес
 Осталось по CUE только живое: рип «диск одним FLAC + .cue» в источник, границы
 на слух и бейдж тракта на стыке.
 HEAD: `85f133e` — docs(cue): D-013 and the README entry for CUE rips.
+Там же сессия 12 поймала и вылечила дефект в самих границах CUE. Тест «сегмент
+против полного декода по битам» показал, что дорожка начиналась не со своего
+кадра, а со следующей границы блока FLAC: `SFBFLACDecoder` после seek обнуляет
+буфер, куда libFLAC уже положил блок с целевым сэмплом. До 93 мс при типичных
+4096 кадрах — голова дорожки срезана, хвост залезает на соседнюю. Компенсация
+своя (`CueRegion.decoder(url:)`: целимся на блок раньше, доедаем разницу,
+размер блока из STREAMINFO), модель прибита тестом. Та же кривизна остаётся в
+обычной перемотке по треку — там она внутри одного трека и чинится только
+подменой seek у `AudioPlayer`. Тесты 194/194, `audio-verify` 24/24.
+Замер скролла на 120-Гц XDR: **120 fps**, p95 8.33 мс, 1/720 опозданий (0.14%) —
+оговорка SPEC §12 про «120 fps не проверить» снята.
+HEAD: `5d3d2f7` — docs(cue): record the FLAC seek defect behind D-013.
 
 ## Фазы (из TASKS.md)
 
