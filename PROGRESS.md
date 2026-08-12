@@ -20,7 +20,6 @@ next_actions:
   - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
   - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
   - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
-  - "Прогнать замер скролла на 120-Гц панели: RUBIS_SCROLL_BENCH"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
