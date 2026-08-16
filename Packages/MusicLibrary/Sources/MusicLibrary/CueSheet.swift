@@ -108,8 +108,14 @@ public struct CueSheet: Equatable, Sendable {
             let (command, rest) = split(line)
             switch command.uppercased() {
             case "FILE":
+                // Дорожка, начатая до строки FILE, продолжается в следующем
+                // файле: рип «дорожка в файл» пишет предзазор концом прошлого
+                // (INDEX 00), а начало — уже после FILE (INDEX 01). Бросить её
+                // здесь значит потерять и дорожку, и её название.
+                let carried = pending?.start == nil ? pending : nil
                 closeFile()
                 currentFile = unquoteFileName(rest)
+                pending = carried
             case "TRACK":
                 closeTrack()
                 let parts = rest.split(separator: " ", omittingEmptySubsequences: true)

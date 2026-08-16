@@ -193,4 +193,30 @@ struct CueSheetTests {
         let sheet = try #require(try CueSheet.read(contentsOf: url))
         #expect(sheet.title == "With BOM")
     }
+
+    /// Рип «дорожка в файл»: EAC пишет предзазор концом прошлого файла
+    /// (INDEX 00), а начало дорожки — уже после строки FILE.
+    @Test func aTrackSurvivesTheFileBoundary() throws {
+        let sheet = try #require(
+            CueSheet.parse(
+                """
+                PERFORMER "4hero"
+                TITLE "Creating Patterns"
+                FILE "01. Conceptions.wav" WAVE
+                  TRACK 01 AUDIO
+                    TITLE "Conceptions"
+                    INDEX 01 00:00:00
+                  TRACK 02 AUDIO
+                    TITLE "Time"
+                    INDEX 00 05:37:46
+                FILE "02. Time.wav" WAVE
+                    INDEX 01 00:00:00
+                """))
+        #expect(sheet.files.count == 2)
+        #expect(sheet.files.map(\.name) == ["01. Conceptions.wav", "02. Time.wav"])
+        #expect(sheet.tracks.map(\.title) == ["Conceptions", "Time"])
+        #expect(sheet.tracks.map(\.number) == [1, 2])
+        // Каждый файл целиком свой: резать нечего, границ нет.
+        #expect(sheet.tracks.allSatisfy { $0.start == 0 && $0.end == nil })
+    }
 }

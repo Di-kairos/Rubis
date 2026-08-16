@@ -61,6 +61,7 @@ public actor LibraryScanner {
     struct KnownTrack: Codable, FetchableRecord {
         var id: Int64
         var relativePath: String
+        var title: String
         var fileSize: Int64?
         var modifiedAt: Date?
         var unavailable: Bool
@@ -74,6 +75,16 @@ public actor LibraryScanner {
     struct CueContext: Sendable {
         var sheet: CueSheet
         var tracks: [CueSheet.Track]
+
+        /// Файл режется на дорожки — рип диска одним куском. У листа «дорожка
+        /// в файл» резать нечего: он остаётся только источником метаданных
+        /// (у нетегированных рипов другого нет).
+        var isSegmented: Bool {
+            tracks.count > 1 || (tracks.first.map { $0.start > 0 } ?? false)
+        }
+
+        /// Сколько строк в базе даёт этот файл.
+        var rowCount: Int { isSegmented ? tracks.count : 1 }
     }
 
     /// Разбирает найденные `.cue` и раскладывает их по путям аудиофайлов.
@@ -81,7 +92,7 @@ public actor LibraryScanner {
     /// Один лист описывает один диск, но ссылаться может на несколько файлов
     /// (рип «дорожка в файл»): каждый FILE получает свои дорожки. Пути,
     /// которых нет на диске, отбрасываются здесь же — дальше по коду CUE уже
-    /// означает «файл существует и режется».
+    /// означает «файл существует».
     static func cueSegments(
         from cueURLs: [URL], root: URL,
         onDisk: [String: (url: URL, size: Int64, mtime: Date)]
@@ -91,17 +102,38 @@ public actor LibraryScanner {
             guard let sheet = (try? CueSheet.read(contentsOf: cueURL)) ?? nil else { continue }
             let directory = cueURL.deletingLastPathComponent()
             for file in sheet.files {
-                let audioURL = directory.appendingPathComponent(file.name)
-                let relative = String(
-                    audioURL.path.dropFirst(root.path.count).drop(while: { $0 == "/" }))
-                guard onDisk[relative] != nil, !file.tracks.isEmpty else { continue }
-                // Файл на одну дорожку резать нечего: это обычный трек,
-                // и лишняя строка cue_start только мешала бы переезду.
-                guard file.tracks.count > 1 || file.tracks[0].start > 0 else { continue }
+                guard !file.tracks.isEmpty,
+                    let relative = locate(file.name, in: directory, root: root, onDisk: onDisk)
+                else { continue }
                 result[relative] = CueContext(sheet: sheet, tracks: file.tracks)
             }
         }
         return result
+    }
+
+    /// Путь аудиофайла из строки `FILE`.
+    ///
+    /// Лист пишут до конвертации: EAC ссылается на `.wav`, а на диске под тем
+    /// же именем лежит `.flac`. Не нашли точного совпадения — ищем по основе
+    /// имени среди звуковых расширений, иначе лист теряется вместе со всеми
+    /// названиями дорожек.
+    private static func locate(
+        _ name: String, in directory: URL, root: URL,
+        onDisk: [String: (url: URL, size: Int64, mtime: Date)]
+    ) -> String? {
+        let url = directory.appendingPathComponent(name)
+        let exact = relativePath(of: url, root: root)
+        if onDisk[exact] != nil { return exact }
+        let base = url.deletingPathExtension()
+        for ext in audioExtensions.sorted() {
+            let candidate = relativePath(of: base.appendingPathExtension(ext), root: root)
+            if onDisk[candidate] != nil { return candidate }
+        }
+        return nil
+    }
+
+    private static func relativePath(of url: URL, root: URL) -> String {
+        String(url.path.dropFirst(root.path.count).drop(while: { $0 == "/" }))
     }
 
     // MARK: - Bookmarks (SPEC §5.2)
@@ -181,7 +213,7 @@ public actor LibraryScanner {
             try KnownTrack.fetchAll(
                 database,
                 sql: """
-                    SELECT id, relative_path, file_size, modified_at, unavailable, cue_start
+                    SELECT id, relative_path, title, file_size, modified_at, unavailable, cue_start
                     FROM track WHERE source_id = ?
                     """,
                 arguments: [source.id])
@@ -203,8 +235,15 @@ public actor LibraryScanner {
                 // Файл не тронут, но рядом появился (или пропал) CUE-лист —
                 // строк в базе столько же, сколько дорожек в листе, только
                 // если разбор уже случился. Иначе перечитываем.
-                let expected = cues[relative]?.tracks.count ?? 1
-                if sameSize && sameTime && rows.count == expected {
+                let expected = cues[relative]?.rowCount ?? 1
+                // Лист «дорожка в файл» мог приехать позже самих файлов: строк
+                // столько же, а названия из листа в строке ещё нет.
+                let cueTitle = cues[relative].flatMap {
+                    $0.isSegmented ? nil : $0.tracks.first?.title
+                }
+                if sameSize && sameTime && rows.count == expected,
+                    cueTitle == nil || cueTitle == rows[0].title
+                {
                     summary.unchanged += rows.count
                     restoredIDs.append(contentsOf: rows.filter(\.unavailable).map(\.id))
                     continue
@@ -226,7 +265,7 @@ public actor LibraryScanner {
         if !missing.isEmpty {
             var newIndexBySignature: [String: Int] = [:]
             for (index, item) in toRead.enumerated() where item.existingID == nil {
-                if let info = onDisk[item.relative], cues[item.relative] == nil {
+                if let info = onDisk[item.relative], cues[item.relative]?.isSegmented != true {
                     newIndexBySignature[Self.signature(size: info.size, mtime: info.mtime)] = index
                 }
             }
@@ -265,7 +304,7 @@ public actor LibraryScanner {
                 try KnownTrack.fetchAll(
                     database,
                     sql: """
-                        SELECT id, relative_path, file_size, modified_at, unavailable
+                        SELECT id, relative_path, title, file_size, modified_at, unavailable
                         FROM track WHERE unavailable = 1 AND source_id <> ?
                         """,
                     arguments: [source.id])
@@ -443,8 +482,11 @@ public actor LibraryScanner {
                     // описывают весь диск, а названия дорожек есть только в CUE.
                     let cue = cues[relative]
                     let meta = item.meta
+                    // Лист «дорожка в файл»: резать нечего, но название и
+                    // исполнитель дорожки есть только в нём.
+                    let cueTrack = cue?.isSegmented == false ? cue?.tracks.first : nil
                     let albumTitleTag = cue?.sheet.title ?? meta.albumTitle
-                    let artistTag = cue?.sheet.performer ?? meta.artist
+                    let artistTag = cueTrack?.performer ?? cue?.sheet.performer ?? meta.artist
                     let yearTag = cue?.sheet.date ?? meta.year
                     // Тег важнее файла в папке (SPEC §5.4).
                     let cover = meta.embeddedCover ?? folderCover
@@ -498,7 +540,7 @@ public actor LibraryScanner {
                         }
                     }
 
-                    if let cue {
+                    if let cue, cue.isSegmented {
                         // Рип с CUE: строк столько, сколько дорожек в листе.
                         // Прежние строки этого файла узнаются по началу
                         // сегмента — так правка листа не плодит двойников и не
@@ -573,10 +615,10 @@ public actor LibraryScanner {
                         relativePath: item.relative,
                         fileSize: values.size,
                         modifiedAt: values.mtime,
-                        title: meta.title,
+                        title: cueTrack?.title ?? meta.title,
                         artistId: trackArtistID,
                         albumId: albumID,
-                        trackNo: meta.trackNo,
+                        trackNo: cueTrack?.number ?? meta.trackNo,
                         discNo: meta.discNo,
                         duration: meta.duration,
                         codec: meta.codec,

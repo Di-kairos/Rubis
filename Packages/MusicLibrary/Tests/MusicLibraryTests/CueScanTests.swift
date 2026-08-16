@@ -168,9 +168,9 @@ struct CueScanTests {
     @Test(.enabled(if: fixturesAvailable)) func aSheetWithoutItsAudioIsIgnored() async throws {
         let root = try makeRip()
         defer { try? FileManager.default.removeItem(at: root) }
-        // Лист ссылается на .wav, которого рядом нет, — обычное дело у рипов.
+        // Лист ссылается на файл с другим именем — его рядом нет.
         try """
-        FILE "disc.wav" WAVE
+        FILE "another disc.wav" WAVE
           TRACK 01 AUDIO
             INDEX 01 00:00:00
           TRACK 02 AUDIO
@@ -217,5 +217,114 @@ struct CueScanTests {
         let tracks = try await tracks(db)
         #expect(tracks.count == 2)
         #expect(tracks.map(\.title) == ["One", "Two"])
+    }
+
+    /// Рип «дорожка в файл» без единого тега: имена в листе — от исходных
+    /// .wav, на диске .flac. Кроме листа, метаданных нет вообще.
+    private func makeSplitRip(names: [String]) throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cue-split-\(UUID().uuidString)")
+        let album = root.appendingPathComponent("Album")
+        try FileManager.default.createDirectory(at: album, withIntermediateDirectories: true)
+        for name in names {
+            try FileManager.default.copyItem(
+                at: #require(Self.fixture), to: album.appendingPathComponent("\(name).flac"))
+        }
+        return root
+    }
+
+    private static let splitSheet = """
+        PERFORMER "4hero"
+        TITLE "Creating Patterns"
+        REM DATE 2001
+        FILE "01. Conceptions.wav" WAVE
+          TRACK 01 AUDIO
+            TITLE "Conceptions"
+            INDEX 01 00:00:00
+          TRACK 02 AUDIO
+            TITLE "Time"
+            INDEX 00 00:03:00
+        FILE "02. Time.wav" WAVE
+            INDEX 01 00:00:00
+        """
+
+    @Test(.enabled(if: fixturesAvailable)) func aSheetNamesTracksOfAnUntaggedSplitRip()
+        async throws
+    {
+        let root = try makeSplitRip(names: ["01. Conceptions", "02. Time"])
+        defer { try? FileManager.default.removeItem(at: root) }
+        try Self.splitSheet.write(
+            to: root.appendingPathComponent("Album/disc.cue"), atomically: true, encoding: .utf8)
+        let db = try AppDatabase.inMemory()
+        let source = try source(at: root, db: db)
+
+        _ = try await makeScanner(db).scan(source: source)
+
+        let tracks = try await db.reader.read { database in
+            try Track.order(Column("track_no")).fetchAll(database)
+        }
+        #expect(tracks.map(\.title) == ["Conceptions", "Time"])
+        #expect(tracks.map(\.trackNo) == [1, 2])
+        // Каждый файл играет целиком: сегментов тут нет.
+        #expect(tracks.allSatisfy { $0.cueStart == nil })
+        let album = try await db.reader.read { try Album.fetchOne($0) }
+        #expect(album?.title == "Creating Patterns")
+        #expect(album?.albumArtist == "4hero")
+        #expect(album?.year == 2001)
+        // Обе дорожки попали в этот альбом — иначе их не видно в Albums.
+        #expect(tracks.allSatisfy { $0.albumId != nil && $0.albumId == album?.id })
+    }
+
+    @Test(.enabled(if: fixturesAvailable)) func aSheetAddedLaterNamesTheTracksOnRescan()
+        async throws
+    {
+        // Файлы уже в библиотеке безымянными; лист приезжает позже, а размер
+        // и время файлов те же — иначе скан прошёл бы мимо.
+        let root = try makeSplitRip(names: ["01. Conceptions", "02. Time"])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AppDatabase.inMemory()
+        let source = try source(at: root, db: db)
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: source)
+        let before = try await db.reader.read { database in
+            try Track.order(Column("relative_path")).fetchAll(database)
+        }
+        #expect(before.allSatisfy { $0.albumId == nil })
+
+        try Self.splitSheet.write(
+            to: root.appendingPathComponent("Album/disc.cue"), atomically: true, encoding: .utf8)
+        _ = try await scanner.scan(source: source)
+
+        let after = try await db.reader.read { database in
+            try Track.order(Column("track_no")).fetchAll(database)
+        }
+        #expect(after.map(\.title) == ["Conceptions", "Time"])
+        // Строки те же: id переживают приезд листа, а с ними плейлисты и история.
+        #expect(Set(after.map(\.id)) == Set(before.map(\.id)))
+    }
+
+    @Test(.enabled(if: fixturesAvailable)) func aSheetPointingAtTheOriginalWavFindsTheFlac()
+        async throws
+    {
+        let root = try makeRip(
+            sheet: """
+                TITLE "Kind of Blue"
+                FILE "disc.wav" WAVE
+                  TRACK 01 AUDIO
+                    TITLE "So What"
+                    INDEX 01 00:00:00
+                  TRACK 02 AUDIO
+                    TITLE "Freddie Freeloader"
+                    INDEX 01 00:01:00
+                """)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AppDatabase.inMemory()
+        let source = try source(at: root, db: db)
+
+        _ = try await makeScanner(db).scan(source: source)
+
+        let tracks = try await tracks(db)
+        #expect(tracks.map(\.title) == ["So What", "Freddie Freeloader"])
+        #expect(tracks.map(\.cueStart) == [0, 1])
     }
 }
