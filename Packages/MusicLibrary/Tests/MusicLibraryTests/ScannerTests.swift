@@ -308,4 +308,29 @@ struct FolderArtTests {
         defer { try? FileManager.default.removeItem(at: root) }
         #expect(LibraryScanner.folderArt(in: root) == nil)
     }
+
+    @Test func plainNameBeatsQualifiedAndNumberedScans() throws {
+        let root = try makeDirectory([
+            ("Nocturnal (back).jpg", 9000), ("Nocturnal 003.jpg", 8000),
+            ("Nocturnal.jpg", 200),
+        ])
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Лицо диска подписано без уточнения и без номера страницы — и весит
+        // меньше разворота буклета.
+        #expect(LibraryScanner.folderArt(in: root)?.count == 200)
+    }
+
+    @Test func coverIsTakenFromTheScansSubfolder() throws {
+        let root = try makeDirectory([("Nocturnal.cue", 100)])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let scans = root.appendingPathComponent("Сканы")
+        try FileManager.default.createDirectory(at: scans, withIntermediateDirectories: true)
+        try Data(repeating: 0x41, count: 5000)
+            .write(to: scans.appendingPathComponent("Nocturnal (back).jpg"))
+        try Data(repeating: 0x41, count: 300)
+            .write(to: scans.appendingPathComponent("Nocturnal.jpg"))
+
+        #expect(LibraryScanner.folderArt(in: root) == nil)
+        #expect(LibraryScanner.folderArtInSubdirectories(of: root)?.count == 300)
+    }
 }

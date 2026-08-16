@@ -327,4 +327,27 @@ struct CueScanTests {
         #expect(tracks.map(\.title) == ["So What", "Freddie Freeloader"])
         #expect(tracks.map(\.cueStart) == [0, 1])
     }
+
+    @Test(.enabled(if: fixturesAvailable)) func aCoverAppearingLaterIsPickedUpOnRescan()
+        async throws
+    {
+        // Обложки при первом скане не было: у альбома пусто, и файл с тех пор
+        // не менялся — только картинка приехала в папку сканов.
+        let root = try makeRip()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AppDatabase.inMemory()
+        let source = try source(at: root, db: db)
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: source)
+        #expect(try await db.reader.read { try Album.fetchOne($0) }?.coverHash == nil)
+
+        let scans = root.appendingPathComponent("Album/Сканы")
+        try FileManager.default.createDirectory(at: scans, withIntermediateDirectories: true)
+        try Data(repeating: 0x41, count: 4096)
+            .write(to: scans.appendingPathComponent("disc.jpg"))
+
+        _ = try await scanner.scan(source: source)
+
+        #expect(try await db.reader.read { try Album.fetchOne($0) }?.coverHash != nil)
+    }
 }

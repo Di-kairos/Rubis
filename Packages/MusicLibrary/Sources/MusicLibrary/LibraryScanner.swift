@@ -62,6 +62,7 @@ public actor LibraryScanner {
         var id: Int64
         var relativePath: String
         var title: String
+        var albumId: Int64?
         var fileSize: Int64?
         var modifiedAt: Date?
         var unavailable: Bool
@@ -182,11 +183,20 @@ public actor LibraryScanner {
             throw PlaybackError.fileNotFound(rootURL.path)
         }
         var cueURLs: [URL] = []
+        /// Папки, где обход встретил картинку, — вместе с родительской: так
+        /// папка альбома считается «с обложкой», когда сканы лежат вложенно.
+        var artDirectories: Set<String> = []
         while let next = enumerator.nextObject() {
             guard let url = next as? URL else { continue }
             let ext = url.pathExtension.lowercased()
             if ext == "cue" {
                 cueURLs.append(url)
+                continue
+            }
+            if Self.imageExtensions.contains(ext) {
+                let directory = url.deletingLastPathComponent()
+                artDirectories.insert(directory.path)
+                artDirectories.insert(directory.deletingLastPathComponent().path)
                 continue
             }
             guard Self.audioExtensions.contains(ext) else { continue }
@@ -213,12 +223,19 @@ public actor LibraryScanner {
             try KnownTrack.fetchAll(
                 database,
                 sql: """
-                    SELECT id, relative_path, title, file_size, modified_at, unavailable, cue_start
+                    SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable, cue_start
                     FROM track WHERE source_id = ?
                     """,
                 arguments: [source.id])
         }
         let known: [String: [KnownTrack]] = Dictionary(grouping: knownRows, by: \.relativePath)
+        // Альбомы, оставшиеся без обложки: их файлы перечитываем даже
+        // нетронутыми, если картинка в папке всё-таки есть — она могла приехать
+        // после скана или начать находиться (папка сканов). Нет картинки рядом
+        // — нет и перечитывания.
+        let coverlessAlbums: Set<Int64> = try await db.reader.read { database in
+            Set(try Int64.fetchAll(database, sql: "SELECT id FROM album WHERE cover_hash IS NULL"))
+        }
 
         // 3. Инкрементальность: только новые и изменённые (mtime или size)
         var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
@@ -241,7 +258,11 @@ public actor LibraryScanner {
                 let cueTitle = cues[relative].flatMap {
                     $0.isSegmented ? nil : $0.tracks.first?.title
                 }
-                if sameSize && sameTime && rows.count == expected,
+                let directory = info.url.deletingLastPathComponent().path
+                let needsCover =
+                    (rows[0].albumId.map(coverlessAlbums.contains) ?? false)
+                    && artDirectories.contains(directory)
+                if sameSize && sameTime && rows.count == expected, !needsCover,
                     cueTitle == nil || cueTitle == rows[0].title
                 {
                     summary.unchanged += rows.count
@@ -304,7 +325,7 @@ public actor LibraryScanner {
                 try KnownTrack.fetchAll(
                     database,
                     sql: """
-                        SELECT id, relative_path, title, file_size, modified_at, unavailable
+                        SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable
                         FROM track WHERE unavailable = 1 AND source_id <> ?
                         """,
                     arguments: [source.id])
@@ -660,13 +681,32 @@ public actor LibraryScanner {
         else { return nil }
         let directory = root.appendingPathComponent(relative).deletingLastPathComponent()
         if let cached = folderArtCache[directory.path] { return cached }
-        let data = Self.folderArt(in: directory)
+        let data = Self.folderArt(in: directory) ?? Self.folderArtInSubdirectories(of: directory)
         folderArtCache[directory.path] = data
         return data
     }
 
-    /// Выбор картинки в директории: фильтры имён по важности, среди совпавших —
-    /// самый большой файл. Совпадений нет — самая большая из всех.
+    /// Обложка из вложенной папки — у рипов картинки часто лежат отдельно
+    /// («Сканы», «Scans», «Artwork»), а в самой папке альбома их нет вовсе.
+    /// Спускаемся ровно на уровень: глубже начинается чужое дерево.
+    static func folderArtInSubdirectories(of directory: URL) -> Data? {
+        guard
+            let entries = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles])
+        else { return nil }
+        for entry in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            guard (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
+                let art = folderArt(in: entry)
+            else { continue }
+            return art
+        }
+        return nil
+    }
+
+    /// Выбор картинки в директории: фильтры имён по важности, затем имя без
+    /// уточнения и без номера страницы, среди совпавших — самый большой файл.
+    /// Совпадений нет — самая большая из всех.
     static func folderArt(in directory: URL) -> Data? {
         guard
             let entries = try? FileManager.default.contentsOfDirectory(
@@ -682,6 +722,16 @@ public actor LibraryScanner {
                 $0.deletingPathExtension().lastPathComponent.lowercased().contains(filter)
             }
             if !candidates.isEmpty { break }
+        }
+        // Развёртка сканов подписана однообразно: лицо диска — имя без
+        // уточнения в скобках и без номера страницы («Nocturnal.jpg» против
+        // «Nocturnal (back).jpg» и «Nocturnal 003.jpg»). Размер тут врёт:
+        // разворот буклета тяжелее лицевой стороны.
+        if candidates.isEmpty {
+            candidates = images.filter { url in
+                let name = url.deletingPathExtension().lastPathComponent
+                return !name.contains("(") && !(name.last?.isNumber ?? true)
+            }
         }
         if candidates.isEmpty { candidates = images }
 
