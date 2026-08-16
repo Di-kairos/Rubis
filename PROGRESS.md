@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "6c0c180"
-tests: 198/198 (swift test, 5 packages)
+head: "25cf06e"
+tests: 201/201 (swift test, 5 packages)
 last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -504,6 +504,22 @@ Session 13 (2026-08-16): жалоба «альбом не добавляется
 байт), appcast запушен и проверен по живому URL (`sparkle:version 29`).
 Невыпущенного в `main` не осталось.
 HEAD: `6c0c180` — chore(release): bump version to 0.10.1 (29).
+Там же по скриншоту витрины: у рипов Four80East обложек не было — картинки
+лежат вложенной папкой «Сканы», а рядом с музыкой пусто. Сканер теперь
+спускается на уровень вниз, когда в папке альбома картинки нет, и выбирает
+лицо по тому, как такие развёртки подписаны: имя без уточнения в скобках и
+без номера страницы бьёт и фильтры имён, и размер файла (разворот буклета
+тяжелее лицевой стороны). Альбом, уже стоящий в базе без обложки, получает её
+на следующем скане нетронутых файлов — но только если картинка в папке
+действительно есть (папки с картинками собираются тем же обходом дерева),
+иначе безобложечный альбом стоил бы перечитывания тегов на каждом скане.
+Проверено на живой папке владельца: все 13 альбомов с обложками, у Nocturnal
+лицо, а не задник (картинка просмотрена). Тесты 201/201.
+Выпущена **0.10.2** (build 30): нотаризация `Accepted` с первой попытки,
+staple, `spctl → accepted / source=Notarized Developer ID` на скачанном файле.
+SHA256 опубликованного DMG сверён скачиванием (`0f792951…`, 12 627 971 байт),
+appcast запушен и проверен по живому URL (`sparkle:version 30`).
+HEAD: `25cf06e` — chore(release): bump version to 0.10.2 (30).
 
 ## Фазы (из TASKS.md)
 
