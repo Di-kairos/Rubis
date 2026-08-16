@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d33e789"
+head: "6c0c180"
 tests: 198/198 (swift test, 5 packages)
 last_session: 12
 last_reviewed: 2026-08-12
@@ -498,7 +498,12 @@ Session 13 (2026-08-16): жалоба «альбом не добавляется
 файлам ловится по несовпавшему названию. Проверено на живой папке владельца:
 «Creating Patterns» / 4hero / 2001 — 13 дорожек, треков без альбома 0.
 Тесты 198/198.
-HEAD: `d33e789` — fix(library): read a CUE sheet of an untagged track-per-file rip.
+Выпущена **0.10.1** (build 29) — этот фикс: нотаризация `Accepted` с первой
+попытки, staple, `spctl → accepted / source=Notarized Developer ID` на скачанном
+файле. SHA256 опубликованного DMG сверён скачиванием (`f9eadf5a…`, 12 558 619
+байт), appcast запушен и проверен по живому URL (`sparkle:version 29`).
+Невыпущенного в `main` не осталось.
+HEAD: `6c0c180` — chore(release): bump version to 0.10.1 (29).
 
 ## Фазы (из TASKS.md)
 
