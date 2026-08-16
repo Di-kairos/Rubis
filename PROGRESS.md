@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d1262ee"
-tests: 194/194 (swift test, 5 packages)
+head: "d33e789"
+tests: 198/198 (swift test, 5 packages)
 last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -484,6 +484,21 @@ HEAD: `85f133e` — docs(cue): D-013 and the README entry for CUE rips.
 запушен и проверен по живому URL — Sparkle увидит `sparkle:version 28` против
 27 у пользователя. Невыпущенного в `main` не осталось.
 HEAD: `5d3d2f7` — docs(cue): record the FLAC seek defect behind D-013.
+Session 13 (2026-08-16): жалоба «альбом не добавляется» — разбор показал, что
+названный владельцем `4hero - Play With The Changes` как раз в порядке (15
+дорожек CUE, играет), а сломан сосед `4hero - Creating patterns`: рип EAC
+«дорожка в файл» без единого тега. Лист терялся дважды — он ссылается на
+исходные `.wav`, а на диске `.flac` под тем же именем, и дорожка, открывающая
+новый `FILE`, ставит свой `INDEX 01` уже после строки FILE, поэтому парсер
+выбрасывал её вместе с предыдущим файлом. Итог был 13 треков без альбома и
+артиста — невидимых в Albums. Теперь `FILE` ищется по основе имени среди
+звуковых расширений, недописанная дорожка переживает границу FILE, а лист, где
+резать нечего, всё равно отдаёт альбом, артиста, год и названия (без
+`cue_start` — такой файл играет целиком); приезд листа к уже отсканированным
+файлам ловится по несовпавшему названию. Проверено на живой папке владельца:
+«Creating Patterns» / 4hero / 2001 — 13 дорожек, треков без альбома 0.
+Тесты 198/198.
+HEAD: `d33e789` — fix(library): read a CUE sheet of an untagged track-per-file rip.
 
 ## Фазы (из TASKS.md)
 
