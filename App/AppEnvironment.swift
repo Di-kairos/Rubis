@@ -127,7 +127,10 @@ final class AppEnvironment {
                 if case .playing = state {
                     self.lastRemoteRetry = nil
                     await self.saveQueueSnapshot()
-                    await self.prefetchNext()
+                    // Префетч — сетевая загрузка целого файла; в этом цикле
+                    // она задерживала бы `.paused`/`.failed` до конца скачивания.
+                    self.prefetchTask?.cancel()
+                    self.prefetchTask = Task { await self.prefetchNext() }
                 }
                 if case .failed(let track, _) = state { await self.retryRemote(track) }
             }
@@ -167,6 +170,17 @@ final class AppEnvironment {
         }
     }
 
+    /// Текущая загрузка следующего трека. Новый `.playing` отменяет прежнюю:
+    /// она относилась к прежней очереди.
+    private var prefetchTask: Task<Void, Never>?
+
+    /// Очередь изменилась: экраны перечитывают, снимок пишется сразу — иначе
+    /// enqueue на паузе не переживал бы перезапуск.
+    private func queueDidChange() async {
+        queueRevision += 1
+        await saveQueueSnapshot()
+    }
+
     /// Плей произвольного списка треков с позиции.
     func play(tracks: [Track], startAt index: Int = 0) {
         let items = resolveItems(tracks: tracks)
@@ -178,7 +192,7 @@ final class AppEnvironment {
             guard items.indices.contains(start) else { return }
             await fetchIfRemote(items[start].track)
             await player.play(items: items, startAt: start)
-            queueRevision += 1
+            await queueDidChange()
         }
     }
 
@@ -188,7 +202,7 @@ final class AppEnvironment {
         guard !items.isEmpty else { return }
         Task {
             await player.playNext(items: items)
-            queueRevision += 1
+            await queueDidChange()
         }
     }
 
@@ -198,7 +212,7 @@ final class AppEnvironment {
         guard !items.isEmpty else { return }
         Task {
             await player.enqueue(items: items)
-            queueRevision += 1
+            await queueDidChange()
         }
     }
 
@@ -215,7 +229,7 @@ final class AppEnvironment {
             guard items.indices.contains(index) else { return }
             await fetchIfRemote(items[index].track)
             await player.play(items: items, startAt: index)
-            queueRevision += 1
+            await queueDidChange()
         }
     }
 
@@ -247,7 +261,7 @@ final class AppEnvironment {
         shuffleMode = next
         Task {
             await player.setShuffleMode(next)
-            queueRevision += 1
+            await queueDidChange()
         }
     }
 
@@ -288,9 +302,8 @@ final class AppEnvironment {
 
     // MARK: - Queue persistence (продолжение с места остановки)
 
-    /// Снимок очереди: состав, индекс и позиция внутри трека.
-    /// ponytail: enqueue/playNext без старта не снимаются — снимок догонит
-    /// на следующем тике или переходе трека.
+    /// Снимок очереди: состав, индекс и позиция внутри трека. Пишется на
+    /// каждом изменении очереди и на каждом старте; тик дописывает прогресс.
     private func saveQueueSnapshot() async {
         let items = await player.queuedItems()
         let snapshot = PlaybackSnapshot(
@@ -363,6 +376,15 @@ final class AppEnvironment {
             let tracks = try? trackRepo.tracks(ids: snapshot.trackIds)
         else { return }
         var items = resolveItems(tracks: tracks)
+        // Снимок хранит индекс в полной очереди, а часть треков могла выпасть
+        // (файл пропал, источник отключён). Индекс переносится по числу
+        // выживших ДО него; если выпал сам текущий — стартуем со следующего
+        // выжившего с начала, а не применяем его секунду к чужому треку.
+        let survivors = Set(items.compactMap { $0.track.id })
+        let before = snapshot.trackIds.prefix(snapshot.index).filter(survivors.contains).count
+        let currentSurvived =
+            snapshot.trackIds.indices.contains(snapshot.index)
+            && survivors.contains(snapshot.trackIds[snapshot.index])
         #if DEBUG
         // Снимки вёрстки: ad-hoc сборка не резолвит bookmark подписанного
         // релиза, и очередь оказывается пустой. `RUBIS_FAKE_QUEUE=1` наполняет
@@ -375,7 +397,8 @@ final class AppEnvironment {
         }
         #endif
         guard !items.isEmpty else { return }
-        await player.restore(items: items, at: snapshot.index, offset: snapshot.offset)
+        await player.restore(
+            items: items, at: before, offset: currentSurvived ? snapshot.offset : 0)
         queueRevision += 1
     }
 
