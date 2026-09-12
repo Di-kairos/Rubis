@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "25cf06e"
-tests: 201/201 (swift test, 5 packages)
+head: "8628976"
+tests: "201 registered: 199 passed, 2 skipped (5 packages); 9 audit regressions reproduced outside active targets"
 last_session: 12
 last_reviewed: 2026-08-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -33,6 +33,14 @@ links:
 # PROGRESS — Rubis / Rubis Music
 
 ## Текущее состояние
+
+Текущий HEAD: [`8628976`](https://github.com/Di-kairos/Rubis/commit/8628976) —
+`test(audit): hand off nine player regression cases and clarifications`.
+2026-09-12: аудит и ответы на уточнения — `AUDIT_PLAYER_2026-09-12.md`;
+девять диагностических тестов переданы файлами в `Tools/audit-regressions/2026-09-12/`.
+В штатные test targets они пока не подключены; на проверенном коде воспроизводят
+девять ошибок. Штатный прогон аудита: 199 успешно, 2 пропущено; сборка успешна.
+Реализация плеера не менялась, версия остаётся 0.10.2 (30).
 
 Session 2 (2026-08-06, MacBook Pro M5 Max): фаза 5 почти закрыта — плейлисты,
 shuffle/repeat/очередь, медиа-клавиши + Now Playing, mini-player, автообновление
