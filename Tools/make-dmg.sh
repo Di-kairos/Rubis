@@ -1,7 +1,22 @@
 #!/bin/zsh
 # Собирает установочный DMG: Release-сборка + симлинк /Applications.
 # Использование: Tools/make-dmg.sh [output-dir]  (по умолчанию ~/Desktop)
+#
+# Два режима. Локальный (по умолчанию) — образ для себя: без Developer ID,
+# нотаризации и подписи appcast обходится и говорит об этом. Релизный
+# (RUBIS_RELEASE=1) — то, что уходит слушателям: каждый обязательный этап
+# либо проходит, либо роняет сборку ненулевым кодом; тихого «почти релиза»
+# не бывает. RUBIS_SKIP_NOTARIZE=1 пропускает нотаризацию только в локальном.
 set -euo pipefail
+
+release="${RUBIS_RELEASE:-}"
+fail_release() {
+    echo "RELEASE BLOCKED: $1" >&2
+    exit 1
+}
+if [[ -n "$release" && -n "${RUBIS_SKIP_NOTARIZE:-}" ]]; then
+    fail_release "RUBIS_SKIP_NOTARIZE is not allowed in release mode"
+fi
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 out_dir="${1:-$HOME/Desktop}"
@@ -9,6 +24,14 @@ derived="$(mktemp -d)/derived"
 stage="$(mktemp -d)/RubisMusic"
 
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+
+if [[ -n "$release" ]]; then
+    # Релиз собирается только из зелёного дерева: тесты всех пакетов до сборки.
+    echo "==> Tests (release mode)"
+    "$repo/Tools/test.sh" || fail_release "package tests failed"
+else
+    echo "==> LOCAL BUILD — not a release (set RUBIS_RELEASE=1 for the strict path)"
+fi
 
 echo "==> Release build"
 xcodebuild -project "$repo/Escapement.xcodeproj" -scheme Escapement \
@@ -29,6 +52,9 @@ team="TA24A89R8H"
 identity=$(security find-identity -v -p codesigning \
     | awk -F'"' -v team="($team)" '/Developer ID Application/ && index($2, team) {print $2; exit}')
 identity="${identity:--}"
+if [[ -n "$release" && "$identity" == "-" ]]; then
+    fail_release "no Developer ID Application identity for team $team in the keychain"
+fi
 # Ad-hoc не умеет защищённый штамп времени: с ним codesign просто откажет.
 if [[ "$identity" == "-" ]]; then stamp=(); else stamp=(--timestamp); fi
 
@@ -90,11 +116,14 @@ fi
 # Профиля нет — выходим с готовым, но не заверенным DMG (RUBIS_SKIP_NOTARIZE=1
 # пропускает шаг осознанно).
 if [[ -n "${RUBIS_SKIP_NOTARIZE:-}" ]]; then
-    echo "==> Notarization skipped (RUBIS_SKIP_NOTARIZE)"
+    echo "==> Notarization skipped (RUBIS_SKIP_NOTARIZE) — local image only"
     exit 0
 fi
 if ! xcrun notarytool history --keychain-profile rubis >/dev/null 2>&1; then
-    echo "==> No 'rubis' notary profile — DMG is signed but NOT notarized"
+    if [[ -n "$release" ]]; then
+        fail_release "no 'rubis' notary profile in the keychain"
+    fi
+    echo "==> No 'rubis' notary profile — DMG is signed but NOT notarized (local image only)"
     exit 0
 fi
 
@@ -104,8 +133,14 @@ xcrun notarytool submit "$dmg" --keychain-profile rubis --wait
 echo "==> Staple"
 xcrun stapler staple "$dmg"
 # Финальная проверка глазами Gatekeeper: так пакет увидит чужой Mac.
-# Не роняем релиз из-за вердикта — подпись обновления ниже нужна в любом случае.
-spctl --assess --type open --context context:primary-signature -v "$dmg" || true
+# В релизе отказ Gatekeeper — отказ релиза: образ, который чужой Mac не откроет
+# двойным кликом, публиковать нельзя. Локально — только предупреждение.
+if ! spctl --assess --type open --context context:primary-signature -v "$dmg"; then
+    if [[ -n "$release" ]]; then
+        fail_release "Gatekeeper rejected the notarized DMG"
+    fi
+    echo "warning: Gatekeeper rejected the DMG (local image)" >&2
+fi
 
 # Подпись обновления для Sparkle. Утилита приезжает из SPM вместе с пакетом,
 # приватный ключ EdDSA лежит в связке ключей машины — ни внешний диск, ни
@@ -113,8 +148,14 @@ spctl --assess --type open --context context:primary-signature -v "$dmg" || true
 echo "==> Appcast enclosure"
 sign_update="$derived/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update"
 if [[ -x "$sign_update" ]]; then
-    "$sign_update" "$dmg"
+    "$sign_update" "$dmg" || fail_release "sign_update failed — appcast signature missing"
     echo "sha256: $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+elif [[ -n "$release" ]]; then
+    fail_release "sign_update not found in SPM artifacts — appcast cannot be signed"
 else
     echo "sign_update not found in SPM artifacts — sign the DMG manually"
+fi
+if [[ -n "$release" ]]; then
+    echo "==> RELEASE OK: $dmg"
+    echo "    built from $(git -C "$repo" rev-parse --short HEAD) with $(xcodebuild -version | head -1)"
 fi
