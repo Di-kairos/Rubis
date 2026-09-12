@@ -12,11 +12,21 @@ struct CueRegion: Equatable {
     /// −1 — «до конца файла»: у последней дорожки листа конца нет.
     let frameLength: AVAudioFramePosition
 
+    /// Секунды, дальше которых лист не читаем: произведение на частоту обязано
+    /// помещаться в `Int64`, иначе преобразование ниже — аварийное завершение,
+    /// а не ошибка. Парсер CUE держит тот же предел, но строка в базе могла
+    /// прийти из прежней версии — защита здесь независимая.
+    static let maxSeconds: Double = 1e9
+
+    /// `nil` — границ нет, файл играет целиком: не только у трека без листа,
+    /// но и у листа с неконечным или невозможным временем.
     init?(track: Track) {
-        guard let start = track.cueStart, track.sampleRate > 0 else { return nil }
+        guard let start = track.cueStart, track.sampleRate > 0,
+            start.isFinite, start < Self.maxSeconds
+        else { return nil }
         let rate = Double(track.sampleRate)
         startFrame = AVAudioFramePosition((max(0, start) * rate).rounded())
-        guard let end = track.cueEnd else {
+        guard let end = track.cueEnd, end.isFinite, end < Self.maxSeconds else {
             frameLength = -1
             return
         }

@@ -161,22 +161,47 @@ public struct CueSheet: Equatable, Sendable {
     }
 
     /// Конец дорожки — начало следующей в том же файле. У последней конца нет.
+    ///
+    /// Дорожка, начинающаяся не позже предыдущей, отбрасывается: лист врёт, а
+    /// отрицательная или нулевая длина дальше по коду превращается в мусорную
+    /// длительность и регион, который декодер не сможет отдать.
     private static func withEnds(_ tracks: [Track]) -> [Track] {
-        tracks.enumerated().map { index, track in
+        var ordered: [Track] = []
+        for track in tracks {
+            guard let last = ordered.last else {
+                ordered.append(track)
+                continue
+            }
+            if track.start > last.start { ordered.append(track) }
+        }
+        return ordered.enumerated().map { index, track in
             var copy = track
-            copy.end = index + 1 < tracks.count ? tracks[index + 1].start : nil
+            copy.end = index + 1 < ordered.count ? ordered[index + 1].start : nil
             return copy
         }
     }
 
+    /// Потолок поля минут. CD длиннее 99 минут не бывает, но некоторые
+    /// утилиты пишут трёхзначные минуты для длинных образов; предел держит
+    /// произведение «секунды × частота» далеко внутри `Int64` при любой
+    /// поддерживаемой частоте — иначе `Int64(Double)` в регионе аварийно
+    /// завершает приложение.
+    static let maxMinutes = 100_000
+
     /// `MM:SS:FF`, где FF — кадры CD, их в секунде ровно 75.
-    /// Часы в CUE не бывают: диск длиной больше 99 минут не существует.
+    ///
+    /// Только целые поля в своих диапазонах: `Double("inf")`, `nan`, `1e300`
+    /// и `00:99:99` разбираются без ошибки, а потом рушат преобразование в
+    /// кадры. Невалидное время — это отсутствующий INDEX, дорожка без начала
+    /// отбрасывается выше по коду.
     static func time(_ value: String) -> Double? {
         let parts = value.split(separator: ":")
-        guard parts.count == 3, let minutes = Double(parts[0]), let seconds = Double(parts[1]),
-            let frames = Double(parts[2])
+        guard parts.count == 3, let minutes = Int(parts[0]), let seconds = Int(parts[1]),
+            let frames = Int(parts[2]),
+            (0...maxMinutes).contains(minutes), (0..<60).contains(seconds),
+            (0..<75).contains(frames)
         else { return nil }
-        return minutes * 60 + seconds + frames / 75
+        return Double(minutes) * 60 + Double(seconds) + Double(frames) / 75
     }
 
     private static func split(_ line: String) -> (String, String) {

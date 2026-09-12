@@ -199,6 +199,8 @@ struct AlbumDetail: View {
     }
 
     static func format(duration: Double) -> String {
+        // Неконечная длительность из битого листа — прочерк, а не `Int(inf)`.
+        guard duration.isFinite, duration >= 0, duration < 1e9 else { return "–:––" }
         let total = Int(duration.rounded())
         let hours = total / 3600
         let minutes = (total % 3600) / 60
