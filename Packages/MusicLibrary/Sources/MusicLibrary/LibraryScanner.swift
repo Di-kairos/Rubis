@@ -72,10 +72,55 @@ public actor LibraryScanner {
             .convertFromSnakeCase
     }
 
+    /// Строка для поиска двойников: подпись файла плюс имя и начало сегмента.
+    struct Twin: Codable, FetchableRecord {
+        var id: Int64
+        var sourceId: String
+        var relativePath: String
+        var fileSize: Int64
+        var modifiedAt: Date
+        var cueStart: Double?
+
+        static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
+            .convertFromSnakeCase
+
+        static func query(unavailable: Bool) -> String {
+            """
+            SELECT id, source_id, relative_path, file_size, modified_at, cue_start
+            FROM track WHERE unavailable = \(unavailable ? 1 : 0)
+              AND file_size IS NOT NULL AND modified_at IS NOT NULL
+            """
+        }
+
+        var key: String {
+            let name = relativePath.split(separator: "/").last.map(String.init) ?? relativePath
+            return "\(fileSize)|\(modifiedAt.timeIntervalSince1970)|\(cueStart ?? -1)|\(name)"
+        }
+    }
+
+    /// Снимает строки в пользу выжившей: элементы плейлистов переезжают на
+    /// неё, потом строки удаляются. Без переноса каскад `playlist_item` молча
+    /// вычищал бы плейлисты — так терялось содержимое при дедупликации и
+    /// перестройке CUE.
+    static func retire(_ ids: [Int64], into survivor: Int64?, database: Database) throws {
+        guard !ids.isEmpty else { return }
+        if let survivor {
+            let marks = ids.map { _ in "?" }.joined(separator: ",")
+            try database.execute(
+                sql: "UPDATE playlist_item SET track_id = ? WHERE track_id IN (\(marks))",
+                arguments: StatementArguments([survivor] + ids))
+        }
+        try Track.deleteAll(database, keys: ids)
+    }
+
     /// Лист и его дорожки, привязанные к аудиофайлу (D-013).
     struct CueContext: Sendable {
         var sheet: CueSheet
         var tracks: [CueSheet.Track]
+        /// Когда лист последний раз правили. Правка названия или INDEX при том
+        /// же числе дорожек не трогает ни аудиофайл, ни число строк — узнать
+        /// её можно только по самому .cue.
+        var sheetModifiedAt: Date
 
         /// Файл режется на дорожки — рип диска одним куском. У листа «дорожка
         /// в файл» резать нечего: он остаётся только источником метаданных
@@ -101,12 +146,16 @@ public actor LibraryScanner {
         var result: [String: CueContext] = [:]
         for cueURL in cueURLs {
             guard let sheet = (try? CueSheet.read(contentsOf: cueURL)) ?? nil else { continue }
+            let modified =
+                (try? cueURL.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate ?? .distantFuture
             let directory = cueURL.deletingLastPathComponent()
             for file in sheet.files {
                 guard !file.tracks.isEmpty,
                     let relative = locate(file.name, in: directory, root: root, onDisk: onDisk)
                 else { continue }
-                result[relative] = CueContext(sheet: sheet, tracks: file.tracks)
+                result[relative] = CueContext(
+                    sheet: sheet, tracks: file.tracks, sheetModifiedAt: modified)
             }
         }
         return result
@@ -229,6 +278,14 @@ public actor LibraryScanner {
                 arguments: [source.id])
         }
         let known: [String: [KnownTrack]] = Dictionary(grouping: knownRows, by: \.relativePath)
+        // Из базы, а не из переданной структуры: вызывающая сторона может
+        // держать `Source` с прошлого запуска, а решение «лист правили после
+        // скана» должно опираться на настоящую отметку.
+        let lastScanAt: Date? = try await db.reader.read { database in
+            try Date.fetchOne(
+                database, sql: "SELECT last_scan_at FROM source WHERE id = ?",
+                arguments: [source.id])
+        }
         // Альбомы, оставшиеся без обложки: их файлы перечитываем даже
         // нетронутыми, если картинка в папке всё-таки есть — она могла приехать
         // после скана или начать находиться (папка сканов). Нет картинки рядом
@@ -241,6 +298,10 @@ public actor LibraryScanner {
         var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
         /// Вернувшиеся файлы — снять пометку недоступности.
         var restoredIDs: [Int64] = []
+        /// Файлы, у которых пропал (или перестал резать) лист: в базе лежат
+        /// сегменты, а писать надо одну строку. Лишние строки уйдут при записи
+        /// — вместе с переносом ссылок плейлистов на выжившую.
+        var collapsing: Set<String> = []
         for (relative, info) in onDisk {
             let rows = known[relative] ?? []
             if !rows.isEmpty {
@@ -262,17 +323,36 @@ public actor LibraryScanner {
                 let needsCover =
                     (rows[0].albumId.map(coverlessAlbums.contains) ?? false)
                     && artDirectories.contains(directory)
-                if sameSize && sameTime && rows.count == expected, !needsCover,
+                // Лист правили после прошлого скана — перечитываем, даже если
+                // аудиофайл и число строк те же: иначе новое название или
+                // сдвинутый INDEX никогда не доедут до базы.
+                // ponytail: лист, правленный во время самого скана, попадёт
+                // под новую отметку и уедет только со следующей правкой.
+                let sheetEdited =
+                    cues[relative].map { context in
+                        lastScanAt.map { context.sheetModifiedAt > $0 } ?? true
+                    } ?? false
+                if sameSize && sameTime && rows.count == expected, !needsCover, !sheetEdited,
                     cueTitle == nil || cueTitle == rows[0].title
                 {
                     summary.unchanged += rows.count
                     restoredIDs.append(contentsOf: rows.filter(\.unavailable).map(\.id))
                     continue
                 }
-                // Единственная строка — обычный трек, её id сохраняем вместе
-                // с плейлистами и историей. Сегменты CUE сопоставляются по
-                // началу дорожки уже при записи.
-                toRead.append((relative, info.url, rows.count == 1 ? rows[0].id : nil))
+                if cues[relative]?.isSegmented == true {
+                    // Сегменты CUE сопоставляются по началу дорожки при записи.
+                    toRead.append((relative, info.url, nil))
+                } else {
+                    // Обычный трек: id строки «весь файл» сохраняем вместе с
+                    // плейлистами и историей. Если файл раньше был порезан
+                    // листом, первый сегмент становится этой строкой, остальные
+                    // сворачиваются в неё при записи.
+                    let whole = rows.first { $0.cueStart == nil }
+                    let firstSegment = rows.filter { $0.cueStart != nil }
+                        .min { ($0.cueStart ?? 0) < ($1.cueStart ?? 0) }
+                    if whole == nil || rows.count > 1 { collapsing.insert(relative) }
+                    toRead.append((relative, info.url, (whole ?? firstSegment)?.id))
+                }
             } else {
                 toRead.append((relative, info.url, nil))
             }
@@ -406,7 +486,8 @@ public actor LibraryScanner {
                     batch.append((relative, existingID, meta))
                     if batch.count >= Self.batchSize {
                         try await commit(
-                            batch: batch, cues: cues, source: source, summary: &summary)
+                            batch: batch, cues: cues, collapsing: collapsing, source: source,
+                            summary: &summary)
                         batch.removeAll(keepingCapacity: true)
                     }
                 case .failure(let error):
@@ -416,28 +497,34 @@ public actor LibraryScanner {
             }
         }
         if !batch.isEmpty {
-            try await commit(batch: batch, cues: cues, source: source, summary: &summary)
+            try await commit(
+                batch: batch, cues: cues, collapsing: collapsing, source: source,
+                summary: &summary)
         }
 
         // 6. Уборка двойников. Пункт 4b ловит переезд, только когда старый
         //    источник просканирован раньше нового. При обратном порядке файл
         //    успевает войти новой строкой, а старая остаётся недоступной —
-        //    два трека на один файл. Совпали подпись и разные источники,
-        //    причём живой экземпляр найден → недоступный больше не нужен.
+        //    два трека на один файл. Совпали подпись, имя файла и разные
+        //    источники, причём живой экземпляр найден → недоступный
+        //    сворачивается в живой: плейлисты переезжают, строка уходит.
+        //    Имя файла в ключе — чтобы два разных файла одного размера и
+        //    времени не сливались по одной лишь слабой подписи.
         summary.deduplicated = try await db.writer.write { database -> Int in
-            try database.execute(
-                sql: """
-                    DELETE FROM track
-                    WHERE unavailable = 1
-                      AND file_size IS NOT NULL AND modified_at IS NOT NULL
-                      AND EXISTS (
-                        SELECT 1 FROM track other
-                        WHERE other.unavailable = 0
-                          AND other.source_id <> track.source_id
-                          AND other.file_size = track.file_size
-                          AND other.modified_at = track.modified_at)
-                    """)
-            return database.changesCount
+            let ghosts = try Twin.fetchAll(database, sql: Twin.query(unavailable: true))
+            guard !ghosts.isEmpty else { return 0 }
+            var liveByKey: [String: Twin] = [:]
+            for twin in try Twin.fetchAll(database, sql: Twin.query(unavailable: false)) {
+                if liveByKey[twin.key] == nil { liveByKey[twin.key] = twin }
+            }
+            var merged = 0
+            for ghost in ghosts {
+                guard let live = liveByKey[ghost.key], live.sourceId != ghost.sourceId
+                else { continue }
+                try Self.retire([ghost.id], into: live.id, database: database)
+                merged += 1
+            }
+            return merged
         }
 
         try await db.writer.write { database in
@@ -474,6 +561,7 @@ public actor LibraryScanner {
     private func commit(
         batch: [(relative: String, existingID: Int64?, meta: FileMetadata)],
         cues: [String: CueContext],
+        collapsing: Set<String>,
         source: Source,
         summary: inout ScanSummary
     ) async throws {
@@ -566,24 +654,44 @@ public actor LibraryScanner {
                         // Прежние строки этого файла узнаются по началу
                         // сегмента — так правка листа не плодит двойников и не
                         // теряет id (а с ним плейлисты и историю).
-                        var existing: [Double: Track] = [:]
-                        for row
-                            in try Track
+                        let rowsForPath =
+                            try Track
                             .filter(Column("source_id") == source.id)
                             .filter(Column("relative_path") == item.relative)
                             .fetchAll(database)
-                        {
-                            if let start = row.cueStart { existing[start] = row }
+                        var existing: [Double: Track] = [:]
+                        var whole: Track?
+                        for row in rowsForPath {
+                            if let start = row.cueStart {
+                                existing[start] = row
+                            } else {
+                                whole = row
+                            }
                         }
-                        var written: Set<Double> = []
-                        for entry in cue.tracks {
+                        // Дорожки за концом файла — лист от другого рипа или
+                        // битый: регион отдал бы пустоту. Пропускаем.
+                        // ponytail: строк тогда меньше, чем дорожек в листе, и
+                        // этот файл перечитывается каждым сканом — один файл.
+                        let entries = cue.tracks.filter {
+                            meta.duration <= 0 || $0.start < meta.duration
+                        }
+                        var written: [(start: Double, id: Int64)] = []
+                        for entry in entries {
                             let end = entry.end
                             let performer = entry.performer ?? artistTag
                             let artistID = try Self.resolveArtist(
                                 name: performer, sortTag: nil, cache: &artists,
                                 database: database)
+                            // Строка «весь файл» становится первой дорожкой:
+                            // её id, а с ним плейлисты и история, переживают
+                            // появление листа.
+                            var reuse = existing[entry.start]?.id
+                            if reuse == nil, written.isEmpty, let wholeID = whole?.id {
+                                reuse = wholeID
+                                whole = nil
+                            }
                             var segment = Track(
-                                id: existing[entry.start]?.id,
+                                id: reuse,
                                 sourceId: source.id,
                                 relativePath: item.relative,
                                 fileSize: values.size,
@@ -610,22 +718,19 @@ public actor LibraryScanner {
                                 try segment.insert(database)
                                 added += 1
                             }
-                            written.insert(entry.start)
+                            if let id = segment.id { written.append((entry.start, id)) }
                         }
-                        // Дорожки, исчезнувшие из листа, вместе со строкой
-                        // «весь файл», если он раньше играл целиком.
-                        let stale =
-                            try Track
-                            .filter(Column("source_id") == source.id)
-                            .filter(Column("relative_path") == item.relative)
-                            .fetchAll(database)
-                            .filter { row in
-                                guard let start = row.cueStart else { return true }
-                                return !written.contains(start)
-                            }
-                        for row in stale {
-                            guard let id = row.id else { continue }
-                            try Track.deleteOne(database, key: id)
+                        // Строки без дорожки: исчезнувшие из листа сегменты и
+                        // не пристроенный «весь файл». Ссылки плейлистов
+                        // переезжают на дорожку, в которую попадает их прежнее
+                        // начало, — а не пропадают каскадом.
+                        let survivors = written.sorted { $0.start < $1.start }
+                        let kept = Set(survivors.map(\.id))
+                        for row in rowsForPath {
+                            guard let id = row.id, !kept.contains(id) else { continue }
+                            let start = row.cueStart ?? 0
+                            let survivor = survivors.last { $0.start <= start } ?? survivors.first
+                            try Self.retire([id], into: survivor?.id, database: database)
                         }
                         continue
                     }
@@ -655,6 +760,18 @@ public actor LibraryScanner {
                     } else {
                         try track.insert(database)
                         added += 1
+                    }
+                    // Лист пропал: остальные сегменты сворачиваются в эту
+                    // строку, их элементы плейлистов — вместе с ними. Иначе
+                    // альбом показывал бы дорожки и целый файл разом, а
+                    // следующий скан падал бы на UNIQUE по пути.
+                    if collapsing.contains(item.relative), let keep = track.id {
+                        let leftovers = try Int64.fetchAll(
+                            database,
+                            sql:
+                                "SELECT id FROM track WHERE source_id = ? AND relative_path = ? AND id <> ?",
+                            arguments: [source.id, item.relative, keep])
+                        try Self.retire(leftovers, into: keep, database: database)
                     }
                 }
                 return (added, updated, artists, albums)
