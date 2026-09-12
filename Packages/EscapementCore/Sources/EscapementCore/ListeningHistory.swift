@@ -61,15 +61,36 @@ public actor ListeningHistory {
         self.limit = limit
     }
 
+    /// Засчитать прослушивание. `date` — момент зачёта; по нему же событие
+    /// потом дописывается (`extend`), когда трек звучит дальше.
     public func record(
-        trackId: Int64, title: String, artist: String, album: String, seconds: Double
+        trackId: Int64, title: String, artist: String, album: String, seconds: Double,
+        date: Date = Date()
     ) {
         var events = load()
         events.append(
             PlayEvent(
-                date: Date(), trackId: trackId, title: title, artist: artist, album: album,
+                date: date, trackId: trackId, title: title, artist: artist, album: album,
                 seconds: seconds))
         if events.count > limit { events.removeFirst(events.count - limit) }
+        loaded = events
+        save(events)
+    }
+
+    /// Дописать прослушанное время уже засчитанному событию. Зачёт — момент
+    /// «сыграно» (порог), секунды — «сколько звучало»: раньше поле замирало
+    /// на пороге, и десятиминутный трек числился четырьмя минутами.
+    /// Только вверх: повторный тик с меньшим числом ничего не портит.
+    public func extend(trackId: Int64, recordedAt: Date, seconds: Double) {
+        var events = load()
+        guard
+            let index = events.lastIndex(where: { $0.trackId == trackId && $0.date == recordedAt }),
+            events[index].seconds < seconds
+        else { return }
+        let old = events[index]
+        events[index] = PlayEvent(
+            date: old.date, trackId: old.trackId, title: old.title, artist: old.artist,
+            album: old.album, seconds: seconds)
         loaded = events
         save(events)
     }

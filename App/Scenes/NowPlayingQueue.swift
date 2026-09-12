@@ -34,7 +34,7 @@ struct NowPlayingQueue: View {
             if tracks.isEmpty {
                 DSText(
                     "Queue is empty — play an album or a track",
-                    style: .body, color: DS.Color.textTertiary
+                    style: .body, color: DS.Color.textMuted
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -114,7 +114,7 @@ struct NowPlayingQueue: View {
                 // Сводка очереди между линейками — язык liner notes.
                 VStack(alignment: .leading, spacing: 0) {
                     Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                    DSText(summary, style: .numeric, color: DS.Color.textTertiary)
+                    DSText(summary, style: .numeric, color: DS.Color.textMuted)
                         .padding(.vertical, DS.Space.sm)
                     Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
                 }
@@ -152,7 +152,7 @@ struct NowPlayingQueue: View {
                                 .lineSpacing(DS.Font.LineSpacing.multiline * 3)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .textSelection(.enabled)
-                            DSText(notesAttribution, style: .label, color: DS.Color.textTertiary)
+                            DSText(notesAttribution, style: .label, color: DS.Color.textMuted)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -172,7 +172,7 @@ struct NowPlayingQueue: View {
     private func notice(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.sm) {
             Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-            DSText(text, style: .label, color: DS.Color.textTertiary)
+            DSText(text, style: .label, color: DS.Color.textMuted)
                 .padding(.top, DS.Space.sm)
         }
         .frame(height: Self.noticeHeight, alignment: .top)
@@ -217,8 +217,10 @@ struct NowPlayingQueue: View {
         return NSImage(contentsOf: url)
     }
 
+    /// Выключение заметок тоже перезапускает загрузку: показанный текст
+    /// прячется сразу, а не со сменой трека; включение — грузит без неё.
     private var reloadID: String {
-        "\(env.queueRevision):\(env.currentTrack?.id ?? -1)"
+        "\(env.queueRevision):\(env.currentTrack?.id ?? -1):\(albumNotes)"
     }
 
     private var displayTrack: Track? {
@@ -243,7 +245,7 @@ struct NowPlayingQueue: View {
                             HStack(spacing: DS.Space.md) {
                                 DSText(
                                     "\(index + 1)", style: .numeric,
-                                    color: DS.Color.textTertiary
+                                    color: DS.Color.textMuted
                                 )
                                 .frame(width: 24, alignment: .trailing)
                                 UnavailableMark(track: track)
@@ -257,11 +259,13 @@ struct NowPlayingQueue: View {
                                 DSDottedLeader()
                                 DSText(
                                     AlbumDetail.format(duration: track.duration),
-                                    style: .numeric, color: DS.Color.textTertiary)
+                                    style: .numeric, color: DS.Color.textMuted)
                             }
                         }
                         .id(index)
                         .onTapGesture(count: 2) { env.playQueueItem(at: index) }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { env.playQueueItem(at: index) }
                         .onTapGesture { focused = index }
                         .trackQueueMenu(track, env: env)
                     }
@@ -311,7 +315,11 @@ struct NowPlayingQueue: View {
         notesMissing = nil
         if albumNotes, let album {
             notesLoading = true
-            notes = await env.albumInfo.info(for: album)
+            let fetched = await env.albumInfo.info(for: album)
+            // Пока ждали, трек или настройка сменились — `.task(id:)` уже
+            // отменил эту загрузку; её результат чужому экрану не достаётся.
+            guard !Task.isCancelled else { return }
+            notes = fetched
             notesLoading = false
             if notes == nil {
                 let writer = AlbumInfoService.selectedProvider.displayName

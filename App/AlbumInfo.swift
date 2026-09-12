@@ -49,6 +49,12 @@ actor AlbumInfoService {
     private var keyCache: [NotesProvider: String] = [:]
     /// Журнал соединений (SPEC §1.2): каждый запрос заметок в нём виден.
     private let ledger: NetworkLedger
+    /// Идущие запросы по альбому: быстрое A→B→A ждёт первый, а не шлёт второй.
+    private var inFlight: [Int64: Task<AlbumInfo?, Never>] = [:]
+    /// Недавние промахи: альбом, о котором нигде ничего нет, не спрашивается
+    /// заново на каждый переход между его треками.
+    private var misses: [Int64: Date] = [:]
+    private static let missTTL: TimeInterval = 600
 
     init(ledger: NetworkLedger) {
         self.ledger = ledger
@@ -69,7 +75,20 @@ actor AlbumInfoService {
     func info(for album: Album) async -> AlbumInfo? {
         guard let id = album.id, let title = nonEmpty(album.title) else { return nil }
         if let cached = readCache(albumId: id) { return cached }
+        if let missed = misses[id], Date().timeIntervalSince(missed) < Self.missTTL {
+            return nil
+        }
+        if let running = inFlight[id] { return await running.value }
+        let task = Task { [weak self] () -> AlbumInfo? in
+            guard let self else { return nil }
+            return await self.fetch(albumId: id, title: title, album: album)
+        }
+        inFlight[id] = task
+        defer { inFlight[id] = nil }
+        return await task.value
+    }
 
+    private func fetch(albumId id: Int64, title: String, album: Album) async -> AlbumInfo? {
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
         if result == nil {
             switch Self.selectedProvider {
@@ -81,7 +100,12 @@ actor AlbumInfoService {
                     title: title, artist: album.albumArtist, year: album.year)
             }
         }
-        if let result { writeCache(albumId: id, info: result) }
+        if let result {
+            writeCache(albumId: id, info: result)
+            misses[id] = nil
+        } else {
+            misses[id] = Date()
+        }
         return result
     }
 
@@ -112,7 +136,7 @@ actor AlbumInfoService {
         guard let searchURL = search?.url,
             let searchData = try? await data(from: URLRequest(url: searchURL)),
             let pages = try? JSONDecoder().decode(WikiSearch.self, from: searchData).pages,
-            let key = albumPage(in: pages)?.key,
+            let key = albumPage(in: pages, artist: artist)?.key,
             let summaryURL = URL(
                 string: "https://en.wikipedia.org/api/rest_v1/page/summary/"
                     + (key.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? key))
@@ -127,9 +151,22 @@ actor AlbumInfoService {
         return AlbumInfo(source: .wikipedia, text: extract)
     }
 
-    private func albumPage(in pages: [WikiSearch.Page]) -> WikiSearch.Page? {
-        pages.first { $0.description?.localizedCaseInsensitiveContains("album") == true }
-            ?? pages.first
+    /// Только страницы, чьё описание говорит «album»; при известном артисте —
+    /// сперва та, где он назван. Первый попавшийся результат без этой
+    /// проверки подменял альбом артистом или одноимённым фильмом, и это
+    /// уходило в вечный кеш.
+    private func albumPage(in pages: [WikiSearch.Page], artist: String?) -> WikiSearch.Page? {
+        let albums = pages.filter {
+            $0.description?.localizedCaseInsensitiveContains("album") == true
+        }
+        if let artist = nonEmpty(artist),
+            let match = albums.first(where: {
+                $0.description?.localizedCaseInsensitiveContains(artist) == true
+            })
+        {
+            return match
+        }
+        return albums.first
     }
 
     private struct WikiSearch: Decodable {
