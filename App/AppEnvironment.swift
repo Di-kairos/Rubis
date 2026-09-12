@@ -566,7 +566,8 @@ final class AppEnvironment {
         }
         // Свежесохранённый сервер играет сразу, без перезапуска приложения.
         await remote.register(source: source)
-        let sync = SubsonicSync(client: client, sourceId: source.id, db: db, covers: covers)
+        let sync = SubsonicSync(
+            client: client, sourceId: source.id, db: db, covers: covers, ledger: networkLedger)
         do {
             for try await progress in await sync.run() {
                 switch progress {
@@ -578,7 +579,7 @@ final class AppEnvironment {
                 }
             }
         } catch {
-            Log.library.error("subsonic sync failed: \(error, privacy: .public)")
+            Log.library.error("subsonic sync failed: \(Log.describe(error), privacy: .public)")
         }
         scanProgress = nil
         // Синхронизация — самый честный ответ на вопрос «сервер жив?»:

@@ -36,6 +36,12 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Перезапись строки целиком с сохранением id — синхронизация сервера
+    /// доносит изменившиеся теги, не трогая плейлисты и историю.
+    public func update(_ track: Track) throws {
+        try db.writer.write { try track.update($0) }
+    }
+
     public func track(id: Int64) throws -> Track? {
         try db.reader.read { try Track.fetchOne($0, key: id) }
     }

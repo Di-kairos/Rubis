@@ -173,6 +173,29 @@ struct AuditPack1Tests {
 
     // MARK: - Репозиторий
 
+    @Test func updateKeepsIdentityAndRewritesFields() throws {
+        let db = try AppDatabase.inMemory()
+        let source = Source(kind: .local, displayName: "Audit")
+        try SourceRepository(db: db).upsert(source)
+        let repo = TrackRepository(db: db)
+        var track = try #require(
+            repo.insert([
+                Track(
+                    sourceId: source.id, remoteId: "r1", title: "Old", duration: 1, codec: "mp3",
+                    sampleRate: 0)
+            ]).first)
+        track.title = "New"
+        track.codec = "flac"
+        track.sampleRate = 96000
+        try repo.update(track)
+        let id = try #require(track.id)
+        let stored = try #require(try repo.track(id: id))
+        #expect(stored.title == "New")
+        #expect(stored.codec == "flac")
+        #expect(stored.sampleRate == 96000)
+        #expect(try repo.count() == 1)
+    }
+
     @Test func unavailableFlagByIdsTouchesOnlyThoseRows() throws {
         let db = try AppDatabase.inMemory()
         let source = Source(kind: .local, displayName: "Audit")
