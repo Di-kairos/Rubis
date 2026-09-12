@@ -79,6 +79,20 @@ struct StreamCacheTests {
         #expect(cache.location(remoteId: "tr-1", codec: "unknown").pathExtension == "audio")
     }
 
+    @Test func serverSuppliedCodecCannotEscapeTheCacheDirectory() throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCache(Recorder(), root: root)
+        for codec in [
+            "../../evil", "flac/../x", "a b", "", "ридовые", String(repeating: "x", count: 9),
+        ] {
+            let url = cache.location(remoteId: "tr-1", codec: codec)
+            #expect(url.pathExtension == "audio", "codec \(codec)")
+            #expect(url.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL)
+        }
+        #expect(cache.location(remoteId: "tr-1", codec: "FLAC").pathExtension == "flac")
+    }
+
     @Test func failedDownloadLeavesNothingBehind() async throws {
         // Обрубок на диске сыграл бы как испорченный трек — хуже, чем ошибка.
         let root = makeRoot()

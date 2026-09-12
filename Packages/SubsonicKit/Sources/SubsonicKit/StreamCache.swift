@@ -51,8 +51,17 @@ public actor StreamCache {
     public nonisolated func location(remoteId: String, codec: String) -> URL {
         let digest = SHA256.hash(data: Data(remoteId.utf8))
             .map { String(format: "%02x", $0) }.joined()
-        let suffix = codec.isEmpty || codec == "unknown" ? "audio" : codec
-        return root.appendingPathComponent("\(digest).\(suffix)")
+        return root.appendingPathComponent("\(digest).\(Self.suffix(for: codec))")
+    }
+
+    /// Расширение файла в кэше. `codec` приходит с сервера как есть — строка
+    /// с `/` или `..` вышла бы за пределы каталога кэша. Только короткие
+    /// ASCII-буквы и цифры, всё остальное — `audio`.
+    static func suffix(for codec: String) -> String {
+        let clean =
+            !codec.isEmpty && codec.count <= 8 && codec != "unknown"
+            && codec.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
+        return clean ? codec.lowercased() : "audio"
     }
 
     /// Файл уже на диске?
