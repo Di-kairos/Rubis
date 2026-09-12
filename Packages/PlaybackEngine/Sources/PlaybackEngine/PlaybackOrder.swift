@@ -23,36 +23,65 @@ public enum ShuffleMode: String, Codable, Sendable, CaseIterable {
 /// Построение порядка очереди. Чистая функция — тестируется без железа.
 public enum PlaybackOrder {
     /// Перемешивает `items`, оставляя `current` на первом месте.
-    /// `.albums` тасует группы по `album_id`, сохраняя порядок треков внутри группы;
-    /// треки без альбома считаются каждый сам себе группой.
+    /// Удобная форма для вызывающих, у которых есть сам элемент: берётся его
+    /// первое вхождение. Очередь с повторами различает вхождения — см.
+    /// `shuffledIndices`.
     public static func shuffled<G: RandomNumberGenerator>(
         items: [PlaybackItem],
         current: PlaybackItem?,
         mode: ShuffleMode,
         using generator: inout G
     ) -> [PlaybackItem] {
-        guard mode != .off, !items.isEmpty else { return items }
-        let rest = items.filter { $0.track.id != current?.track.id }
+        shuffled(
+            items: items, currentIndex: current.flatMap { items.firstIndex(of: $0) }, mode: mode,
+            using: &generator)
+    }
 
-        let shuffledRest: [PlaybackItem]
+    /// Перемешивает `items`, оставляя вхождение `currentIndex` на первом месте.
+    public static func shuffled<G: RandomNumberGenerator>(
+        items: [PlaybackItem],
+        currentIndex: Int?,
+        mode: ShuffleMode,
+        using generator: inout G
+    ) -> [PlaybackItem] {
+        shuffledIndices(items: items, currentIndex: currentIndex, mode: mode, using: &generator)
+            .map { items[$0] }
+    }
+
+    /// Порядок обхода как перестановка позиций `items`: текущее вхождение
+    /// первым, остальное вперемешку. Исключается ровно одна позиция, а не
+    /// все копии трека — `[A, B, A]` остаётся тремя элементами.
+    /// `.albums` тасует группы по `album_id`, сохраняя порядок треков внутри
+    /// группы; треки без альбома считаются каждый сам себе группой.
+    public static func shuffledIndices<G: RandomNumberGenerator>(
+        items: [PlaybackItem],
+        currentIndex: Int?,
+        mode: ShuffleMode,
+        using generator: inout G
+    ) -> [Int] {
+        guard mode != .off, !items.isEmpty else { return Array(items.indices) }
+        let current = currentIndex.flatMap { items.indices.contains($0) ? $0 : nil }
+        let rest = items.indices.filter { $0 != current }
+
+        let shuffledRest: [Int]
         switch mode {
         case .off:
             shuffledRest = rest
         case .tracks:
             shuffledRest = rest.shuffled(using: &generator)
         case .albums:
-            var groups: [[PlaybackItem]] = []
+            var groups: [[Int]] = []
             var indexByAlbum: [Int64: Int] = [:]
-            for item in rest {
-                guard let albumId = item.track.albumId else {
-                    groups.append([item])
+            for position in rest {
+                guard let albumId = items[position].track.albumId else {
+                    groups.append([position])
                     continue
                 }
                 if let existing = indexByAlbum[albumId] {
-                    groups[existing].append(item)
+                    groups[existing].append(position)
                 } else {
                     indexByAlbum[albumId] = groups.count
-                    groups.append([item])
+                    groups.append([position])
                 }
             }
             shuffledRest = groups.shuffled(using: &generator).flatMap { $0 }
