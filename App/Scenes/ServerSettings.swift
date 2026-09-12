@@ -156,14 +156,20 @@ struct ServerSettings: View {
         let user = username
         let secret = password
         Task {
+            var client: SubsonicClient?
             do {
-                let client = try SubsonicClient(
-                    serverURL: url, username: user, password: secret)
-                try await client.ping()
+                client = try SubsonicClient(serverURL: url, username: user, password: secret)
+                try await client?.ping()
                 status = .ok("Connected as \(user)")
             } catch {
                 status = .failed(
                     (error as? SubsonicError)?.errorDescription ?? error.localizedDescription)
+            }
+            // Проверка — тоже исходящий запрос: в журнал, как и всё остальное.
+            if let host = client?.host {
+                let succeeded = if case .ok = status { true } else { false }
+                await env.networkLedger.record(
+                    host: host, purpose: "Server check", succeeded: succeeded, bytes: 0)
             }
         }
     }
@@ -171,17 +177,27 @@ struct ServerSettings: View {
     private func save() {
         let trimmed = serverURL.trimmingCharacters(in: .whitespaces)
         let host = SubsonicAccount.host(of: trimmed)
-        guard !host.isEmpty else {
+        // Те же правила, что у клиента: схема, хост, никакого пароля в адресе —
+        // иначе он лёг бы в таблицу источников открытым текстом.
+        guard !host.isEmpty,
+            (try? SubsonicClient(serverURL: trimmed, username: username, password: password))
+                != nil
+        else {
             status = .failed(SubsonicError.invalidServerURL.errorDescription ?? "")
             return
         }
-        // Смена адреса или логина оставляет старый пароль сиротой — убираем.
+        // Новый секрет сначала подтверждается связкой; старый убирается потом.
+        let stored = SubsonicPasswordStore.save(password, host: host, username: username)
+        guard stored == errSecSuccess else {
+            status = .failed(
+                "Keychain refused the password: \(SubsonicPasswordStore.message(for: stored))")
+            return
+        }
         if let old = existing, let oldURL = old.serverUrl, let oldUser = old.username,
             oldURL != trimmed || oldUser != username
         {
             SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: oldURL), username: oldUser)
         }
-        SubsonicPasswordStore.save(password, host: host, username: username)
 
         var source =
             existing ?? Source(kind: .subsonic, displayName: host, serverUrl: trimmed)
@@ -192,6 +208,9 @@ struct ServerSettings: View {
             try env.sourceRepo.upsert(source)
             existing = source
             status = .ok("Saved")
+            // Живой клиент воспроизведения — на новые адрес и пароль сразу,
+            // а не после перезапуска или следующего Sync.
+            Task { await env.remote.register(source: source) }
         } catch {
             status = .failed(error.localizedDescription)
         }
@@ -214,6 +233,7 @@ struct ServerSettings: View {
             SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: url), username: user)
         }
         try? env.sourceRepo.delete(id: source.id)
+        Task { await env.remote.unregister(sourceId: source.id) }
         existing = nil
         serverURL = ""
         username = ""

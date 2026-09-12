@@ -338,17 +338,25 @@ actor AlbumInfoService {
 enum KeychainStore {
     private static let service = "com.dikairos.escapement"
 
-    static func save(_ value: String, account: String) {
+    /// Обновление на месте; добавление — только когда записи нет (тот же
+    /// урок, что у пароля Subsonic: Delete→Add терял ключ при отказе связки
+    /// и стирал выданное записи «Always Allow»).
+    @discardableResult
+    static func save(_ value: String, account: String) -> OSStatus {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
-        SecItemDelete(query as CFDictionary)
-        guard !value.isEmpty, let data = value.data(using: .utf8) else { return }
+        guard !value.isEmpty, let data = value.data(using: .utf8) else {
+            return SecItemDelete(query as CFDictionary)
+        }
+        let update = SecItemUpdate(
+            query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        guard update == errSecItemNotFound else { return update }
         var add = query
         add[kSecValueData as String] = data
-        SecItemAdd(add as CFDictionary, nil)
+        return SecItemAdd(add as CFDictionary, nil)
     }
 
     static func load(account: String) -> String? {
