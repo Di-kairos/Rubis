@@ -54,11 +54,24 @@ public actor StreamCache {
         try FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true)
     }
 
+    /// Пространство кэша по происхождению: сервер (схема, хост, порт, базовый
+    /// путь API) и пользователь. Один и тот же `id` на двух серверах — разные
+    /// файлы; смена адреса или аккаунта — тоже. Пароль, токен и соль сюда не
+    /// входят: они меняются на каждый запрос и не должны попадать в имена.
+    public nonisolated static func scope(for url: URL) -> String {
+        let user =
+            URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+            .first { $0.name == "u" }?.value ?? ""
+        let base = url.deletingLastPathComponent().path
+        return
+            "\(url.scheme?.lowercased() ?? "")://\(url.host?.lowercased() ?? ""):\(url.port ?? -1)\(base)|\(user)"
+    }
+
     /// Адрес, по которому трек лежит или будет лежать. Идентификатор сервера
     /// в имя файла не попадает как есть — он приходит снаружи и может
-    /// содержать что угодно; берём его отпечаток.
-    public nonisolated func location(remoteId: String, codec: String) -> URL {
-        let digest = SHA256.hash(data: Data(remoteId.utf8))
+    /// содержать что угодно; берём отпечаток пары «происхождение + id».
+    public nonisolated func location(remoteId: String, codec: String, scope: String) -> URL {
+        let digest = SHA256.hash(data: Data("\(scope)\u{0}\(remoteId)".utf8))
             .map { String(format: "%02x", $0) }.joined()
         return root.appendingPathComponent("\(digest).\(Self.suffix(for: codec))")
     }
@@ -74,8 +87,9 @@ public actor StreamCache {
     }
 
     /// Файл уже на диске?
-    public nonisolated func isCached(remoteId: String, codec: String) -> Bool {
-        FileManager.default.fileExists(atPath: location(remoteId: remoteId, codec: codec).path)
+    public nonisolated func isCached(remoteId: String, codec: String, scope: String) -> Bool {
+        FileManager.default.fileExists(
+            atPath: location(remoteId: remoteId, codec: codec, scope: scope).path)
     }
 
     /// Файл трека: с диска, если он там есть, иначе качает целиком.
@@ -85,7 +99,7 @@ public actor StreamCache {
     ///
     /// ponytail: кэш растёт без предела — лимит и вытеснение идут pack'ом 6.
     public func file(remoteId: String, codec: String, from url: URL) async throws -> URL {
-        let destination = location(remoteId: remoteId, codec: codec)
+        let destination = location(remoteId: remoteId, codec: codec, scope: Self.scope(for: url))
         if FileManager.default.fileExists(atPath: destination.path) {
             touch(destination)
             return destination
@@ -136,8 +150,9 @@ public actor StreamCache {
 
     /// Выбрасывает один объект: файл прошёл проверку, но декодер на нём
     /// споткнулся позже — следующая попытка качает заново.
-    public func remove(remoteId: String, codec: String) {
-        try? FileManager.default.removeItem(at: location(remoteId: remoteId, codec: codec))
+    public func remove(remoteId: String, codec: String, scope: String) {
+        try? FileManager.default.removeItem(
+            at: location(remoteId: remoteId, codec: codec, scope: scope))
     }
 
     /// Вытеснение по давности использования: свежие остаются, старые уходят,

@@ -35,6 +35,7 @@ struct StreamCacheTests {
     }
 
     private let remoteURL = URL(string: "https://music.example.com/rest/download?id=tr-1")!
+    private var scope: String { StreamCache.scope(for: remoteURL) }
 
     @Test func trackIsDownloadedOnceAndReadAgainFromDisk() async throws {
         let root = makeRoot()
@@ -73,13 +74,15 @@ struct StreamCacheTests {
         let cache = try makeCache(Recorder(), root: root)
 
         #expect(
-            cache.location(remoteId: "tr-1", codec: "flac")
-                != cache.location(remoteId: "tr-2", codec: "flac"))
+            cache.location(remoteId: "tr-1", codec: "flac", scope: scope)
+                != cache.location(remoteId: "tr-2", codec: "flac", scope: scope))
         // Адрес детерминирован: очередь собирается до того, как файл приехал.
         #expect(
-            cache.location(remoteId: "tr-1", codec: "flac")
-                == cache.location(remoteId: "tr-1", codec: "flac"))
-        #expect(cache.location(remoteId: "tr-1", codec: "unknown").pathExtension == "audio")
+            cache.location(remoteId: "tr-1", codec: "flac", scope: scope)
+                == cache.location(remoteId: "tr-1", codec: "flac", scope: scope))
+        #expect(
+            cache.location(remoteId: "tr-1", codec: "unknown", scope: scope).pathExtension
+                == "audio")
     }
 
     @Test func rejectedDownloadNeverBecomesACacheEntry() async throws {
@@ -92,7 +95,7 @@ struct StreamCacheTests {
         await #expect(throws: SubsonicError.http(200)) {
             _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
         }
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
         #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
         // Следующая попытка качает заново, а не берёт отвергнутое.
         await #expect(throws: SubsonicError.http(200)) {
@@ -107,9 +110,31 @@ struct StreamCacheTests {
         let cache = try makeCache(Recorder(), root: root)
         _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
         _ = try await cache.file(remoteId: "tr-2", codec: "flac", from: remoteURL)
-        await cache.remove(remoteId: "tr-1", codec: "flac")
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
-        #expect(cache.isCached(remoteId: "tr-2", codec: "flac"))
+        await cache.remove(remoteId: "tr-1", codec: "flac", scope: scope)
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
+        #expect(cache.isCached(remoteId: "tr-2", codec: "flac", scope: scope))
+    }
+
+    @Test func scopeSeparatesServersAndAccountsButNotSalts() throws {
+        let a = try #require(URL(string: "https://a.example/rest/download?u=di&t=1&s=x&id=7"))
+        let sameA = try #require(URL(string: "https://a.example/rest/download?u=di&t=2&s=y&id=7"))
+        let otherUser = try #require(
+            URL(string: "https://a.example/rest/download?u=bo&t=1&s=x&id=7"))
+        let otherPort = try #require(URL(string: "https://a.example:4533/rest/download?u=di&id=7"))
+        let otherBase = try #require(URL(string: "https://a.example/navi/rest/download?u=di&id=7"))
+        let b = try #require(URL(string: "https://b.example/rest/download?u=di&id=7"))
+        #expect(StreamCache.scope(for: a) == StreamCache.scope(for: sameA))
+        let scopes = [a, otherUser, otherPort, otherBase, b].map(StreamCache.scope(for:))
+        #expect(Set(scopes).count == scopes.count)
+        #expect(!StreamCache.scope(for: a).contains("t=1"))
+        #expect(!StreamCache.scope(for: a).contains("s=x"))
+
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCache(Recorder(), root: root)
+        #expect(
+            cache.location(remoteId: "7", codec: "flac", scope: StreamCache.scope(for: a))
+                != cache.location(remoteId: "7", codec: "flac", scope: StreamCache.scope(for: b)))
     }
 
     @Test func serverSuppliedCodecCannotEscapeTheCacheDirectory() throws {
@@ -119,11 +144,12 @@ struct StreamCacheTests {
         for codec in [
             "../../evil", "flac/../x", "a b", "", "ридовые", String(repeating: "x", count: 9),
         ] {
-            let url = cache.location(remoteId: "tr-1", codec: codec)
+            let url = cache.location(remoteId: "tr-1", codec: codec, scope: scope)
             #expect(url.pathExtension == "audio", "codec \(codec)")
             #expect(url.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL)
         }
-        #expect(cache.location(remoteId: "tr-1", codec: "FLAC").pathExtension == "flac")
+        #expect(
+            cache.location(remoteId: "tr-1", codec: "FLAC", scope: scope).pathExtension == "flac")
     }
 
     @Test func failedDownloadLeavesNothingBehind() async throws {
@@ -137,12 +163,12 @@ struct StreamCacheTests {
         await #expect(throws: SubsonicError.http(503)) {
             _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
         }
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
 
         // После провала трек качается заново, а не считается «уже пробовали».
         recorder.failure = nil
         _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
-        #expect(cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
         #expect(recorder.calls == 2)
     }
 
@@ -164,10 +190,10 @@ struct StreamCacheTests {
             _ = try await cache.file(remoteId: id, codec: "flac", from: remoteURL)
         }
 
-        #expect(cache.isCached(remoteId: "tr-4", codec: "flac"))
-        #expect(cache.isCached(remoteId: "tr-3", codec: "flac"))
-        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac"))
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-4", codec: "flac", scope: scope))
+        #expect(cache.isCached(remoteId: "tr-3", codec: "flac", scope: scope))
+        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac", scope: scope))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
         #expect(await cache.size() == 200)
     }
 
@@ -185,9 +211,9 @@ struct StreamCacheTests {
         _ = try await cache.file(remoteId: "old-favourite", codec: "flac", from: remoteURL)
         _ = try await cache.file(remoteId: "tr-4", codec: "flac", from: remoteURL)
 
-        #expect(cache.isCached(remoteId: "old-favourite", codec: "flac"))
-        #expect(cache.isCached(remoteId: "tr-4", codec: "flac"))
-        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac"))
+        #expect(cache.isCached(remoteId: "old-favourite", codec: "flac", scope: scope))
+        #expect(cache.isCached(remoteId: "tr-4", codec: "flac", scope: scope))
+        #expect(!cache.isCached(remoteId: "tr-2", codec: "flac", scope: scope))
     }
 
     @Test func twoNewestSurviveEvenAnAbsurdLimit() async throws {
@@ -201,9 +227,9 @@ struct StreamCacheTests {
             _ = try await cache.file(remoteId: id, codec: "flac", from: remoteURL)
         }
 
-        #expect(cache.isCached(remoteId: "tr-3", codec: "flac"))
-        #expect(cache.isCached(remoteId: "tr-2", codec: "flac"))
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-3", codec: "flac", scope: scope))
+        #expect(cache.isCached(remoteId: "tr-2", codec: "flac", scope: scope))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
     }
 
     @Test func loweredLimitTakesEffectAtOnce() async throws {
@@ -230,6 +256,6 @@ struct StreamCacheTests {
 
         await cache.clear()
         #expect(await cache.size() == 0)
-        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac", scope: scope))
     }
 }
