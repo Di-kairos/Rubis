@@ -6,17 +6,17 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "8628976"
-tests: "201 registered: 199 passed, 2 skipped (5 packages); 9 audit regressions reproduced outside active targets"
-last_session: 12
-last_reviewed: 2026-08-12
+head: "38729d8"
+tests: "243 registered: 241 passed, 2 skipped (5 packages); 9 audit regressions adopted and green"
+last_session: 13
+last_reviewed: 2026-09-12
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "CUE: живая проверка на настоящем рипе (диск одним FLAC + .cue) — границы на слух, бейдж на стыке"
-  - "Mac App Store (D-009) — не начат, старт по команде владельца"
-  - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
-  - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
-  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
+  - "Слить phase/10-audit в main (22 коммита, ответ аудитору — AUDIT_RESPONSE_2026-09-12.md) — по команде владельца"
+  - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
+  - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
+  - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
+  - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
@@ -28,6 +28,8 @@ links:
   releases: https://github.com/Di-kairos/rubis-releases
   latest_report: docs/sessions/progress-report-session12.md
   latest_kickoff: docs/sessions/SESSION_13_KICKOFF.md
+  audit: AUDIT_PLAYER_2026-09-12.md
+  audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
@@ -528,6 +530,28 @@ staple, `spctl → accepted / source=Notarized Developer ID` на скачанн
 SHA256 опубликованного DMG сверён скачиванием (`0f792951…`, 12 627 971 байт),
 appcast запушен и проверен по живому URL (`sparkle:version 30`).
 HEAD: `25cf06e` — chore(release): bump version to 0.10.2 (30).
+Session 13 (2026-09-12, Mac Mini): **ответ на внешний аудит плеера**
+(`AUDIT_PLAYER_2026-09-12.md`, 33 пункта, 6 P1). Ветка `phase/10-audit`,
+22 кодовых коммита шестью pack'ами: потеря данных и падения (плейлисты
+больше не вычищаются каскадом — единый `retire`, CUE-парсер отвергает
+`inf`/`nan`/переполнение, `append` после дыр в позициях), достоверный
+транспорт (поколение команды, идемпотентный gapless по `queueIsEmpty`/`nowPlaying`,
+упорядоченные события движка, awaited teardown устройства, shuffle по
+вхождениям), честный тракт (`OutputStatus` — снимок из открытого декодера,
+разрядность nil вместо 16, микшер по факту, DSD-путь применённый, receipt
+Schema 2, часы CUE-сегмента с нуля, DoP только по подтверждению на UID —
+D-014), сервер и приватность (кэш по серверу+аккаунту, проба скачанного
+декодером, Keychain update-not-delete, URL без userinfo, логи без токена,
+журнал Network честен о границах, Sparkle 2.9.6), управление и обратная
+связь (`text.muted` ≥4.5:1 — D-015, Space в любом текстовом поле,
+FolderWatcher наконец подключён, экраны перечитываются по `libraryRevision`,
+алерт вместо `fatalError`, Undo/подтверждение — D-016, история считает
+дальше порога — D-017), поставка (`RUBIS_RELEASE=1` строгий режим). Девять
+регрессий аудитора приняты в test targets и зелёные. Тесты **243/241/2**,
+Debug и Release без warnings. Открытое и вопросы к перепроверке —
+`AUDIT_RESPONSE_2026-09-12.md` §4 и §6. Ветка не слита: merge в main — по
+команде владельца.
+HEAD ветки: `38729d8` — build(release): strict release mode for make-dmg.sh.
 
 ## Фазы (из TASKS.md)
 
