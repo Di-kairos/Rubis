@@ -64,11 +64,12 @@ struct ArtistsList: View {
             .frame(maxWidth: .infinity)
         }
         .background(DS.Color.bgBase)
-        .task { reload() }
+        .task(id: env.libraryRevision) { reload() }
     }
 
     private func reload() {
         artists = (try? ArtistRepository(db: env.db).all()) ?? []
+        if let current = selectedArtist { select(current) }
         if selectedArtist == nil, let first = artists.first { select(first) }
     }
 
@@ -103,7 +104,7 @@ struct RecentlyAddedGrid: View {
             .padding(DS.Space.xl)
         }
         .background(DS.Color.bgBase)
-        .task {
+        .task(id: env.libraryRevision) {
             albums = (try? env.albumRepo.recentlyAdded()) ?? []
         }
     }

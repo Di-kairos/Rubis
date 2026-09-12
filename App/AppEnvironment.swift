@@ -1,3 +1,4 @@
+import AppKit
 import EscapementCore
 import Foundation
 import MusicLibrary
@@ -57,6 +58,18 @@ final class AppEnvironment {
     /// состояния воспроизведения — тихое восстановление при запуске оставляет
     /// `playbackState` в `idle`, и подписка на трек ничего бы не заметила.
     private(set) var queueRevision = 0
+    /// Счётчик изменений библиотеки: скан, синхронизация, смена источников.
+    /// Разделы без живого наблюдения БД (Tracks, Artists, Recently Added,
+    /// Playlists) перечитываются по нему, а не остаются с прошлым снимком.
+    private(set) var libraryRevision = 0
+    /// FSEvents по корням локальных источников (SPEC §5.2): изменение папки
+    /// запускает скан её источника само, без ⌘R.
+    private var folderWatcher: FolderWatcher?
+    /// Источники, которые сканируются прямо сейчас, и те, кому за это время
+    /// пришёл повторный запрос. Актор сканера не запрещает два скана одного
+    /// источника вперемешку между `await` — сериализуем здесь.
+    private var scanning: Set<String> = []
+    private var rescanPending: Set<String> = []
     /// Трек, который уже перезапускали после сорванной загрузки.
     private var lastRemoteRetry: Int64?
     /// Серверы, которые не отвечают (SPEC §6.3).
@@ -94,6 +107,9 @@ final class AppEnvironment {
     /// Глобальные медиа-клавиши. Объект инертен: монитор ставится только
     /// когда функцию включили в настройках.
     private(set) var globalMediaKeys: GlobalMediaKeys?
+    /// Пробел и стрелки достаются текстовому полю, а не меню, пока в нём
+    /// стоит курсор — по первому ответчику окна, без флагов на каждое поле.
+    private let textFieldKeyGuard = TextFieldKeyGuard()
 
     init() throws {
         #if DEBUG
@@ -127,6 +143,8 @@ final class AppEnvironment {
         Task { [player] in
             for await state in await player.stateStream() {
                 self.playbackState = state
+                // Пауза, стоп, ошибка: прослушанное к этому моменту — в историю.
+                if case .playing = state {} else { self.flushListening() }
                 if case .playing = state {
                     self.lastRemoteRetry = nil
                     await self.saveQueueSnapshot()
@@ -159,6 +177,53 @@ final class AppEnvironment {
             for await status in await player.statusStream() {
                 self.outputStatus = status
             }
+        }
+        rebuildFolderWatcher()
+        // Последние секунды прослушивания — в историю до выхода.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.flushListening() }
+        }
+    }
+
+    /// Источники добавили или убрали: наблюдатели папок — заново, разделы —
+    /// перечитать.
+    func sourcesDidChange() {
+        rebuildFolderWatcher()
+        libraryRevision += 1
+    }
+
+    /// Наблюдение за корнями локальных источников. Изменение внутри корня
+    /// (с дебаунсом watcher'а) — скан именно этого источника.
+    private func rebuildFolderWatcher() {
+        folderWatcher?.stop()
+        folderWatcher = nil
+        guard let sources = try? sourceRepo.all() else { return }
+        var roots: [(url: URL, source: Source)] = []
+        for source in sources where source.kind == .local && source.enabled {
+            guard let bookmark = source.bookmark,
+                let url = try? LibraryScanner.resolveBookmark(bookmark)
+            else { continue }
+            roots.append((url, source))
+        }
+        guard !roots.isEmpty else { return }
+        folderWatcher = FolderWatcher(roots: roots.map(\.url)) { [weak self] changed in
+            guard let self else { return }
+            let touched = roots.filter { root in
+                changed.contains { $0.path.hasPrefix(root.url.path) }
+            }
+            for root in touched {
+                Task { await self.rescanQuietly(source: root.source) }
+            }
+        }
+    }
+
+    private func rescanQuietly(source: Source) async {
+        do {
+            try await rescan(source: source)
+        } catch {
+            Log.library.error("watched rescan failed: \(Log.describe(error), privacy: .public)")
         }
     }
 
@@ -338,8 +403,11 @@ final class AppEnvironment {
 
     // MARK: - История прослушиваний (фишка E)
 
-    /// Текущее проигрывание: сколько секунд уже прозвучало и записано ли оно.
-    private var listening: (trackId: Int64, seconds: Double, position: Double, recorded: Bool)?
+    /// Текущее проигрывание: сколько секунд уже прозвучало, засчитано ли оно
+    /// (и когда — по этой отметке событие потом дописывается) и сколько
+    /// секунд история уже знает.
+    private var listening:
+        (trackId: Int64, seconds: Double, position: Double, recordedAt: Date?, flushed: Double)?
 
     /// Прослушивание засчитывается один раз за проигрывание. Прыжок назад по
     /// таймлайну (повтор трека, перемотка в начало) начинает счёт заново —
@@ -351,26 +419,48 @@ final class AppEnvironment {
             state.position = position
             listening = state
         } else {
-            listening = (id, 1, position, false)
+            flushListening()
+            listening = (id, 1, position, nil, 0)
         }
-        guard var state = listening, !state.recorded,
+        guard var state = listening else { return }
+        if state.recordedAt == nil,
             ListeningHistory.counts(listened: state.seconds, duration: track.duration)
+        {
+            let stamp = Date()
+            state.recordedAt = stamp
+            state.flushed = state.seconds
+            listening = state
+            record(play: track, seconds: state.seconds, at: stamp)
+        } else if state.recordedAt != nil, Int(state.seconds) % 30 == 0 {
+            // Секунды капают в историю по ходу, а не только на смене трека:
+            // ⌘Q посреди длинной вещи теряет не больше полминуты.
+            flushListening()
+        }
+    }
+
+    /// Дописать засчитанному событию всё, что прозвучало после порога.
+    private func flushListening() {
+        guard let state = listening, let recordedAt = state.recordedAt,
+            state.seconds > state.flushed
         else { return }
-        state.recorded = true
-        listening = state
-        record(play: track, seconds: state.seconds)
+        listening?.flushed = state.seconds
+        Task { [listeningHistory] in
+            await listeningHistory.extend(
+                trackId: state.trackId, recordedAt: recordedAt, seconds: state.seconds)
+        }
     }
 
     /// Имена артиста и альбома снимаются один раз на засчитанное
     /// прослушивание и уезжают в историю строками — она не должна ломаться
     /// от пересканирования библиотеки.
-    private func record(play track: Track, seconds: Double) {
+    private func record(play track: Track, seconds: Double, at stamp: Date) {
         guard let id = track.id else { return }
         let artist = track.artistId.flatMap { try? artistRepo.artist(id: $0) }?.name ?? ""
         let album = track.albumId.flatMap { try? albumRepo.album(id: $0) }?.title ?? ""
         Task { [listeningHistory, title = track.title] in
             await listeningHistory.record(
-                trackId: id, title: title, artist: artist, album: album, seconds: seconds)
+                trackId: id, title: title, artist: artist, album: album, seconds: seconds,
+                date: stamp)
         }
     }
 
@@ -474,7 +564,10 @@ final class AppEnvironment {
         serverStatus = offlineServers.isEmpty ? nil : "\(source.displayName) is offline"
         // Списки читают библиотеку наблюдением, а очередь — нет: она собрана
         // из старых строк и всё ещё считает молчащие треки играбельными.
-        if changed > 0 { queueRevision += 1 }
+        if changed > 0 {
+            queueRevision += 1
+            libraryRevision += 1
+        }
     }
 
     /// Файл трека до старта: локальный уже на месте, серверный качается.
@@ -536,6 +629,7 @@ final class AppEnvironment {
                 var source = Source(kind: .local, displayName: url.lastPathComponent)
                 source.bookmark = try LibraryScanner.makeBookmark(for: url)
                 try sourceRepo.upsert(source)
+                sourcesDidChange()
                 try await rescan(source: source)
             } catch {
                 Log.library.error("add source failed: \(error, privacy: .public)")
@@ -550,7 +644,7 @@ final class AppEnvironment {
             guard let sources = try? sourceRepo.all() else { return }
             for source in sources where source.enabled {
                 switch source.kind {
-                case .local: try? await rescan(source: source)
+                case .local: await rescanQuietly(source: source)
                 case .subsonic: await sync(server: source)
                 }
             }
@@ -582,15 +676,31 @@ final class AppEnvironment {
             Log.library.error("subsonic sync failed: \(Log.describe(error), privacy: .public)")
         }
         scanProgress = nil
+        libraryRevision += 1
         // Синхронизация — самый честный ответ на вопрос «сервер жив?»:
         // после неё состояние источника переставляется по факту.
         await checkServer(source)
     }
 
+    /// Скан одного источника — не больше одного за раз. Повторный запрос во
+    /// время скана (⌘R дважды, папка меняется под сканом) не накладывается,
+    /// а идёт следом. Полоска прогресса гаснет и при ошибке.
     private func rescan(source: Source) async throws {
-        for try await progress in scanner.scanStream(source: source) {
-            scanProgress = progress
+        guard !scanning.contains(source.id) else {
+            rescanPending.insert(source.id)
+            return
         }
-        scanProgress = nil
+        scanning.insert(source.id)
+        defer {
+            scanning.remove(source.id)
+            scanProgress = nil
+            libraryRevision += 1
+        }
+        repeat {
+            rescanPending.remove(source.id)
+            for try await progress in scanner.scanStream(source: source) {
+                scanProgress = progress
+            }
+        } while rescanPending.contains(source.id)
     }
 }

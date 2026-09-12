@@ -1,3 +1,4 @@
+import AppKit
 import DesignSystem
 import EscapementCore
 import MusicLibrary
@@ -84,7 +85,7 @@ struct ServerSettings: View {
                     .disabled(cacheSize == 0)
                 Spacer()
             }
-            DSText(cacheSizeLine, style: .caption, color: DS.Color.textTertiary)
+            DSText(cacheSizeLine, style: .caption, color: DS.Color.textMuted)
         }
         .onChange(of: cacheLimitGB) { _, value in
             Task { await env.remote.setCacheLimit(gigabytes: value) }
@@ -105,7 +106,7 @@ struct ServerSettings: View {
         case .idle:
             // Место под строку держится всегда — иначе кнопки прыгают
             // в момент появления результата (урок 0.8.4 про указатель).
-            DSText(" ", style: .caption, color: DS.Color.textTertiary)
+            DSText(" ", style: .caption, color: DS.Color.textMuted)
         case .testing:
             DSText("Checking…", style: .caption, color: DS.Color.textSecondary)
         case .ok(let text):
@@ -229,11 +230,22 @@ struct ServerSettings: View {
 
     private func remove() {
         guard let source = existing else { return }
+        // То же подтверждение, что у локального источника (SPEC §9): вместе с
+        // сервером уходят его треки, их места в плейлистах и пароль.
+        let alert = NSAlert()
+        alert.messageText = "Remove server “\(source.displayName)”?"
+        alert.informativeText =
+            "Its tracks leave the library and every playlist; the saved password is deleted. "
+            + "Downloaded files stay in the cache until it is cleared."
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
         if let url = source.serverUrl, let user = source.username {
             SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: url), username: user)
         }
         try? env.sourceRepo.delete(id: source.id)
         Task { await env.remote.unregister(sourceId: source.id) }
+        env.sourcesDidChange()
         existing = nil
         serverURL = ""
         username = ""
