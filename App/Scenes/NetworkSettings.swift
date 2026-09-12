@@ -92,7 +92,7 @@ struct NetworkSettings: View {
                 Spacer()
                 DSText(
                     host.last.formatted(date: .abbreviated, time: .shortened), style: .caption,
-                    color: DS.Color.textTertiary)
+                    color: DS.Color.textMuted)
             }
         }
     }

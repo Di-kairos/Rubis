@@ -39,7 +39,7 @@ struct SearchResults: View {
         let rows = items
         Group {
             if rows.isEmpty {
-                DSText("Nothing found", style: .body, color: DS.Color.textTertiary)
+                DSText("Nothing found", style: .body, color: DS.Color.textMuted)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
@@ -114,13 +114,15 @@ struct SearchResults: View {
                 if case .track(let hit) = item {
                     DSText(
                         AlbumDetail.format(duration: hit.track.duration), style: .numeric,
-                        color: DS.Color.textTertiary)
+                        color: DS.Color.textMuted)
                 }
             }
         }
         .id(item.id)
         .onTapGesture { select(item, at: index) }
         .onTapGesture(count: 2) { activate(item, in: rows, queue: false) }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { activate(item, in: rows, queue: false) }
         .contextMenu { QueueMenuItems(tracks: tracks(for: item, in: rows), env: env) }
     }
 

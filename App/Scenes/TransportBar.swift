@@ -68,9 +68,9 @@ struct TransportBar: View {
                     env.seek(to: fraction)
                 }
                 HStack {
-                    DSText(timeText, style: .numeric, color: DS.Color.textTertiary)
+                    DSText(timeText, style: .numeric, color: DS.Color.textMuted)
                     Spacer()
-                    DSText(totalText, style: .numeric, color: DS.Color.textTertiary)
+                    DSText(totalText, style: .numeric, color: DS.Color.textMuted)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -203,7 +203,7 @@ struct TransportBar: View {
 
     private func statusPopover(_ status: OutputStatus) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.sm) {
-            DSText("Signal path", style: .label, color: DS.Color.textTertiary)
+            DSText("Signal path", style: .label, color: DS.Color.textMuted)
             row("Device", status.deviceName)
             row(
                 "Source",

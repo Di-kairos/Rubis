@@ -23,7 +23,7 @@ struct DeviceDossierCard: View {
             if let dossier {
                 HStack(alignment: .firstTextBaseline) {
                     DSText(dossier.name, style: .headline)
-                    DSText(dossier.transport, style: .label, color: DS.Color.textTertiary)
+                    DSText(dossier.transport, style: .label, color: DS.Color.textMuted)
                     Spacer()
                     Button(probing ? "Probing…" : "Probe exclusive access") { probeHog() }
                         .disabled(probing || playing || dossier.builtIn)
@@ -53,7 +53,7 @@ struct DeviceDossierCard: View {
             } else {
                 DSText(
                     "No device to look at — pick an output above.", style: .caption,
-                    color: DS.Color.textTertiary)
+                    color: DS.Color.textMuted)
             }
         }
         .task(id: deviceID) { reload() }

@@ -117,7 +117,7 @@ struct AlbumDetail: View {
             HStack(spacing: DS.Space.md) {
                 DSText(
                     "\(track.trackNo ?? index + 1)", style: .numeric,
-                    color: DS.Color.textTertiary
+                    color: DS.Color.textMuted
                 )
                 .frame(width: 24, alignment: .trailing)
                 UnavailableMark(track: track)
@@ -131,12 +131,14 @@ struct AlbumDetail: View {
                 DSDottedLeader()
                 DSText(
                     Self.format(duration: track.duration), style: .numeric,
-                    color: DS.Color.textTertiary)
+                    color: DS.Color.textMuted)
             }
         }
         .onTapGesture(count: 2) {
             env.play(album: album, startAt: index)
         }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { env.play(album: album, startAt: index) }
         .draggable(track.dragPayload)
         .trackQueueMenu(track, env: env)
     }
@@ -155,7 +157,7 @@ struct AlbumDetail: View {
             // на конверте (Jewel Box II).
             VStack(alignment: .leading, spacing: 0) {
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
-                DSText(metaLine, style: .numeric, color: DS.Color.textTertiary, lines: 2)
+                DSText(metaLine, style: .numeric, color: DS.Color.textMuted, lines: 2)
                     .padding(.vertical, DS.Space.sm)
                 Rectangle().fill(DS.Color.strokeHairline).frame(height: 1)
             }

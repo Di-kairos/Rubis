@@ -102,7 +102,7 @@ struct MainWindow: View {
                             // плюс поля не оставляют места под название.
                             .navigationSplitViewColumnWidth(min: 460, ideal: 560)
                     } else {
-                        DSText("Select an album", style: .body, color: DS.Color.textTertiary)
+                        DSText("Select an album", style: .body, color: DS.Color.textMuted)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(DS.Color.bgBase)
                     }

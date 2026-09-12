@@ -33,6 +33,18 @@ struct ContrastTests {
         #expect(light >= 4.5, "light mode: \(light)")
     }
 
+    /// Informational muted text (timings, counts, captions) must be readable
+    /// on both plain and raised surfaces: WCAG 4.5:1 for small text.
+    @Test func textMutedIsReadableOnBaseAndRaised() {
+        for (text, base, raised, name) in [
+            (Palette.textMuted.dark, Palette.bgBase.dark, Palette.bgRaised.dark, "dark"),
+            (Palette.textMuted.light, Palette.bgBase.light, Palette.bgRaised.light, "light"),
+        ] {
+            #expect(contrastRatio(text, base) >= 4.5, "\(name) on base")
+            #expect(contrastRatio(text, raised) >= 4.5, "\(name) on raised")
+        }
+    }
+
     /// Alpha-composited tokens must stay effectively invisible as text backers —
     /// hover/selected overlays may not push text below thresholds. Composite
     /// bg.selected over bg.base and re-check primary text on top of it.
