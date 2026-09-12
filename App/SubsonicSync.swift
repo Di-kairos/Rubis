@@ -53,6 +53,9 @@ actor SubsonicSync {
 
         let known = try trackRepo.remoteIds(inSource: sourceId)
         var seen: Set<String> = []
+        /// Известные треки, которые сервер отдал снова: снять пометку
+        /// недоступности, если прошлый обход их не досчитался.
+        var reappeared: [Int64] = []
         var inserted = 0
 
         for (index, remoteAlbum) in albums.enumerated() {
@@ -69,6 +72,7 @@ actor SubsonicSync {
             var fresh: [Track] = []
             for song in detail.songs {
                 seen.insert(song.id)
+                if let knownID = known[song.id] { reappeared.append(knownID) }
                 // Уже лежащие треки не переписываем: у сервера нет отметки
                 // времени, по которой можно понять, что запись изменилась.
                 // ponytail: расхождение чинится удалением источника и новой
@@ -86,16 +90,16 @@ actor SubsonicSync {
             }
         }
 
-        // Пропавшее у сервера уходит и отсюда — но только когда сервер вообще
-        // что-то отдал: пустой ответ бывает и у сломанного сервера, а стирать
-        // библиотеку из-за сетевой икоты нельзя.
+        // Пропавшее у сервера гаснет, а не удаляется: удаление каскадом
+        // вычищало бы плейлисты, а неполный обход (сервер отдал часть
+        // каталога) — необратимо. Погашенное вернётся следующим обходом,
+        // который его снова увидит. Пустой ответ — вовсе не повод трогать
+        // библиотеку: так выглядит и сломанный сервер.
+        try trackRepo.setUnavailable(false, ids: reappeared)
         var removed = 0
         if !albums.isEmpty {
             let gone = known.filter { !seen.contains($0.key) }.map(\.value)
-            if !gone.isEmpty {
-                try trackRepo.delete(ids: gone)
-                removed = gone.count
-            }
+            removed = try trackRepo.setUnavailable(true, ids: gone)
         }
         return .finished(tracks: inserted, removed: removed)
     }
