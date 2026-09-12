@@ -118,7 +118,10 @@ final class AppEnvironment {
             ?? SettingsKey.defaultStreamCacheSizeGB
         remote = RemotePlayback(
             cache: try StreamCache(
-                limitBytes: Int64(max(1, cacheLimitGB)) * 1024 * 1024 * 1024),
+                limitBytes: Int64(max(1, cacheLimitGB)) * 1024 * 1024 * 1024,
+                // Ответ сервера становится записью кэша, только если он
+                // открывается тем же декодером, что будет играть.
+                validate: { url in try AudioProbe.validate(url) }),
             ledger: networkLedger)
 
         Task { [player] in
@@ -246,6 +249,8 @@ final class AppEnvironment {
                 ?? .nearestFamilyMultiple,
             dsdMode: .init(rawValue: defaults.string(forKey: "dsdMode") ?? "")
                 ?? .dopIfAvailable,
+            dopConfirmedDeviceUIDs: Set(
+                defaults.stringArray(forKey: SettingsKey.dopConfirmedDeviceUIDs) ?? []),
             preferredDeviceUID: uid.isEmpty ? nil : uid)
     }
 
@@ -500,6 +505,9 @@ final class AppEnvironment {
     private func retryRemote(_ track: Track) async {
         guard RemotePlayback.isRemote(track), track.id != lastRemoteRetry else { return }
         lastRemoteRetry = track.id
+        // Файл мог лежать в кэше и оказаться битым — выбрасываем его, иначе
+        // повтор снова открыл бы тот же объект.
+        await remote.invalidate(track)
         guard await remote.fetch(track) != nil else {
             // Не скачалось со второго раза — скорее всего сервер молчит.
             if let source = try? sourceRepo.all().first(where: { $0.id == track.sourceId }) {

@@ -15,16 +15,19 @@ struct StreamCacheTests {
     }
 
     private func makeCache(
-        _ recorder: Recorder, root: URL, limitBytes: Int64 = 8 * 1024 * 1024 * 1024
+        _ recorder: Recorder, root: URL, limitBytes: Int64 = 8 * 1024 * 1024 * 1024,
+        validate: @escaping StreamCache.Validate = { _ in }
     ) throws -> StreamCache {
-        try StreamCache(root: root, limitBytes: limitBytes) { _ in
-            recorder.calls += 1
-            if let failure = recorder.failure { throw failure }
-            let temporary = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-            try recorder.bytes.write(to: temporary)
-            return temporary
-        }
+        try StreamCache(
+            root: root, limitBytes: limitBytes,
+            download: { _ in
+                recorder.calls += 1
+                if let failure = recorder.failure { throw failure }
+                let temporary = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                try recorder.bytes.write(to: temporary)
+                return temporary
+            }, validate: validate)
     }
 
     private func makeRoot() -> URL {
@@ -77,6 +80,36 @@ struct StreamCacheTests {
             cache.location(remoteId: "tr-1", codec: "flac")
                 == cache.location(remoteId: "tr-1", codec: "flac"))
         #expect(cache.location(remoteId: "tr-1", codec: "unknown").pathExtension == "audio")
+    }
+
+    @Test func rejectedDownloadNeverBecomesACacheEntry() async throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let recorder = Recorder()
+        let cache = try makeCache(
+            recorder, root: root, validate: { _ in throw SubsonicError.http(200) })
+
+        await #expect(throws: SubsonicError.http(200)) {
+            _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
+        }
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
+        // Следующая попытка качает заново, а не берёт отвергнутое.
+        await #expect(throws: SubsonicError.http(200)) {
+            _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
+        }
+        #expect(recorder.calls == 2)
+    }
+
+    @Test func removeDropsOneEntryOnly() async throws {
+        let root = makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try makeCache(Recorder(), root: root)
+        _ = try await cache.file(remoteId: "tr-1", codec: "flac", from: remoteURL)
+        _ = try await cache.file(remoteId: "tr-2", codec: "flac", from: remoteURL)
+        await cache.remove(remoteId: "tr-1", codec: "flac")
+        #expect(!cache.isCached(remoteId: "tr-1", codec: "flac"))
+        #expect(cache.isCached(remoteId: "tr-2", codec: "flac"))
     }
 
     @Test func serverSuppliedCodecCannotEscapeTheCacheDirectory() throws {

@@ -80,9 +80,8 @@ actor RemotePlayback {
             let client = clients[track.sourceId],
             let url = client.downloadURL(id: remoteId)
         else { return nil }
-        if cache.isCached(remoteId: remoteId, codec: track.codec) {
-            return cache.location(remoteId: remoteId, codec: track.codec)
-        }
+        // Без короткого пути мимо кэша: `file` отмечает обращение, по нему
+        // считается давность при вытеснении.
         do {
             let file = try await cache.file(remoteId: remoteId, codec: track.codec, from: url)
             await record(url: url, succeeded: true, file: file)
@@ -92,6 +91,13 @@ actor RemotePlayback {
             await record(url: url, succeeded: false, file: nil)
             return nil
         }
+    }
+
+    /// Скачанный файл прошёл пробу, но декодер споткнулся на нём позже:
+    /// объект выбрасывается, следующий `fetch` качает заново.
+    func invalidate(_ track: Track) async {
+        guard Self.isRemote(track), let remoteId = track.remoteId else { return }
+        await cache.remove(remoteId: remoteId, codec: track.codec)
     }
 
     /// Скачанное считается по факту: панель Settings → Network обещает

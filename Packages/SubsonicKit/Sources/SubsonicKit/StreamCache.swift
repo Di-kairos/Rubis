@@ -14,6 +14,12 @@ import Foundation
 public actor StreamCache {
     /// Загрузка одного адреса во временный файл. Подменяется в тестах.
     public typealias Download = @Sendable (URL) async throws -> URL
+    /// Проверка скачанного файла до того, как он станет записью кэша. Бросает
+    /// — файл выбрасывается, ошибка уходит вызывающему. Сервер отвечает
+    /// HTTP 200 и на ошибку API, и страницей входа; без проверки такой ответ
+    /// лёг бы в кэш навсегда. Сам кэш про звук не знает — проверку даёт
+    /// слой воспроизведения.
+    public typealias Validate = @Sendable (URL) throws -> Void
 
     /// Сколько файлов кэш держит при любом лимите. Играющий трек и
     /// префетченный следующий вытеснять нельзя — иначе кэш убивает то самое
@@ -22,6 +28,7 @@ public actor StreamCache {
 
     private let root: URL
     private let download: Download
+    private let validate: Validate
     /// Потолок кэша в байтах (SPEC §6.2, по умолчанию 8 ГБ).
     private var limit: Int64
     /// Идущие загрузки: второй запрос того же трека ждёт первую, а не качает
@@ -32,11 +39,13 @@ public actor StreamCache {
     public init(
         root: URL? = nil,
         limitBytes: Int64 = 8 * 1024 * 1024 * 1024,
-        download: @escaping Download = StreamCache.urlSessionDownload
+        download: @escaping Download = StreamCache.urlSessionDownload,
+        validate: @escaping Validate = { _ in }
     )
         throws
     {
         self.limit = limitBytes
+        self.validate = validate
         self.root =
             root
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -83,9 +92,10 @@ public actor StreamCache {
         }
         if let running = inFlight[destination.path] { return try await running.value }
 
-        let task = Task<URL, Error> { [download] in
+        let task = Task<URL, Error> { [download, validate] in
             let temporary = try await download(url)
             defer { try? FileManager.default.removeItem(at: temporary) }
+            try validate(temporary)
             // Второй запрос мог успеть первым — победитель уже на месте.
             if !FileManager.default.fileExists(atPath: destination.path) {
                 try FileManager.default.moveItem(at: temporary, to: destination)
@@ -114,10 +124,20 @@ public actor StreamCache {
 
     /// Ручная очистка. Играющий трек уже открыт движком: файл исчезает из
     /// каталога, но воспроизведение доигрывает по открытому дескриптору.
+    /// Идущие загрузки отменяются — иначе они донесли бы в пустой кэш то,
+    /// что владелец только что выбросил.
     public func clear() {
+        for task in inFlight.values { task.cancel() }
+        inFlight.removeAll()
         for entry in entries() {
             try? FileManager.default.removeItem(at: entry.url)
         }
+    }
+
+    /// Выбрасывает один объект: файл прошёл проверку, но декодер на нём
+    /// споткнулся позже — следующая попытка качает заново.
+    public func remove(remoteId: String, codec: String) {
+        try? FileManager.default.removeItem(at: location(remoteId: remoteId, codec: codec))
     }
 
     /// Вытеснение по давности использования: свежие остаются, старые уходят,
