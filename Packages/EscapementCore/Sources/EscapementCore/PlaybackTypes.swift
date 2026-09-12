@@ -44,32 +44,73 @@ public enum DSDMode: String, Codable, Sendable {
     case alwaysConvertToPCM
 }
 
+/// Как DSD на самом деле покинул приложение — применённый путь, а не
+/// пожелание из настроек.
+public enum DSDPath: String, Codable, Sendable {
+    /// DSD-пакеты внутри 24-битных PCM-кадров; ЦАП разбирает маркеры сам.
+    case dop
+    /// Преобразование в PCM внутри приложения.
+    case pcmConversion
+}
+
 /// Signal-path status feeding the UI badge (SPEC §4.5).
+///
+/// Снимок применённого тракта: параметры источника — из открытого декодера,
+/// параметры устройства — из результата настройки HAL. Неизвестное остаётся
+/// неизвестным (`nil`), а не подменяется правдоподобным числом.
 /// `isBitPerfect` never lies upward: any doubt reads as false.
 public struct OutputStatus: Sendable, Equatable {
     public let deviceName: String
+    public let deviceUID: String
     public let deviceSampleRate: Double
     public let sourceSampleRate: Double
-    public let sourceBitDepth: Int
+    /// nil — декодер разрядность не сообщает.
+    public let sourceBitDepth: Int?
+    public let sourceChannels: Int
     public let isExclusive: Bool
+    /// nil — микшер не трогали (выход общий или устройство не даёт ручки);
+    /// false — пытались снять, устройство отказало.
+    public let mixingDisabled: Bool?
+    public let dsdPath: DSDPath?
+    /// Политика частоты, действовавшая при настройке устройства — настройки
+    /// могли поменяться после старта, отчёт описывает то, что применено.
+    public let ratePolicy: String
     public let isBitPerfect: Bool
-    public let dsdMode: DSDMode?
 
     public init(
         deviceName: String,
+        deviceUID: String,
         deviceSampleRate: Double,
         sourceSampleRate: Double,
-        sourceBitDepth: Int,
+        sourceBitDepth: Int?,
+        sourceChannels: Int,
         isExclusive: Bool,
-        isBitPerfect: Bool,
-        dsdMode: DSDMode? = nil
+        mixingDisabled: Bool?,
+        dsdPath: DSDPath? = nil,
+        ratePolicy: String,
+        isBitPerfect: Bool
     ) {
         self.deviceName = deviceName
+        self.deviceUID = deviceUID
         self.deviceSampleRate = deviceSampleRate
         self.sourceSampleRate = sourceSampleRate
         self.sourceBitDepth = sourceBitDepth
+        self.sourceChannels = sourceChannels
         self.isExclusive = isExclusive
+        self.mixingDisabled = mixingDisabled
+        self.dsdPath = dsdPath
+        self.ratePolicy = ratePolicy
         self.isBitPerfect = isBitPerfect
-        self.dsdMode = dsdMode
+    }
+
+    /// Тот же тракт с другим источником — переход gapless меняет файл, но не
+    /// устройство. Bit-perfect пересчитывается: точность частоты у нового
+    /// файла та же (склейка идёт только при равной частоте), остальное — тоже.
+    public func withSource(sampleRate: Double, bitDepth: Int?, channels: Int) -> OutputStatus {
+        OutputStatus(
+            deviceName: deviceName, deviceUID: deviceUID, deviceSampleRate: deviceSampleRate,
+            sourceSampleRate: sampleRate, sourceBitDepth: bitDepth, sourceChannels: channels,
+            isExclusive: isExclusive, mixingDisabled: mixingDisabled, dsdPath: dsdPath,
+            ratePolicy: ratePolicy, isBitPerfect: isBitPerfect && sampleRate == sourceSampleRate)
     }
 }

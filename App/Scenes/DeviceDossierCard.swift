@@ -36,8 +36,13 @@ struct DeviceDossierCard: View {
                 }
                 row("Sample rates", Self.rates(dossier.sampleRates))
                 row("Bit depths", dossier.bitDepths.map { "\($0)" }.joined(separator: " / "))
+                // Потолок — про PCM-транспорт, не про приёмник: разбирает ли
+                // ЦАП DoP-маркеры, знает только его владелец.
                 row(
-                    "DSD over PCM", dossier.dopCeiling.map { "up to \($0) (DoP)" } ?? "not possible"
+                    "DSD over PCM",
+                    dossier.dopCeiling.map {
+                        "transport allows up to \($0) via DoP — confirm above if the DAC decodes it"
+                    } ?? "not possible"
                 )
                 if dossier.nativeDSD {
                     row("Native DSD", "the driver offers a DSD stream format")

@@ -263,6 +263,10 @@ struct AudioSettings: View {
     @State private var devices: [AudioDeviceController.DeviceInfo] = []
     /// Устройство, о котором показываем досье: выбранное или системное.
     @State private var dossierDeviceID: UInt32?
+    @State private var dossierDeviceUID: String?
+    /// Устройства с подтверждённым DoP. HAL не умеет спросить ЦАП, понимает
+    /// ли он DoP-маркеры; без подтверждения DSD идёт через PCM.
+    @State private var dopConfirmed: Set<String> = []
 
     /// Свой экземпляр только для перечисления — HAL-запросы дёшевы,
     /// трогать актор плеера ради списка не нужно.
@@ -300,6 +304,13 @@ struct AudioSettings: View {
                 Text("DoP if available").tag("dopIfAvailable")
                 Text("Always convert to PCM").tag("alwaysConvertToPCM")
             }
+            if dsdMode == "dopIfAvailable", let uid = dossierDeviceUID, !uid.isEmpty {
+                Toggle("This DAC decodes DoP", isOn: dopBinding(uid))
+                    .help(
+                        "macOS cannot ask a DAC whether it understands DoP markers — "
+                            + "a PCM-only device fed DoP plays loud noise. Confirm it once per "
+                            + "device; until then DSD is converted to PCM and the badge says so.")
+            }
             Picker("ReplayGain", selection: .constant("off")) {
                 Text("Off").tag("off")
             }
@@ -321,17 +332,37 @@ struct AudioSettings: View {
         }
         .task {
             devices = (try? await enumerator.outputDevices()) ?? []
+            dopConfirmed = Set(
+                UserDefaults.standard.stringArray(forKey: SettingsKey.dopConfirmedDeviceUIDs)
+                    ?? [])
             await resolveDossierDevice()
             pushConfig()
         }
     }
 
+    /// Подтверждение DoP для конкретного UID; список — в UserDefaults, откуда
+    /// его читает `AppEnvironment.storedAudioConfiguration()`.
+    private func dopBinding(_ uid: String) -> Binding<Bool> {
+        Binding(
+            get: { dopConfirmed.contains(uid) },
+            set: { confirmed in
+                if confirmed { dopConfirmed.insert(uid) } else { dopConfirmed.remove(uid) }
+                UserDefaults.standard.set(
+                    Array(dopConfirmed).sorted(), forKey: SettingsKey.dopConfirmedDeviceUIDs)
+                pushConfig()
+            })
+    }
+
     /// Пустой UID — досье на системный выход: именно в него и будет играть.
     private func resolveDossierDevice() async {
         if preferredDeviceUID.isEmpty {
-            dossierDeviceID = try? await enumerator.defaultOutputDevice()?.id
+            let device = try? await enumerator.defaultOutputDevice()
+            dossierDeviceID = device?.id
+            dossierDeviceUID = device?.uid
         } else {
-            dossierDeviceID = devices.first { $0.uid == preferredDeviceUID }?.id
+            let device = devices.first { $0.uid == preferredDeviceUID }
+            dossierDeviceID = device?.id
+            dossierDeviceUID = device?.uid
         }
     }
 

@@ -68,7 +68,7 @@ public actor Player {
     /// `nowPlayingChanged` двигает индекс только для него: событие от ручного
     /// старта не должно двигать очередь — иначе клик по треку «играет
     /// следующий».
-    private var armed: (decoder: ObjectIdentifier, generation: UInt64)?
+    private var armed: (decoder: ObjectIdentifier, generation: UInt64, status: OutputStatus)?
     /// Последний декодер, который движок дорендерил до конца. `endOfAudio`
     /// не несёт идентичности, поэтому признаётся только вслед за концом
     /// текущего декодера — опоздавшее событие прежнего трека не двигает
@@ -325,8 +325,12 @@ public actor Player {
         outputDeviceLost = false
         lostAtOffset = nil
         do {
-            try await prepareDevice(for: item.track, generation: mine)
-            let decoder = try makeDecoder(for: item)
+            // Формат — из открытого декодера, а не из каталога: сервер мог не
+            // знать частоту, теги — соврать. План устройства и badge строятся
+            // на том, что файл содержит на самом деле.
+            let source = try openSource(for: item)
+            try await prepareDevice(for: source.probe, generation: mine)
+            let decoder = try finishDecoder(source)
             currentDecoderID = ObjectIdentifier(decoder as AnyObject)
             try engine.play(decoder)
             if let offset { _ = engine.seek(time: offset) }
@@ -359,7 +363,9 @@ public actor Player {
     /// Device preparation per SPEC §4.2: resolve device, hog, kill mixer,
     /// match sample rate, compute honest OutputStatus. Каждое ожидание
     /// сверяет поколение: за это время очередь могла смениться.
-    private func prepareDevice(for track: Track, generation mine: UInt64) async throws {
+    private func prepareDevice(for source: AudioProbe.Format, generation mine: UInt64)
+        async throws
+    {
         let info: AudioDeviceController.DeviceInfo?
         if let uid = config.preferredDeviceUID {
             info = try await devices.device(uid: uid)
@@ -381,6 +387,7 @@ public actor Player {
         }
 
         var exclusive = false
+        var mixingDisabled: Bool?
         // Hog only external/virtual devices. Hogging the built-in output makes
         // CoreAudio republish the device mid-flight; AVAudioEngine's config-change
         // notification then sees an invalid output format and SFB's noexcept
@@ -395,7 +402,9 @@ public actor Player {
             }
             hoggedDeviceID = exclusive ? device.id : nil
             if exclusive {
-                _ = await devices.disableMixing(deviceID: device.id)
+                // Результат — в снимок: «микшер снят» пишется только когда HAL
+                // это подтвердил, а не потому что hog получен.
+                mixingDisabled = await devices.disableMixing(deviceID: device.id)
             }
         } else if let hogged = hoggedDeviceID {
             // Exclusive выключили, выход тот же: hog отпускается, а не висит до
@@ -406,7 +415,9 @@ public actor Player {
         try checkCurrent(mine)
 
         let available = try await devices.availableSampleRates(deviceID: device.id)
-        let plan = try ratePlan(for: track, available: available, deviceName: device.name)
+        let formats = source.isDSD ? try await devices.physicalFormats(deviceID: device.id) : []
+        let plan = try ratePlan(
+            for: source, available: available, formats: formats, device: device)
         currentUsesDoP = plan.usesDoP
 
         let currentRate = try await devices.nominalSampleRate(deviceID: device.id)
@@ -420,12 +431,16 @@ public actor Player {
 
         outputStatus = OutputStatus(
             deviceName: device.name,
+            deviceUID: device.uid,
             deviceSampleRate: plan.target,
-            sourceSampleRate: Double(track.sampleRate),
-            sourceBitDepth: track.bitDepth ?? 16,
+            sourceSampleRate: source.sampleRate,
+            sourceBitDepth: source.bitDepth,
+            sourceChannels: source.channels,
             isExclusive: exclusive,
-            isBitPerfect: exclusive && plan.exact,
-            dsdMode: plan.isDSD ? config.dsdMode : nil)
+            mixingDisabled: mixingDisabled,
+            dsdPath: plan.isDSD ? (plan.usesDoP ? .dop : .pcmConversion) : nil,
+            ratePolicy: config.rateFallback.rawValue,
+            isBitPerfect: exclusive && plan.exact)
     }
 
     private func checkCurrent(_ mine: UInt64) throws {
@@ -440,15 +455,27 @@ public actor Player {
         let usesDoP: Bool
     }
 
-    /// Device rate plan for a track (SPEC §4.2.3 PCM, §4.2.6 DSD).
-    private func ratePlan(for track: Track, available: [Double], deviceName: String) throws
-        -> RatePlan
-    {
-        let isDSD = track.codec == "dsf" || track.codec == "dff"
-        if isDSD {
+    /// Device rate plan for a source (SPEC §4.2.3 PCM, §4.2.6 DSD).
+    ///
+    /// DoP — только для ЦАПа, про который владелец подтвердил разбор
+    /// DoP-маркеров (по UID), и только если один физический формат выхода
+    /// даёт нужную частоту, ≥24 бит и стерео разом. Наличие 176.4 кГц в списке
+    /// частот доказывает транспорт, не приёмник: PCM-only ЦАП сыграл бы
+    /// пакеты шумом. Иначе — PCM-конверсия, и снимок так и скажет.
+    private func ratePlan(
+        for source: AudioProbe.Format, available: [Double],
+        formats: [AudioDeviceController.PhysicalFormat],
+        device: AudioDeviceController.DeviceInfo
+    ) throws -> RatePlan {
+        if source.isDSD {
             // DoP carries DSD in PCM frames at dsdRate/16 (DSD64 → 176.4k).
-            let dopRate = Double(track.sampleRate) / 16.0
-            if config.dsdMode == .dopIfAvailable, available.contains(dopRate) {
+            let dopRate = source.sampleRate / 16.0
+            let dopAllowed =
+                config.dsdMode == .dopIfAvailable
+                && config.dopConfirmedDeviceUIDs.contains(device.uid)
+                && available.contains(dopRate)
+                && formats.contains { $0.carriesDoP(at: dopRate) }
+            if dopAllowed {
                 return RatePlan(target: dopRate, exact: true, isDSD: true, usesDoP: true)
             }
             // Conversion path: DSD → PCM 24/176.4 (SPEC §4.2.6), never bit-perfect.
@@ -458,40 +485,83 @@ public actor Player {
             case .exact(let rate), .familyMultiple(let rate), .crossFamily(let rate):
                 return RatePlan(target: rate, exact: false, isDSD: true, usesDoP: false)
             case .refuse:
-                throw PlaybackError.rateRefused(source: 176_400, device: deviceName)
+                throw PlaybackError.rateRefused(source: 176_400, device: device.name)
             }
         }
         switch SampleRatePolicy.choose(
-            source: Double(track.sampleRate), available: available, fallback: config.rateFallback)
+            source: source.sampleRate, available: available, fallback: config.rateFallback)
         {
         case .exact(let rate):
             return RatePlan(target: rate, exact: true, isDSD: false, usesDoP: false)
         case .familyMultiple(let rate), .crossFamily(let rate):
             return RatePlan(target: rate, exact: false, isDSD: false, usesDoP: false)
         case .refuse:
-            throw PlaybackError.rateRefused(
-                source: Double(track.sampleRate), device: deviceName)
+            throw PlaybackError.rateRefused(source: source.sampleRate, device: device.name)
         }
     }
 
-    /// Builds the decoder chain: plain PCM, DoP passthrough, or DSD→PCM.
-    private func makeDecoder(for item: PlaybackItem) throws -> any PCMDecoding {
+    /// Источник, открытый до настройки устройства: PCM-декодер уже готов
+    /// играть, DSD пока только измерен — его цепочка (DoP или PCM) зависит от
+    /// плана устройства.
+    private enum OpenedSource {
+        case pcm(any PCMDecoding, AudioProbe.Format)
+        case dsd(URL, AudioProbe.Format)
+
+        var probe: AudioProbe.Format {
+            switch self {
+            case .pcm(_, let probe), .dsd(_, let probe): return probe
+            }
+        }
+    }
+
+    /// Открывает файл и снимает его настоящий формат.
+    private func openSource(for item: PlaybackItem) throws -> OpenedSource {
         let isDSD = item.track.codec == "dsf" || item.track.codec == "dff"
+        if isDSD {
+            // Пробный декодер только ради формата: SFB не обещает, что
+            // DoP/PCM-обёртка примет уже открытый DSD-декодер.
+            let probe = try DSDDecoder(url: item.url)
+            try probe.open()
+            let format = probe.processingFormat
+            try? probe.close()
+            let rate = format.sampleRate > 0 ? format.sampleRate : Double(item.track.sampleRate)
+            return .dsd(
+                item.url,
+                AudioProbe.Format(
+                    sampleRate: rate, bitDepth: 1, channels: Int(format.channelCount), isDSD: true
+                ))
+        }
         // Дорожка внутри общего файла (рип с CUE, D-013). Регион считает
         // SFBAudioEngine — декодер сам сообщает конец на границе сегмента,
         // поэтому и очередь, и склейка gapless работают как с обычным файлом.
         // ponytail: DSD-рип с CUE играет файлом целиком — DSDDecoder региона
         // не умеет, а DSD раздают образом SACD, а не диском с листом.
-        if !isDSD, let region = CueRegion(track: item.track) {
-            return try region.decoder(url: item.url)
+        let decoder: any PCMDecoding
+        if let region = CueRegion(track: item.track) {
+            decoder = try region.decoder(url: item.url)
+        } else {
+            decoder = try AudioDecoder(url: item.url)
         }
-        guard isDSD else {
-            return try AudioDecoder(url: item.url)
+        if !decoder.isOpen { try decoder.open() }
+        let format = decoder.processingFormat
+        return .pcm(
+            decoder,
+            AudioProbe.Format(
+                sampleRate: format.sampleRate, bitDepth: AudioProbe.bitDepth(of: decoder),
+                channels: Int(format.channelCount), isDSD: false))
+    }
+
+    /// Достраивает цепочку по плану: plain PCM, DoP passthrough, or DSD→PCM.
+    private func finishDecoder(_ source: OpenedSource) throws -> any PCMDecoding {
+        switch source {
+        case .pcm(let decoder, _):
+            return decoder
+        case .dsd(let url, _):
+            let dsd = try DSDDecoder(url: url)
+            return currentUsesDoP
+                ? try DoPDecoder(decoder: dsd) as any PCMDecoding
+                : try DSDPCMDecoder(decoder: dsd) as any PCMDecoding
         }
-        let dsd = try DSDDecoder(url: item.url)
-        return currentUsesDoP
-            ? try DoPDecoder(decoder: dsd) as any PCMDecoding
-            : try DSDPCMDecoder(decoder: dsd) as any PCMDecoding
     }
 
     /// Preloads the next queue item for gapless transition when the sample
@@ -515,7 +585,7 @@ public actor Player {
             if let now = engine.nowPlaying,
                 ObjectIdentifier(now as AnyObject) == previous.decoder
             {
-                advance(to: previous.decoder)
+                advance(to: previous.decoder, status: previous.status)
             } else if engine.queueIsEmpty {
                 await startCurrent(seekTo: engine.time?.current)
                 return
@@ -528,21 +598,29 @@ public actor Player {
             nextIndex != index,  // repeat track: перезапуск не склеиваем
             queue.indices.contains(nextIndex)
         else { return }
-        let current = queue[index]
         let next = queue[nextIndex]
-        // Gapless only within one PCM format family; DSD transitions restart cleanly.
-        guard next.track.sampleRate == current.track.sampleRate,
-            next.track.codec != "dsf", next.track.codec != "dff",
-            current.track.codec != "dsf", current.track.codec != "dff",
-            let decoder = try? makeDecoder(for: next)
+        // Gapless only at the same real rate; DSD transitions restart cleanly.
+        // Частота — из открытого декодера, а не из каталога; снимок тракта
+        // для стыка готовится здесь же: устройство то же, источник другой.
+        guard next.track.codec != "dsf", next.track.codec != "dff",
+            let status = outputStatus,
+            let opened = try? openSource(for: next),
+            case .pcm(let decoder, let probe) = opened,
+            probe.sampleRate == status.sourceSampleRate
         else { return }
         if (try? engine.enqueue(decoder)) != nil {
-            armed = (ObjectIdentifier(decoder as AnyObject), generation)
+            armed = (
+                ObjectIdentifier(decoder as AnyObject), generation,
+                status.withSource(
+                    sampleRate: probe.sampleRate, bitDepth: probe.bitDepth,
+                    channels: probe.channels)
+            )
         }
     }
 
-    /// Заряженный переход состоялся: очередь двигается на следующий элемент.
-    private func advance(to decoderID: ObjectIdentifier) {
+    /// Заряженный переход состоялся: очередь двигается на следующий элемент,
+    /// снимок тракта — на его формат (16/44.1 → 24/44.1 виден сразу).
+    private func advance(to decoderID: ObjectIdentifier, status: OutputStatus) {
         guard
             let position = PlaybackOrder.next(
                 after: index, count: queue.count, repeatMode: repeatMode),
@@ -551,6 +629,7 @@ public actor Player {
         index = position
         currentDecoderID = decoderID
         armed = nil
+        outputStatus = status
         state = .playing(queue[index].track)
     }
 
@@ -620,7 +699,7 @@ public actor Player {
             guard let armed, decoderID == armed.decoder, armed.generation == generation,
                 case .playing = state
             else { return }
-            advance(to: decoderID)
+            advance(to: decoderID, status: armed.status)
             await armGapless()
         case .renderingComplete(let decoderID):
             renderedOut = decoderID
