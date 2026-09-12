@@ -42,6 +42,7 @@
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
 		B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4654C15A6867CBA18211295 /* MediaIntegration.swift */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
+		C82205F0B2961C031AB31257 /* TextFieldKeyGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */; };
 		D06458A2DFC3495C3B2BC16A /* AlbumInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */; };
 		D55B00A2C0F7F57F5DBA8FC4 /* DeviceDossierCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F7194BC341531BF25D9B94 /* DeviceDossierCard.swift */; };
 		D774998C90020DCDC9504CEE /* SubsonicSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15564070708FE5323E183E1D /* SubsonicSync.swift */; };
@@ -85,6 +86,7 @@
 		CA25FCB47B384004AAD3364F /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		CE785E780F28894DDA0A59F7 /* ListeningHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningHistoryView.swift; sourceTree = "<group>"; };
+		CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldKeyGuard.swift; sourceTree = "<group>"; };
 		DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingQueue.swift; sourceTree = "<group>"; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
@@ -125,6 +127,7 @@
 				9A2B488372215BD395F1076F /* SettingsKey.swift */,
 				E8E957F0EE2C02A343E538E4 /* SubsonicAccount.swift */,
 				15564070708FE5323E183E1D /* SubsonicSync.swift */,
+				CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */,
 				A3FE134B1C0BAD8D8FB3588F /* UpdateLedgerDelegate.swift */,
 				2F2247502F75DD4B505A1583 /* Resources */,
 				E7B4B35890D8DC655121CD10 /* Scenes */,
@@ -342,6 +345,7 @@
 				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
 				4DCC62ED5116B58CA23D8CF7 /* SubsonicAccount.swift in Sources */,
 				D774998C90020DCDC9504CEE /* SubsonicSync.swift in Sources */,
+				C82205F0B2961C031AB31257 /* TextFieldKeyGuard.swift in Sources */,
 				221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */,
 				2AAFCE253BF65518BF0942EC /* TracksList.swift in Sources */,
 				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,
