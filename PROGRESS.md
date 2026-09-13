@@ -6,13 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "38729d8"
-tests: "243 registered: 241 passed, 2 skipped (5 packages); 9 audit regressions adopted and green"
+head: "540f780"
+tests: "243 registered: 241 passed, 2 skipped (5 packages); original 9 audit regressions green; 4 new diagnostics fail in isolated copy (outside active targets)"
 last_session: 13
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Слить phase/10-audit в main (22 коммита, ответ аудитору — AUDIT_RESPONSE_2026-09-12.md) — по команде владельца"
+  - "Повторный аудит 54e7725: до merge закрыть R01–R04; R05–R07 исправить или явно согласовать перенос. Доказательства и приёмка — AUDIT_PLAYER_2026-09-12.md §13"
+  - "Четыре новые диагностики — Tools/audit-regressions/2026-09-13/; подключать с фиксами. Merge phase/10-audit → main пока не рекомендован и не выполнялся"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
   - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
   - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
@@ -36,13 +37,20 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`8628976`](https://github.com/Di-kairos/Rubis/commit/8628976) —
-`test(audit): hand off nine player regression cases and clarifications`.
-2026-09-12: аудит и ответы на уточнения — `AUDIT_PLAYER_2026-09-12.md`;
-девять диагностических тестов переданы файлами в `Tools/audit-regressions/2026-09-12/`.
-В штатные test targets они пока не подключены; на проверенном коде воспроизводят
-девять ошибок. Штатный прогон аудита: 199 успешно, 2 пропущено; сборка успешна.
-Реализация плеера не менялась, версия остаётся 0.10.2 (30).
+Текущий HEAD: [`540f780`](https://github.com/Di-kairos/Rubis/commit/540f780) —
+`test(audit): document remediation blockers and four new regressions`.
+2026-09-13: перепроверена ветка `phase/10-audit` на `54e7725`, последний коммит
+реализации `38729d8`. Независимый штатный прогон: **243 зарегистрировано,
+241 прошло, 2 пропущено**; исходные девять регрессий уже в активных targets и зелёные.
+
+**Merge пока не рекомендован:** удаление нового пароля при смене адреса сервера,
+поздний Play после сетевого ожидания, гонки gapless и неверный PCM после CUE seek.
+Всего семь основных замечаний R01–R07 с предложениями и приёмкой —
+`AUDIT_PLAYER_2026-09-12.md` §13. Четыре новые диагностики воспроизвели ошибки;
+файлы переданы в `Tools/audit-regressions/2026-09-13/` вне активных test targets.
+Реализация в ходе перепроверки не менялась. Debug/Release приложения и пять живых
+проверок в этой перепроверке не повторялись; результаты сборок разработчика —
+в `AUDIT_RESPONSE_2026-09-12.md`. Версия остаётся 0.10.2 (30).
 
 Session 2 (2026-08-06, MacBook Pro M5 Max): фаза 5 почти закрыта — плейлисты,
 shuffle/repeat/очередь, медиа-клавиши + Now Playing, mini-player, автообновление
