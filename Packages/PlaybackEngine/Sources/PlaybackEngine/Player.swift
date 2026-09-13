@@ -31,8 +31,8 @@ public actor Player {
     /// Секунда, на которой пропал выход — с неё Play поднимает трек заново.
     private var lostAtOffset: TimeInterval?
 
-    private let engine = AudioPlayer()
-    private let devices: AudioDeviceController
+    private let engine: any PlaybackEngineDriving
+    private let devices: any AudioDevicesProviding
     private var config: AudioConfiguration
     private var bridge: DelegateBridge?
     /// События движка идут одним потоком в порядке прихода: `renderingComplete`
@@ -68,7 +68,11 @@ public actor Player {
     /// `nowPlayingChanged` двигает индекс только для него: событие от ручного
     /// старта не должно двигать очередь — иначе клик по треку «играет
     /// следующий».
-    private var armed: (decoder: ObjectIdentifier, generation: UInt64, status: OutputStatus)?
+    /// Заряженный переход. `source` — позиция вхождения в исходной очереди:
+    /// она переживает Play Next, Shuffle и Repeat, а индекс в `queue` — нет.
+    /// Без неё переход публиковал вставленный X, пока звучал заряженный B (R03).
+    private var armed:
+        (decoder: ObjectIdentifier, generation: UInt64, status: OutputStatus, source: Int)?
     /// Последний декодер, который движок дорендерил до конца. `endOfAudio`
     /// не несёт идентичности, поэтому признаётся только вслед за концом
     /// текущего декодера — опоздавшее событие прежнего трека не двигает
@@ -88,6 +92,18 @@ public actor Player {
     public init(devices: AudioDeviceController, configuration: AudioConfiguration = .init()) {
         self.devices = devices
         self.config = configuration
+        self.engine = SFBEngineAdapter()
+    }
+
+    /// Инициализатор для тестов: подменяет движок и слой устройств управляемыми
+    /// адаптерами, чтобы проверять порядок событий у стыка без железа (R03).
+    init(
+        devices: any AudioDevicesProviding, configuration: AudioConfiguration = .init(),
+        engine: any PlaybackEngineDriving
+    ) {
+        self.devices = devices
+        self.config = configuration
+        self.engine = engine
     }
 
     // MARK: - Streams for the UI
@@ -284,9 +300,7 @@ public actor Player {
     }
 
     public func playbackTime() -> (current: TimeInterval, total: TimeInterval)? {
-        guard let time = engine.time,
-            let current = time.current,
-            let total = time.total
+        guard let current = engine.currentTime, let total = engine.totalTime
         else { return nil }
         return (current, total)
     }
@@ -582,13 +596,20 @@ public actor Player {
     private func armGapless() async {
         if let previous = armed {
             armed = nil
-            if let now = engine.nowPlaying,
-                ObjectIdentifier(now as AnyObject) == previous.decoder
-            {
-                advance(to: previous.decoder, status: previous.status)
+            if engine.nowPlayingID == previous.decoder {
+                advance(to: previous.decoder, status: previous.status, source: previous.source)
             } else if engine.queueIsEmpty {
-                await startCurrent(seekTo: engine.time?.current)
+                await resyncPipeline()
                 return
+            } else {
+                engine.clearQueue()
+                // Окно между проверкой выше и очисткой: decoding thread мог забрать
+                // заряженный декодер в active ровно здесь, и `clearQueue` его уже не
+                // достаёт. Тогда — согласованный сброс, а не тихо зазвучавший B.
+                if engine.nowPlayingID == previous.decoder {
+                    await resyncPipeline()
+                    return
+                }
             }
         }
         engine.clearQueue()
@@ -613,17 +634,33 @@ public actor Player {
                 ObjectIdentifier(decoder as AnyObject), generation,
                 status.withSource(
                     sampleRate: probe.sampleRate, bitDepth: probe.bitDepth,
-                    channels: probe.channels)
+                    channels: probe.channels),
+                sourceIndices.indices.contains(nextIndex) ? sourceIndices[nextIndex] : nextIndex
             )
         }
     }
 
+    /// Согласованный сброс pipeline: заряженный декодер уже не достать из очереди
+    /// движка, поэтому текущий трек поднимается заново с той же секунды. Пауза
+    /// сохраняется — правка очереди на паузе не должна включать звук.
+    ///
+    /// ponytail: перезапуск слышен короткой паузой; убрать её можно только
+    /// выборочной отменой на стороне движка, публичного API для неё нет.
+    private func resyncPipeline() async {
+        let wasPaused: Bool = if case .paused = state { true } else { false }
+        await startCurrent(seekTo: engine.currentTime)
+        guard wasPaused, case .playing(let track) = state else { return }
+        _ = engine.pause()
+        state = .paused(track)
+    }
+
     /// Заряженный переход состоялся: очередь двигается на следующий элемент,
     /// снимок тракта — на его формат (16/44.1 → 24/44.1 виден сразу).
-    private func advance(to decoderID: ObjectIdentifier, status: OutputStatus) {
-        guard
-            let position = PlaybackOrder.next(
-                after: index, count: queue.count, repeatMode: repeatMode),
+    private func advance(to decoderID: ObjectIdentifier, status: OutputStatus, source: Int) {
+        // Позиция берётся по самому вхождению: между зарядом и переходом очередь
+        // могли отредактировать, и пересчёт «следующего» указывал бы на вставленный
+        // трек, пока звучит заряженный (R03).
+        guard let position = sourceIndices.firstIndex(of: source),
             queue.indices.contains(position)
         else { return }
         index = position
@@ -638,13 +675,13 @@ public actor Player {
         case .playing(let track):
             // Позиция снимается ДО паузы: у мёртвого устройства время читается,
             // пока движок ещё держит текущий декодер.
-            lostAtOffset = engine.time?.current
+            lostAtOffset = engine.currentTime
             _ = engine.pause()
             state = .paused(track)
         case .paused:
             // Выход выдернули на паузе: Play обязан поднять трек заново на
             // новом устройстве, а не продолжать движок в никуда.
-            lostAtOffset = engine.time?.current
+            lostAtOffset = engine.currentTime
         default:
             return
         }
@@ -683,7 +720,7 @@ public actor Player {
         guard bridge == nil else { return }
         let (stream, continuation) = AsyncStream.makeStream(of: EngineEvent.self)
         let bridge = DelegateBridge { event in continuation.yield(event) }
-        engine.delegate = bridge
+        engine.install(delegate: bridge)
         self.bridge = bridge
         eventPump = Task { [weak self] in
             for await event in stream {
@@ -699,7 +736,7 @@ public actor Player {
             guard let armed, decoderID == armed.decoder, armed.generation == generation,
                 case .playing = state
             else { return }
-            advance(to: decoderID, status: armed.status)
+            advance(to: decoderID, status: armed.status, source: armed.source)
             await armGapless()
         case .renderingComplete(let decoderID):
             renderedOut = decoderID
