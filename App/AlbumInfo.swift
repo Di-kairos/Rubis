@@ -89,7 +89,11 @@ actor AlbumInfoService {
     }
 
     private func fetch(albumId id: Int64, title: String, album: Album) async -> AlbumInfo? {
+        guard Self.notesAllowed else { return nil }
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
+        // Пока ждали Wikipedia, заметки могли выключить: следующий шаг —
+        // платный запрос писателю, и начинать его уже нельзя.
+        guard Self.notesAllowed else { return nil }
         if result == nil {
             switch Self.selectedProvider {
             case .claude:
@@ -334,9 +338,21 @@ actor AlbumInfoService {
         }
     }
 
+    /// Заметки об альбоме разрешены прямо сейчас?
+    ///
+    /// Разрешение спрашивается у КАЖДОЙ двери наружу, а не один раз на экране:
+    /// SwiftUI отменяет задачу экрана, но сервис живёт своей неструктурированной
+    /// `Task`, и промах Wikipedia успевал отправить запрос писателю уже после
+    /// выключения (R07, перепроверка аудита 13.09.2026).
+    private static var notesAllowed: Bool {
+        UserDefaults.standard.object(forKey: "albumNotes") as? Bool ?? false
+    }
+
     /// Единственная дверь наружу у заметок — здесь же запись в журнал,
     /// поэтому «незаписанного» запроса не бывает.
     private func data(from request: URLRequest) async throws -> Data {
+        // Отзыв разрешения догоняет запрос до отправки байтов.
+        guard Self.notesAllowed else { throw CancellationError() }
         let host = request.url?.host ?? ""
         let result: Result<(Data, URLResponse), any Error>
         do {
