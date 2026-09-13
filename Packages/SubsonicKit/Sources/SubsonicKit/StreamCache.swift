@@ -32,8 +32,14 @@ public actor StreamCache {
     /// Потолок кэша в байтах (SPEC §6.2, по умолчанию 8 ГБ).
     private var limit: Int64
     /// Идущие загрузки: второй запрос того же трека ждёт первую, а не качает
-    /// файл дважды (Play и префетч легко сходятся на одном треке).
-    private var inFlight: [String: Task<URL, Error>] = [:]
+    /// файл дважды (Play и префетч легко сходятся на одном треке). Ключ владения
+    /// (`id`) нужен, чтобы завершившаяся задача не сняла с учёта ЧУЖУЮ — новую
+    /// загрузку того же трека, начатую после Clear (R05).
+    private var inFlight: [String: (id: UUID, task: Task<URL, Error>)] = [:]
+    /// Поколение кэша: Clear его сдвигает. Отмена в Swift кооперативна — задача,
+    /// у которой результат уже готов, без этой проверки возвращала выброшенные
+    /// байты обратно в очищенный кэш (R05, перепроверка аудита 13.09.2026).
+    private var generation = 0
 
     /// Корень по умолчанию — `~/Library/Caches/Escapement/stream`.
     public init(
@@ -104,11 +110,18 @@ public actor StreamCache {
             touch(destination)
             return destination
         }
-        if let running = inFlight[destination.path] { return try await running.value }
+        if let running = inFlight[destination.path] { return try await running.task.value }
 
+        let id = UUID()
+        let startedAt = generation
         let task = Task<URL, Error> { [download, validate] in
             let temporary = try await download(url)
+            // Временный файл убирается в обоих исходах — и когда результат
+            // публикуется, и когда он оказался просроченным.
             defer { try? FileManager.default.removeItem(at: temporary) }
+            // Clear между стартом и завершением: старые байты в очищенный кэш
+            // не возвращаем, даже если загрузка успела дойти до конца.
+            guard await self.isCurrent(startedAt) else { throw CancellationError() }
             try validate(temporary)
             // Второй запрос мог успеть первым — победитель уже на месте.
             if !FileManager.default.fileExists(atPath: destination.path) {
@@ -116,8 +129,8 @@ public actor StreamCache {
             }
             return destination
         }
-        inFlight[destination.path] = task
-        defer { inFlight[destination.path] = nil }
+        inFlight[destination.path] = (id, task)
+        defer { forget(path: destination.path, id: id) }
         let file = try await task.value
         evict()
         return file
@@ -141,11 +154,22 @@ public actor StreamCache {
     /// Идущие загрузки отменяются — иначе они донесли бы в пустой кэш то,
     /// что владелец только что выбросил.
     public func clear() {
-        for task in inFlight.values { task.cancel() }
+        // Сдвиг поколения — то, что отличает «отменена» от «успела вернуться».
+        generation &+= 1
+        for entry in inFlight.values { entry.task.cancel() }
         inFlight.removeAll()
         for entry in entries() {
             try? FileManager.default.removeItem(at: entry.url)
         }
+    }
+
+    /// Загрузка стартовала до последнего Clear?
+    private func isCurrent(_ startedAt: Int) -> Bool { startedAt == generation }
+
+    /// Снять с учёта только СВОЮ запись: после Clear ключ мог занять новый
+    /// запрос того же трека, и его нельзя выкидывать чужим `defer`.
+    private func forget(path: String, id: UUID) {
+        if inFlight[path]?.id == id { inFlight[path] = nil }
     }
 
     /// Выбрасывает один объект: файл прошёл проверку, но декодер на нём

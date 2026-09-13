@@ -194,10 +194,14 @@ struct ServerSettings: View {
                 "Keychain refused the password: \(SubsonicPasswordStore.message(for: stored))")
             return
         }
-        if let old = existing, let oldURL = old.serverUrl, let oldUser = old.username,
-            oldURL != trimmed || oldUser != username
-        {
-            SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: oldURL), username: oldUser)
+        // Ключ связки — (host, username), а не строка адреса: смена порта, пути, схемы
+        // или слеша оставляет запись прежней, и прежнее сравнение строк стирало только
+        // что сохранённый пароль (R01). Удаление — ниже, после успешного upsert: при
+        // отказе БД источник остаётся старым, и его пароль должен уцелеть.
+        let newKey = SubsonicCredentialKey(host: host, username: username)
+        let oldKey = existing.flatMap { old -> SubsonicCredentialKey? in
+            guard let oldURL = old.serverUrl, let oldUser = old.username else { return nil }
+            return SubsonicCredentialKey(serverURL: oldURL, username: oldUser)
         }
 
         var source =
@@ -208,6 +212,9 @@ struct ServerSettings: View {
         do {
             try env.sourceRepo.upsert(source)
             existing = source
+            if let stale = SubsonicCredentialKey.stale(old: oldKey, new: newKey) {
+                SubsonicPasswordStore.delete(host: stale.host, username: stale.username)
+            }
             status = .ok("Saved")
             // Живой клиент воспроизведения — на новые адрес и пароль сразу,
             // а не после перезапуска или следующего Sync.
