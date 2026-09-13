@@ -67,6 +67,8 @@ public actor LibraryScanner {
         var modifiedAt: Date?
         var unavailable: Bool
         var cueStart: Double?
+        /// Имя исполнителя строки — чтобы правка PERFORMER в листе была видна.
+        var artistName: String?
 
         static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
             .convertFromSnakeCase
@@ -136,19 +138,33 @@ public actor LibraryScanner {
         /// перепроверка аудита 13.09.2026).
         func diverges(from rows: [KnownTrack]) -> Bool {
             guard isSegmented else {
-                guard let title = tracks.first?.title else { return false }
-                return rows.first?.title != title
+                guard let row = rows.first, let track = tracks.first else { return false }
+                if let title = track.title, row.title != title { return true }
+                if let performer = track.performer ?? sheet.performer, row.artistName != performer {
+                    return true
+                }
+                return false
             }
             guard rows.count == tracks.count else { return true }
             let stored = rows.sorted { ($0.cueStart ?? 0) < ($1.cueStart ?? 0) }
-            let sheet = tracks.sorted { $0.start < $1.start }
-            for (row, track) in zip(stored, sheet) {
-                // Полсекунды: CUE считает кадрами по 1/75 с, точное равенство
-                // Double здесь ломалось бы на округлении при записи.
-                if abs((row.cueStart ?? -1) - track.start) > 0.5 { return true }
+            let ordered = tracks.sorted { $0.start < $1.start }
+            for (row, track) in zip(stored, ordered) {
+                // С точностью до кадра CD (1/75 с): обе стороны — в целые кадры,
+                // и правка INDEX на один кадр видна, а округление Double — нет.
+                // Полсекундный допуск терял десятки кадров (F02).
+                if Self.frames(row.cueStart ?? -1) != Self.frames(track.start) { return true }
                 if let title = track.title, row.title != title { return true }
+                // Исполнитель строки — из дорожки или из шапки листа; строка без
+                // того и другого берёт тег файла, и сравнивать её не с чем.
+                if let performer = track.performer ?? sheet.performer, row.artistName != performer {
+                    return true
+                }
             }
             return false
+        }
+
+        private static func frames(_ seconds: Double) -> Int64 {
+            Int64((seconds * 75).rounded())
         }
     }
 
@@ -287,7 +303,8 @@ public actor LibraryScanner {
             try KnownTrack.fetchAll(
                 database,
                 sql: """
-                    SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable, cue_start
+                    SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable, cue_start,
+                           (SELECT name FROM artist WHERE artist.id = track.artist_id) AS artist_name
                     FROM track WHERE source_id = ?
                     """,
                 arguments: [source.id])
