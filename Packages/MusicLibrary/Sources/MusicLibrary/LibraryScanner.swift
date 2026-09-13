@@ -117,10 +117,6 @@ public actor LibraryScanner {
     struct CueContext: Sendable {
         var sheet: CueSheet
         var tracks: [CueSheet.Track]
-        /// Когда лист последний раз правили. Правка названия или INDEX при том
-        /// же числе дорожек не трогает ни аудиофайл, ни число строк — узнать
-        /// её можно только по самому .cue.
-        var sheetModifiedAt: Date
 
         /// Файл режется на дорожки — рип диска одним куском. У листа «дорожка
         /// в файл» резать нечего: он остаётся только источником метаданных
@@ -131,6 +127,29 @@ public actor LibraryScanner {
 
         /// Сколько строк в базе даёт этот файл.
         var rowCount: Int { isSegmented ? tracks.count : 1 }
+
+        /// Лист разошёлся с тем, что уже лежит в базе?
+        ///
+        /// Сравниваем разобранные значения, а не дату файла: архив, синхронизация
+        /// или правка во время самого скана оставляют прежний mtime, и тогда новое
+        /// название или сдвинутый INDEX не доезжали до базы никогда (R06,
+        /// перепроверка аудита 13.09.2026).
+        func diverges(from rows: [KnownTrack]) -> Bool {
+            guard isSegmented else {
+                guard let title = tracks.first?.title else { return false }
+                return rows.first?.title != title
+            }
+            guard rows.count == tracks.count else { return true }
+            let stored = rows.sorted { ($0.cueStart ?? 0) < ($1.cueStart ?? 0) }
+            let sheet = tracks.sorted { $0.start < $1.start }
+            for (row, track) in zip(stored, sheet) {
+                // Полсекунды: CUE считает кадрами по 1/75 с, точное равенство
+                // Double здесь ломалось бы на округлении при записи.
+                if abs((row.cueStart ?? -1) - track.start) > 0.5 { return true }
+                if let title = track.title, row.title != title { return true }
+            }
+            return false
+        }
     }
 
     /// Разбирает найденные `.cue` и раскладывает их по путям аудиофайлов.
@@ -146,16 +165,12 @@ public actor LibraryScanner {
         var result: [String: CueContext] = [:]
         for cueURL in cueURLs {
             guard let sheet = (try? CueSheet.read(contentsOf: cueURL)) ?? nil else { continue }
-            let modified =
-                (try? cueURL.resourceValues(forKeys: [.contentModificationDateKey]))?
-                .contentModificationDate ?? .distantFuture
             let directory = cueURL.deletingLastPathComponent()
             for file in sheet.files {
                 guard !file.tracks.isEmpty,
                     let relative = locate(file.name, in: directory, root: root, onDisk: onDisk)
                 else { continue }
-                result[relative] = CueContext(
-                    sheet: sheet, tracks: file.tracks, sheetModifiedAt: modified)
+                result[relative] = CueContext(sheet: sheet, tracks: file.tracks)
             }
         }
         return result
@@ -278,14 +293,6 @@ public actor LibraryScanner {
                 arguments: [source.id])
         }
         let known: [String: [KnownTrack]] = Dictionary(grouping: knownRows, by: \.relativePath)
-        // Из базы, а не из переданной структуры: вызывающая сторона может
-        // держать `Source` с прошлого запуска, а решение «лист правили после
-        // скана» должно опираться на настоящую отметку.
-        let lastScanAt: Date? = try await db.reader.read { database in
-            try Date.fetchOne(
-                database, sql: "SELECT last_scan_at FROM source WHERE id = ?",
-                arguments: [source.id])
-        }
         // Альбомы, оставшиеся без обложки: их файлы перечитываем даже
         // нетронутыми, если картинка в папке всё-таки есть — она могла приехать
         // после скана или начать находиться (папка сканов). Нет картинки рядом
@@ -323,16 +330,11 @@ public actor LibraryScanner {
                 let needsCover =
                     (rows[0].albumId.map(coverlessAlbums.contains) ?? false)
                     && artDirectories.contains(directory)
-                // Лист правили после прошлого скана — перечитываем, даже если
-                // аудиофайл и число строк те же: иначе новое название или
-                // сдвинутый INDEX никогда не доедут до базы.
-                // ponytail: лист, правленный во время самого скана, попадёт
-                // под новую отметку и уедет только со следующей правкой.
-                let sheetEdited =
-                    cues[relative].map { context in
-                        lastScanAt.map { context.sheetModifiedAt > $0 } ?? true
-                    } ?? false
-                if sameSize && sameTime && rows.count == expected, !needsCover, !sheetEdited,
+                // Лист разошёлся с базой — перечитываем, даже если аудиофайл и
+                // число строк те же: иначе новое название или сдвинутый INDEX
+                // никогда не доедут до базы.
+                let sheetDiverged = cues[relative].map { $0.diverges(from: rows) } ?? false
+                if sameSize && sameTime && rows.count == expected, !needsCover, !sheetDiverged,
                     cueTitle == nil || cueTitle == rows[0].title
                 {
                     summary.unchanged += rows.count
