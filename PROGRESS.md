@@ -6,14 +6,15 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "540f780"
-tests: "243 registered: 241 passed, 2 skipped (5 packages); original 9 audit regressions green; 4 new diagnostics fail in isolated copy (outside active targets)"
+head: "6716446"
+tests: "263 passed (5 packages): DesignSystem 9, EscapementCore 69, MusicLibrary 94, PlaybackEngine 47, SubsonicKit 44; все четыре диагностики перепроверки подключены в активные targets и зелёные; app Debug build ✓"
 last_session: 13
 last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Повторный аудит 54e7725: до merge закрыть R01–R04; R05–R07 исправить или явно согласовать перенос. Доказательства и приёмка — AUDIT_PLAYER_2026-09-12.md §13"
-  - "Четыре новые диагностики — Tools/audit-regressions/2026-09-13/; подключать с фиксами. Merge phase/10-audit → main пока не рекомендован и не выполнялся"
+  - "Повторный аудит 54e7725: R01–R07 исправлены (R01 ea6e6d7, R05 ea6e6d7, R06 c2c3713, R04 7d8f732, R02 f6d8d71, R03 1c2a0aa, R07 — гейт разрешения без теста). Merge НЕ выполнялся: предъявить аудитору дифф и прогоны"
+  - "R07 без автотеста: AlbumInfoService живёт в app-таргете, у которого нет тестов. Для приёмки («транспорт удерживает Wikipedia») сервис нужно вынести в пакет за инжектируемый транспорт — решение о переносе за владельцем"
+  - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
   - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
   - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
