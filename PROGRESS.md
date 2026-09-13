@@ -6,14 +6,15 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "50c51e4"
-tests: "265 passed (5 packages): DesignSystem 9, EscapementCore 69, MusicLibrary 94 (2 условных пропуска), PlaybackEngine 49, SubsonicKit 44; 9 + 4 диагностики аудита в активных targets и зелёные; app Debug без warnings"
+head: "d67bd4c"
+tests: "265 registered: 263 passed, 2 skipped (5 packages); original 9 + 4 audit cases green; 4 follow-up diagnostics fail in isolated copy, outside active targets"
 last_session: 13
 last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Повторный аудит 54e7725: R01–R07 исправлены (R01 ea6e6d7, R05 ea6e6d7, R06 c2c3713, R04 7d8f732, R02 f6d8d71, R03 1c2a0aa, R07 — гейт разрешения без теста). Merge НЕ выполнялся: предъявить аудитору дифф и прогоны"
-  - "R07 без автотеста: AlbumInfoService живёт в app-таргете, у которого нет тестов. Для приёмки («транспорт удерживает Wikipedia») сервис нужно вынести в пакет за инжектируемый транспорт — решение о переносе за владельцем"
+  - "Перепроверка fcb620c / кода 50c51e4 — AUDIT_PLAYER_2026-09-12.md §14: R01/R04/R05 приняты; merge пока не рекомендован из-за active/clear (F01) и неверного слияния данных плейлистов (F03)"
+  - "Закрыть F01–F04: различать active и nowPlaying; сохранять разные аудиофайлы при слабой подписи; учитывать один кадр CUE; выдавать token транспорта до Task/await. Диагностики — Tools/audit-regressions/2026-09-13-followup/"
+  - "R07 остаётся без автотеста: рекомендован test target приложения с подменяемыми транспортом, разрешением и путём кэша; перенос AlbumInfoService в новый пакет не требуется"
   - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
   - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
@@ -38,20 +39,23 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`540f780`](https://github.com/Di-kairos/Rubis/commit/540f780) —
-`test(audit): document remediation blockers and four new regressions`.
-2026-09-13: перепроверена ветка `phase/10-audit` на `54e7725`, последний коммит
-реализации `38729d8`. Независимый штатный прогон: **243 зарегистрировано,
-241 прошло, 2 пропущено**; исходные девять регрессий уже в активных targets и зелёные.
+Текущий HEAD: [`d67bd4c`](https://github.com/Di-kairos/Rubis/commit/d67bd4c) —
+`test(audit): verify remediation and expose remaining pipeline and data risks`.
+2026-09-13: независимо проверен `fcb620c` / последний код `50c51e4` и ответ
+разработчика §7. Штатные пакеты: **265 зарегистрировано, 263 прошло, 2 пропущено**;
+исходные 9 + 4 диагностики в активных targets и зелёные. Приняты исправления
+R01/R04/R05 и доработки #12/#18 в пределах проверки кода/пакетных тестов.
 
-**Merge пока не рекомендован:** удаление нового пароля при смене адреса сервера,
-поздний Play после сетевого ожидания, гонки gapless и неверный PCM после CUE seek.
-Всего семь основных замечаний R01–R07 с предложениями и приёмкой —
-`AUDIT_PLAYER_2026-09-12.md` §13. Четыре новые диагностики воспроизвели ошибки;
-файлы переданы в `Tools/audit-regressions/2026-09-13/` вне активных test targets.
-Реализация в ходе перепроверки не менялась. Debug/Release приложения и пять живых
-проверок в этой перепроверке не повторялись; результаты сборок разработчика —
-в `AUDIT_RESPONSE_2026-09-12.md`. Версия остаётся 0.10.2 (30).
+**Merge пока не рекомендован:** future decoder B остаётся active при nowPlaying=A;
+два разных WAV могут слиться с удалением записи B и заменой ссылки плейлиста на A.
+Дополнительно: пропуск правки CUE на один кадр и поздняя выдача token внутри Task.
+Доказательства, границы проверки и приёмка F01–F04 — `AUDIT_PLAYER_2026-09-12.md` §14.
+Четыре новые диагностики переданы в `Tools/audit-regressions/2026-09-13-followup/`
+вне активных targets; все четыре выявляют несоответствия на проверенном срезе.
+
+Реализация в ходе перепроверки не менялась. App Debug/Release и живые проверки
+не выполнялись повторно. R07: guards присутствуют, тест с удерживаемым транспортом
+открыт; отдельный SPM-пакет ради него не требуется. Ветка `phase/10-audit` не слита.
 
 Session 2 (2026-08-06, MacBook Pro M5 Max): фаза 5 почти закрыта — плейлисты,
 shuffle/repeat/очередь, медиа-клавиши + Now Playing, mini-player, автообновление
