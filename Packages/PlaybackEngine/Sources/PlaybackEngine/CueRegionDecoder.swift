@@ -15,32 +15,42 @@ extension CueRegion {
     /// CUE срезалась бы голова, а хвост залезал бы на соседнюю дорожку.
     ///
     /// Лечим у себя: целимся на блок раньше нужного и доедаем разницу декодом.
-    /// У WAV (CoreAudio) seek точный — там компенсации нет, как и у FLAC с
-    /// плавающим размером блока: без известного `bs` промах не посчитать.
-    /// Проверяется `CueDecodeTests` — сегмент сверяется с полным декодом по битам.
+    /// Та же компенсация нужна и КАЖДОМУ seek внутри дорожки: сдвиг аргумента
+    /// оставлял часы верными, а сэмплы — от следующей границы блока (R04,
+    /// перепроверка аудита 13.09.2026). У WAV (CoreAudio) seek точный — там
+    /// компенсации нет, как и у FLAC с плавающим размером блока: без известного
+    /// `bs` промах не посчитать. Побитовую сверку с полным декодом держат
+    /// `CueDecodeTests` и `ReauditRegressionTests`.
     func decoder(url: URL) throws -> any PCMDecoding {
-        let landing: AVAudioFramePosition
-        let seekStart: AVAudioFramePosition
-        if let block = Self.flacBlockSize(url: url) {
-            // Первый блок seek'а не требует: свежий декодер и так стоит в нуле,
-            // а `AudioRegionDecoder` не двигает то, что уже на месте.
-            let index = startFrame / block
-            landing = index * block
-            seekStart = index == 0 ? 0 : (index - 1) * block
-        } else {
-            landing = startFrame
-            seekStart = startFrame
+        guard let block = Self.flacBlockSize(url: url) else {
+            return try AudioRegionDecoder(
+                url: url, startFrame: startFrame, frameLength: frameLength)
         }
-        let skip = startFrame - landing
+        let landed = try Self.land(region: self, url: url, block: block, at: 0)
+        return AlignedRegionDecoder(region: self, url: url, block: block, inner: landed.decoder)
+    }
+
+    /// Готовый к чтению декодер, стоящий ровно на `offset` кадрах от начала дорожки.
+    ///
+    /// Посадка FLAC всегда на блок позже запрошенного, поэтому просим на блок
+    /// раньше цели и доедаем разницу. Декодер возвращается открытым.
+    fileprivate static func land(
+        region: CueRegion, url: URL, block: AVAudioFramePosition, at offset: AVAudioFramePosition
+    ) throws -> (decoder: AudioRegionDecoder, skip: AVAudioFramePosition) {
+        let target = region.startFrame + offset
+        let index = target / block
+        let landing = index * block
+        // Первый блок seek'а не требует: свежий декодер и так стоит в нуле,
+        // а `AudioRegionDecoder` не двигает то, что уже на месте.
+        let seekStart = index == 0 ? 0 : (index - 1) * block
+        let skip = target - landing
+        let remaining = region.frameLength < 0 ? -1 : max(0, region.frameLength - offset)
         let decoder = try AudioRegionDecoder(
             url: url, startFrame: seekStart,
-            frameLength: frameLength < 0 ? -1 : frameLength + skip)
-        guard skip > 0 else { return decoder }
+            frameLength: remaining < 0 ? -1 : remaining + skip)
         try decoder.open()
-        try Self.drop(frames: skip, from: decoder)
-        // Сэмплы выровнены, но часы региона — нет: он считает от посадки, а
-        // не от начала дорожки. Наружу уходит декодер с часами дорожки.
-        return AlignedRegionDecoder(decoder, skipping: skip)
+        if skip > 0 { try drop(frames: skip, from: decoder) }
+        return (decoder, skip)
     }
 
     /// Размер блока FLAC из STREAMINFO; `nil` — не FLAC или блок плавающий.
@@ -62,7 +72,8 @@ extension CueRegion {
     }
 
     /// Проглатывает лишние кадры между посадкой декодера и началом дорожки.
-    private static func drop(frames: AVAudioFramePosition, from decoder: any PCMDecoding) throws {
+    fileprivate static func drop(frames: AVAudioFramePosition, from decoder: any PCMDecoding) throws
+    {
         let chunk: AVAudioFrameCount = 8192
         guard
             let scratch = AVAudioPCMBuffer(
@@ -82,16 +93,28 @@ extension CueRegion {
 /// Декодер сегмента с часами самой дорожки. `AudioRegionDecoder` после
 /// компенсации FLAC-посадки стоит на `skip` кадрах и считает длину от
 /// посадки: позиция начиналась бы с ~50–90 мс, длительность была бы длиннее
-/// на столько же, а `seek(0)` уезжал бы в предыдущую дорожку. Здесь позиция,
-/// длина и seek сдвинуты на `skip`; сами кадры не трогаются — их точность
-/// доказывает `CueDecodeTests`.
+/// на столько же, а `seek(0)` уезжал бы в предыдущую дорожку.
+///
+/// Перемотка пересобирает внутренний декодер тем же путём, что и старт:
+/// сдвинуть аргумент мало — посадка FLAC промахивается на блок при каждом
+/// seek, и после него шли чужие сэмплы при верных часах (R04).
 final class AlignedRegionDecoder: NSObject, PCMDecoding {
-    private let inner: AudioRegionDecoder
-    private let skip: AVAudioFramePosition
+    private let region: CueRegion
+    private let url: URL
+    private let block: AVAudioFramePosition
+    private var inner: AudioRegionDecoder
+    /// Часы дорожки в точке, с которой начал текущий внутренний декодер.
+    private var origin: AVAudioFramePosition = 0
+    /// Кадры, выданные наружу после последней посадки. Позицию считаем сами:
+    /// `AudioRegionDecoder` на исчерпанном регионе засчитывает остаток дважды
+    /// (замер: skip 4912 → position 9824), и часы дорожки уезжали за её конец.
+    private var delivered: AVAudioFramePosition = 0
 
-    init(_ inner: AudioRegionDecoder, skipping skip: AVAudioFramePosition) {
+    init(region: CueRegion, url: URL, block: AVAudioFramePosition, inner: AudioRegionDecoder) {
+        self.region = region
+        self.url = url
+        self.block = block
         self.inner = inner
-        self.skip = skip
     }
 
     var inputSource: InputSource { inner.inputSource }
@@ -102,17 +125,33 @@ final class AlignedRegionDecoder: NSObject, PCMDecoding {
     var isOpen: Bool { inner.isOpen }
     var supportsSeeking: Bool { inner.supportsSeeking }
 
-    func open() throws { try inner.open() }
+    func open() throws { if !inner.isOpen { try inner.open() } }
     func close() throws { try inner.close() }
 
-    var position: AVAudioFramePosition { max(0, inner.position - skip) }
-    var length: AVAudioFramePosition { inner.length < 0 ? -1 : inner.length - skip }
+    /// Часы дорожки: сколько кадров дорожки уже отдано.
+    var position: AVAudioFramePosition { origin + delivered }
+    /// Длина самой дорожки, а не остатка после последней перемотки.
+    var length: AVAudioFramePosition { region.frameLength }
 
-    func decode(into buffer: AVAudioBuffer) throws { try inner.decode(into: buffer) }
+    func decode(into buffer: AVAudioBuffer) throws {
+        try inner.decode(into: buffer)
+        if let pcm = buffer as? AVAudioPCMBuffer {
+            delivered += AVAudioFramePosition(pcm.frameLength)
+        }
+    }
 
     func decode(into buffer: AVAudioPCMBuffer, length frameLength: AVAudioFrameCount) throws {
         try inner.decode(into: buffer, length: frameLength)
+        delivered += AVAudioFramePosition(buffer.frameLength)
     }
 
-    func seek(to frame: AVAudioFramePosition) throws { try inner.seek(to: frame + skip) }
+    func seek(to frame: AVAudioFramePosition) throws {
+        let ceiling = region.frameLength < 0 ? frame : min(frame, region.frameLength)
+        let offset = max(0, ceiling)
+        let landed = try CueRegion.land(region: region, url: url, block: block, at: offset)
+        try? inner.close()
+        inner = landed.decoder
+        origin = offset
+        delivered = 0
+    }
 }
