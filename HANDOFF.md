@@ -7,9 +7,11 @@
   аудитора `AUDIT_RESPONSE_2026-09-12.md`, сам аудит `AUDIT_PLAYER_2026-09-12.md`
 - Следующая: **14** — первое дело: merge `phase/10-audit` → `main` по команде
   владельца, затем живые проверки из `AUDIT_RESPONSE_2026-09-12.md` §6
-- Ветка `phase/10-audit`, head `50c51e4` — ремедиация повторного аудита
-  R01–R07 (§13) + хвосты §13.3. Тесты **265**, Debug без warnings. Решения
-  сессии — D-014…D-018. Ответ аудитору на §13 — `AUDIT_RESPONSE_2026-09-12.md` §7
+- Ветка `phase/10-audit`, head `d02b5d1` — закрыты F01/F02/F04/R07 из §14
+  (ответ — `AUDIT_RESPONSE_2026-09-12.md` §8). Пакеты **272/269/3**, `EscapementTests`
+  **2/2** (`xcodebuild test -scheme Escapement -only-testing:EscapementTests`),
+  Debug без warnings. **Открыт F03** — ждёт решения владельца о миграции
+  `track.content_hash`. Решения сессии — D-014…D-018
 - **Поведение изменилось для владельца:** DSD идёт через PCM, пока для его
   ЦАПа не стоит галка «This DAC decodes DoP» (Settings → Audio, D-014)
 - Прежняя сессия **12** (2026-08-12: CUE влит и вылечен по битам, релиз

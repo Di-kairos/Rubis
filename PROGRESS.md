@@ -6,15 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d67bd4c"
-tests: "265 registered: 263 passed, 2 skipped (5 packages); original 9 + 4 audit cases green; 4 follow-up diagnostics fail in isolated copy, outside active targets"
+head: "d02b5d1"
+tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
 last_session: 13
 last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Перепроверка fcb620c / кода 50c51e4 — AUDIT_PLAYER_2026-09-12.md §14: R01/R04/R05 приняты; merge пока не рекомендован из-за active/clear (F01) и неверного слияния данных плейлистов (F03)"
-  - "Закрыть F01–F04: различать active и nowPlaying; сохранять разные аудиофайлы при слабой подписи; учитывать один кадр CUE; выдавать token транспорта до Task/await. Диагностики — Tools/audit-regressions/2026-09-13-followup/"
-  - "R07 остаётся без автотеста: рекомендован test target приложения с подменяемыми транспортом, разрешением и путём кэша; перенос AlbumInfoService в новый пакет не требуется"
+  - "F03 (§14.4): решение владельца — миграция track.content_hash (FLAC: MD5 из STREAMINFO; прочие: хеш головы) и слияние только по совпадению, либо явное принятие риска, либо отказ от переезда между источниками. До решения тест выключен, код не менялся"
+  - "F01/F02/F04/R07 закрыты (fadc9f8, 580f113, 08cd5d0, d02b5d1) — ответ аудитору AUDIT_RESPONSE_2026-09-12.md §8; ждём его перепроверки"
   - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
   - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
@@ -39,8 +38,14 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`d67bd4c`](https://github.com/Di-kairos/Rubis/commit/d67bd4c) —
-`test(audit): verify remediation and expose remaining pipeline and data risks`.
+Текущий HEAD: [`d02b5d1`](https://github.com/Di-kairos/Rubis/commit/d02b5d1) —
+`test(app): EscapementTests bundle; notes service takes transport, permission and keys (R07)`.
+2026-09-13 (вторая половина): закрыты F01 (отзываемый заряд `ArmedDecoder` —
+доказательство тишины в самом декодере), F02 (сравнение CUE по кадрам +
+PERFORMER), F04 (token транспорта до Task), R07 (тестовый бандл приложения,
+инжектируемые зависимости `AlbumInfoService`). F03 ждёт решения владельца о
+миграции отпечатка содержимого. Пакеты 272/269/3, EscapementTests 2/2.
+Прежний срез аудитора:
 2026-09-13: независимо проверен `fcb620c` / последний код `50c51e4` и ответ
 разработчика §7. Штатные пакеты: **265 зарегистрировано, 263 прошло, 2 пропущено**;
 исходные 9 + 4 диагностики в активных targets и зелёные. Приняты исправления
