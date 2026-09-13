@@ -242,6 +242,11 @@ final class AppEnvironment {
     /// она относилась к прежней очереди.
     private var prefetchTask: Task<Void, Never>?
 
+    /// Актуальность пользовательских команд транспорта. Отметка берётся ДО сети,
+    /// проверяется после загрузки: иначе докачавшийся A запускался поверх более
+    /// нового Play B или уже нажатого Stop (R02).
+    private let transport = TransportCommands()
+
     /// Очередь изменилась: экраны перечитывают, снимок пишется сразу — иначе
     /// enqueue на паузе не переживал бы перезапуск.
     private func queueDidChange() async {
@@ -256,11 +261,14 @@ final class AppEnvironment {
         // по самому треку, а не по индексу исходного списка.
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
+        guard items.indices.contains(start) else { return }
         Task {
-            guard items.indices.contains(start) else { return }
-            await fetchIfRemote(items[start].track)
-            await player.play(items: items, startAt: start)
-            await queueDidChange()
+            await transport.run(
+                load: { await self.fetchIfRemote(items[start].track) },
+                act: {
+                    await self.player.play(items: items, startAt: start)
+                    await self.queueDidChange()
+                })
         }
     }
 
@@ -295,9 +303,12 @@ final class AppEnvironment {
         Task {
             let items = await player.queuedItems()
             guard items.indices.contains(index) else { return }
-            await fetchIfRemote(items[index].track)
-            await player.play(items: items, startAt: index)
-            await queueDidChange()
+            await transport.run(
+                load: { await self.fetchIfRemote(items[index].track) },
+                act: {
+                    await self.player.play(items: items, startAt: index)
+                    await self.queueDidChange()
+                })
         }
     }
 
@@ -343,6 +354,8 @@ final class AppEnvironment {
     }
 
     func togglePlayPause() {
+        // Пауза и Stop — тоже команды транспорта: начатая загрузка больше не актуальна.
+        transport.invalidate()
         Task { await player.togglePlayPause() }
     }
 
@@ -498,10 +511,12 @@ final class AppEnvironment {
     }
 
     func next() {
+        transport.invalidate()
         Task { await player.next() }
     }
 
     func previous() {
+        transport.invalidate()
         Task { await player.previous() }
     }
 
@@ -588,7 +603,11 @@ final class AppEnvironment {
         guard items.indices.contains(next), RemotePlayback.isRemote(items[next].track) else {
             return
         }
+        // Префетч длится через сеть: за это время очередь и текущий трек могли
+        // смениться, и склеивать было бы уже не тот стык.
+        let token = transport.current()
         guard await remote.fetch(items[next].track) != nil else { return }
+        guard transport.isCurrent(token), await player.currentIndex() + 1 == next else { return }
         await player.rearmGapless()
     }
 
@@ -598,6 +617,9 @@ final class AppEnvironment {
     private func retryRemote(_ track: Track) async {
         guard RemotePlayback.isRemote(track), track.id != lastRemoteRetry else { return }
         lastRemoteRetry = track.id
+        // Повтор тоже проходит через сеть — к его концу пользователь мог уйти
+        // на другой трек или остановиться.
+        let token = transport.current()
         // Файл мог лежать в кэше и оказаться битым — выбрасываем его, иначе
         // повтор снова открыл бы тот же объект.
         await remote.invalidate(track)
@@ -608,6 +630,7 @@ final class AppEnvironment {
             }
             return
         }
+        guard transport.isCurrent(token) else { return }
         await player.playCurrent()
     }
 
