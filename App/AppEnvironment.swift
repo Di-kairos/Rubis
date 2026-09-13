@@ -262,8 +262,12 @@ final class AppEnvironment {
         let target = tracks.indices.contains(index) ? tracks[index].id : nil
         let start = items.firstIndex { $0.track.id == target } ?? 0
         guard items.indices.contains(start) else { return }
+        // Отметка — здесь, синхронно: пауза или Next, нажатые до старта задачи,
+        // должны её обесценить (F04).
+        let token = transport.begin()
         Task {
             await transport.run(
+                token,
                 load: { await self.fetchIfRemote(items[start].track) },
                 act: {
                     await self.player.play(items: items, startAt: start)
@@ -300,10 +304,12 @@ final class AppEnvironment {
 
     /// Прыжок на трек внутри текущей очереди (двойной клик в Now Playing).
     func playQueueItem(at index: Int) {
+        let token = transport.begin()
         Task {
             let items = await player.queuedItems()
             guard items.indices.contains(index) else { return }
             await transport.run(
+                token,
                 load: { await self.fetchIfRemote(items[index].track) },
                 act: {
                     await self.player.play(items: items, startAt: index)
@@ -606,8 +612,15 @@ final class AppEnvironment {
         // Префетч длится через сеть: за это время очередь и текущий трек могли
         // смениться, и склеивать было бы уже не тот стык.
         let token = transport.current()
+        let fetched = items[next].track.id
         guard await remote.fetch(items[next].track) != nil else { return }
-        guard transport.isCurrent(token), await player.currentIndex() + 1 == next else { return }
+        // Склеиваем только если следующим по-прежнему стоит скачанный трек, а
+        // не просто «какой-то» под тем же номером.
+        let now = await player.queuedItems()
+        let upcoming = await player.currentIndex() + 1
+        guard transport.isCurrent(token), now.indices.contains(upcoming),
+            now[upcoming].track.id == fetched
+        else { return }
         await player.rearmGapless()
     }
 

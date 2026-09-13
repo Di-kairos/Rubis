@@ -36,15 +36,14 @@ struct TransportCommandsTests {
         let barrier = Barrier()
         var played: [String] = []
 
+        let tokenA = commands.begin()
         let a = Task {
-            await commands.run(
-                load: { await barrier.hold() },
-                act: { played.append("A") })
+            await commands.run(tokenA, load: { await barrier.hold() }, act: { played.append("A") })
         }
         await barrier.waitUntilStarted()
 
         // Пользователь выбрал B, пока A ещё качается: B играет сразу.
-        await commands.run(load: {}, act: { played.append("B") })
+        await commands.run(commands.begin(), load: {}, act: { played.append("B") })
         barrier.release()
         let didPlayA = await a.value
 
@@ -57,10 +56,9 @@ struct TransportCommandsTests {
         let barrier = Barrier()
         var played: [String] = []
 
+        let tokenA = commands.begin()
         let a = Task {
-            await commands.run(
-                load: { await barrier.hold() },
-                act: { played.append("A") })
+            await commands.run(tokenA, load: { await barrier.hold() }, act: { played.append("A") })
         }
         await barrier.waitUntilStarted()
 
@@ -76,7 +74,7 @@ struct TransportCommandsTests {
     @Test func undisturbedCommandStillPlays() async {
         let commands = TransportCommands()
         var played: [String] = []
-        let done = await commands.run(load: {}, act: { played.append("A") })
+        let done = await commands.run(commands.begin(), load: {}, act: { played.append("A") })
         #expect(done)
         #expect(played == ["A"])
     }
@@ -86,10 +84,10 @@ struct TransportCommandsTests {
         let barrier = Barrier()
         var played: [String] = []
 
+        let token = commands.begin()
         let user = Task {
             await commands.run(
-                load: { await barrier.hold() },
-                act: { played.append("user") })
+                token, load: { await barrier.hold() }, act: { played.append("user") })
         }
         await barrier.waitUntilStarted()
         // Префетч только запоминает границу — команда пользователя остаётся в силе.
@@ -99,6 +97,22 @@ struct TransportCommandsTests {
 
         #expect(await user.value)
         #expect(played == ["user"])
+    }
+
+    /// F04, порядок вызовов приложения: отметка берётся синхронно в обработчике,
+    /// Task стартует позже. Пауза, принятая до старта задачи, её обесценивает.
+    @Test func queuedPlayMustNotBecomeNewerThanALaterPause() async {
+        let commands = TransportCommands()
+        var played: [String] = []
+        let token = commands.begin()
+        let play = Task {
+            await commands.run(token, load: {}, act: { played.append("A") })
+        }
+        // Как togglePlayPause/next: инвалидируем прямо в обработчике, до Task.
+        commands.invalidate()
+        let acted = await play.value
+        #expect(!acted)
+        #expect(played.isEmpty)
     }
 
     @Test func tokenOfAnOlderCommandIsNotCurrent() {

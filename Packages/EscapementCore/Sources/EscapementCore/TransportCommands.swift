@@ -36,13 +36,19 @@ public final class TransportCommands {
 
     /// Подготовка (сеть, диск) и затем действие — но только если за время
     /// подготовки не пришла новая команда.
+    ///
+    /// `token` берётся вызывающим через `begin()` **синхронно в обработчике
+    /// действия**, до создания `Task` и первого `await`: отметка, выданная уже
+    /// внутри задачи, оказывалась новее паузы или Next, принятых между
+    /// постановкой задачи и её стартом (F04, перепроверка аудита 13.09.2026).
     /// - Returns: `true`, если действие выполнено.
     @discardableResult
     public func run(
+        _ token: Int,
         load: @MainActor () async -> Void,
         act: @MainActor () async -> Void
     ) async -> Bool {
-        let token = begin()
+        guard isCurrent(token) else { return false }
         await load()
         guard isCurrent(token) else { return false }
         await act()
