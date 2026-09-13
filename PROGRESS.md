@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "6716446"
-tests: "263 passed (5 packages): DesignSystem 9, EscapementCore 69, MusicLibrary 94, PlaybackEngine 47, SubsonicKit 44; все четыре диагностики перепроверки подключены в активные targets и зелёные; app Debug build ✓"
+head: "50c51e4"
+tests: "265 passed (5 packages): DesignSystem 9, EscapementCore 69, MusicLibrary 94 (2 условных пропуска), PlaybackEngine 49, SubsonicKit 44; 9 + 4 диагностики аудита в активных targets и зелёные; app Debug без warnings"
 last_session: 13
 last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
