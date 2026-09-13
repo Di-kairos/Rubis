@@ -26,7 +26,41 @@ packages:
     path: Packages/SubsonicKit
   DesignSystem:
     path: Packages/DesignSystem
+schemes:
+  Escapement:
+    build:
+      targets:
+        Escapement: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - EscapementTests
 targets:
+  # Тесты приложения (R07 перепроверки аудита): сервисы app-таргета, у которых
+  # нет своего пакета, проверяются здесь с подменяемыми зависимостями.
+  EscapementTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: Escapement
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+        # Продукт называется «Rubis Music», а не по имени таргета — хост тестов
+        # надо указать явно.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Rubis Music.app/Contents/MacOS/Rubis Music"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # xcconfig проекта задаёт PRODUCT_NAME приложения на все таргеты — у
+        # тестового бандла своё имя, иначе модули сталкиваются в сборке.
+        PRODUCT_NAME: EscapementTests
+        PRODUCT_MODULE_NAME: EscapementTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.dikairos.escapement.tests
+        CODE_SIGN_ENTITLEMENTS: ""
   Escapement:
     type: application
     platform: macOS

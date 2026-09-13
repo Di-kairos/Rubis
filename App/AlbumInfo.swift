@@ -41,8 +41,16 @@ enum NotesProvider: String, CaseIterable, Identifiable {
 
 /// Актор: сериализует сетевые походы и файловый кеш.
 actor AlbumInfoService {
+    /// Один сетевой запрос. Подменяется тестами — приёмка R07 держит Wikipedia
+    /// и проверяет, что писатель не вызывается после выключения заметок.
+    typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
     private let cacheRoot: URL
-    private let session: URLSession
+    private let transport: Transport
+    /// Разрешены ли заметки прямо сейчас — спрашивается у каждой двери наружу.
+    private let permission: @Sendable () -> Bool
+    /// Ключ писателя по провайдеру; по умолчанию — связка ключей.
+    private let apiKeys: @Sendable (NotesProvider) -> String?
     /// Ключи читаются из связки один раз за запуск: писатель спрашивается
     /// на каждый новый альбом, а каждое обращение к Keychain — потенциальный
     /// диалог. Живёт в акторе, поэтому без замков и глобального состояния.
@@ -56,14 +64,36 @@ actor AlbumInfoService {
     private var misses: [Int64: Date] = [:]
     private static let missTTL: TimeInterval = 600
 
-    init(ledger: NetworkLedger) {
+    init(
+        ledger: NetworkLedger,
+        transport: Transport? = nil,
+        permission: @escaping @Sendable () -> Bool = AlbumInfoService.storedPermission,
+        apiKeys: @escaping @Sendable (NotesProvider) -> String? = {
+            KeychainStore.load(account: $0.keychainAccount)
+        },
+        cacheRoot: URL? = nil
+    ) {
         self.ledger = ledger
-        cacheRoot = FileManager.default
+        self.permission = permission
+        self.apiKeys = apiKeys
+        self.cacheRoot =
+            cacheRoot
+            ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Escapement/album-info", isDirectory: true)
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 20
-        session = URLSession(configuration: config)
+        if let transport {
+            self.transport = transport
+        } else {
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = 20
+            let session = URLSession(configuration: config)
+            self.transport = { request in try await session.data(for: request) }
+        }
+    }
+
+    /// Настройка «Show liner notes» как её видит приложение.
+    static let storedPermission: @Sendable () -> Bool = {
+        UserDefaults.standard.object(forKey: "albumNotes") as? Bool ?? false
     }
 
     /// Кеш → Wikipedia → писатель (Claude/DeepSeek). Порядок вернулся к D-008
@@ -89,11 +119,11 @@ actor AlbumInfoService {
     }
 
     private func fetch(albumId id: Int64, title: String, album: Album) async -> AlbumInfo? {
-        guard Self.notesAllowed else { return nil }
+        guard permission() else { return nil }
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
         // Пока ждали Wikipedia, заметки могли выключить: следующий шаг —
         // платный запрос писателю, и начинать его уже нельзя.
-        guard Self.notesAllowed else { return nil }
+        guard permission() else { return nil }
         if result == nil {
             switch Self.selectedProvider {
             case .claude:
@@ -210,8 +240,7 @@ actor AlbumInfoService {
     /// Ключ провайдера: из связки один раз, дальше из памяти процесса.
     private func apiKey(for provider: NotesProvider) -> String? {
         if let cached = keyCache[provider] { return cached }
-        guard let key = KeychainStore.load(account: provider.keychainAccount), !key.isEmpty
-        else { return nil }
+        guard let key = apiKeys(provider), !key.isEmpty else { return nil }
         keyCache[provider] = key
         return key
     }
@@ -338,25 +367,15 @@ actor AlbumInfoService {
         }
     }
 
-    /// Заметки об альбоме разрешены прямо сейчас?
-    ///
-    /// Разрешение спрашивается у КАЖДОЙ двери наружу, а не один раз на экране:
-    /// SwiftUI отменяет задачу экрана, но сервис живёт своей неструктурированной
-    /// `Task`, и промах Wikipedia успевал отправить запрос писателю уже после
-    /// выключения (R07, перепроверка аудита 13.09.2026).
-    private static var notesAllowed: Bool {
-        UserDefaults.standard.object(forKey: "albumNotes") as? Bool ?? false
-    }
-
     /// Единственная дверь наружу у заметок — здесь же запись в журнал,
     /// поэтому «незаписанного» запроса не бывает.
     private func data(from request: URLRequest) async throws -> Data {
         // Отзыв разрешения догоняет запрос до отправки байтов.
-        guard Self.notesAllowed else { throw CancellationError() }
+        guard permission() else { throw CancellationError() }
         let host = request.url?.host ?? ""
         let result: Result<(Data, URLResponse), any Error>
         do {
-            result = .success(try await session.data(for: request))
+            result = .success(try await transport(request))
         } catch {
             result = .failure(error)
         }
