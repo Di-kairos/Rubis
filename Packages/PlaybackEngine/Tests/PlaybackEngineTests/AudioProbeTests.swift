@@ -31,6 +31,41 @@ struct AudioProbeTests {
         #expect(!format.isDSD)
     }
 
+    /// DSF собирается руками: заголовок DSD/fmt/data по спецификации Sony.
+    /// `dataBytes` — тело data-чанка; ноль байт — «заголовок без звука».
+    private func dsf(dataBytes: Int) -> Data {
+        var bytes = Data()
+        func u32(_ v: UInt32) {
+            withUnsafeBytes(of: v.littleEndian) { bytes.append(contentsOf: $0) }
+        }
+        func u64(_ v: UInt64) {
+            withUnsafeBytes(of: v.littleEndian) { bytes.append(contentsOf: $0) }
+        }
+        let total = UInt64(28 + 52 + 12 + dataBytes)
+        bytes.append(contentsOf: Array("DSD ".utf8)); u64(28); u64(total); u64(0)
+        bytes.append(contentsOf: Array("fmt ".utf8)); u64(52)
+        u32(1); u32(0); u32(2); u32(2); u32(2_822_400); u32(1)
+        u64(UInt64(dataBytes / 2 * 8)); u32(4096); u32(0)
+        bytes.append(contentsOf: Array("data".utf8)); u64(UInt64(12 + dataBytes))
+        bytes.append(Data(count: dataBytes))
+        return bytes
+    }
+
+    @Test func dsdWithAudioPassesAsDSD() throws {
+        let url = try scratch("silence.dsf", dsf(dataBytes: 8192))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let format = try AudioProbe.validate(url)
+        #expect(format.isDSD)
+        #expect(format.sampleRate == 2_822_400)
+        #expect(format.channels == 2)
+    }
+
+    @Test func truncatedDSDWithoutDataIsRejected() throws {
+        let url = try scratch("empty.dsf", dsf(dataBytes: 0))
+        defer { try? FileManager.default.removeItem(at: url) }
+        #expect(throws: PlaybackError.self) { try AudioProbe.validate(url) }
+    }
+
     @Test func serverErrorBodiesAreRejected() throws {
         let bodies: [(String, String)] = [
             (

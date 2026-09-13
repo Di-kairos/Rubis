@@ -121,7 +121,7 @@ public actor StreamCache {
             defer { try? FileManager.default.removeItem(at: temporary) }
             // Clear между стартом и завершением: старые байты в очищенный кэш
             // не возвращаем, даже если загрузка успела дойти до конца.
-            guard await self.isCurrent(startedAt) else { throw CancellationError() }
+            guard self.isCurrent(startedAt) else { throw CancellationError() }
             try validate(temporary)
             // Второй запрос мог успеть первым — победитель уже на месте.
             if !FileManager.default.fileExists(atPath: destination.path) {

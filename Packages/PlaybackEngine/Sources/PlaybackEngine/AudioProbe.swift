@@ -31,6 +31,17 @@ public enum AudioProbe {
             guard format.sampleRate.isFinite, format.sampleRate > 0,
                 (1...8).contains(format.channelCount)
             else { throw PlaybackError.decodingFailed("DSD stream reports no usable format") }
+            // Как и у PCM: заголовок без данных — не запись кэша (§13.3, #18).
+            let bytesPerPacket = Int(format.streamDescription.pointee.mBytesPerPacket)
+            guard bytesPerPacket > 0 else {
+                throw PlaybackError.decodingFailed("DSD stream reports no packet size")
+            }
+            let buffer = AVAudioCompressedBuffer(
+                format: format, packetCapacity: 64, maximumPacketSize: bytesPerPacket)
+            try dsd.decode(into: buffer, count: 64)
+            guard buffer.packetCount > 0 else {
+                throw PlaybackError.decodingFailed("valid DSD header but no audio data")
+            }
             return Format(
                 sampleRate: format.sampleRate, bitDepth: 1, channels: Int(format.channelCount),
                 isDSD: true)

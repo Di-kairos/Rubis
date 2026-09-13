@@ -269,9 +269,13 @@ public actor Player {
 
     public func stop() async {
         generation &+= 1
+        let mine = generation
         armed = nil
         engine.stop()
         await releaseDevice()
+        // Пока отпускали устройство, мог начаться новый старт — `.idle`
+        // поверх него писать нельзя (R02, вторая часть).
+        guard mine == generation else { return }
         state = .idle
         outputStatus = nil
     }
@@ -436,17 +440,23 @@ public actor Player {
 
         let currentRate = try await devices.nominalSampleRate(deviceID: device.id)
         try checkCurrent(mine)
+        var applied = currentRate
         if currentRate != plan.target {
             try await devices.setNominalSampleRate(deviceID: device.id, rate: plan.target)
             // Silence gap only when the rate really changed (SPEC §4.2.4).
             try await Task.sleep(for: config.sampleRateChangeDelay)
             try checkCurrent(mine)
+            // Снимок — из HAL, а не из плана: устройство могло не принять
+            // частоту, и тогда bit-perfect не заявляется (#12, §13.3).
+            applied = try await devices.nominalSampleRate(deviceID: device.id)
+            try checkCurrent(mine)
         }
+        let rateApplied = applied == plan.target
 
         outputStatus = OutputStatus(
             deviceName: device.name,
             deviceUID: device.uid,
-            deviceSampleRate: plan.target,
+            deviceSampleRate: applied,
             sourceSampleRate: source.sampleRate,
             sourceBitDepth: source.bitDepth,
             sourceChannels: source.channels,
@@ -454,7 +464,7 @@ public actor Player {
             mixingDisabled: mixingDisabled,
             dsdPath: plan.isDSD ? (plan.usesDoP ? .dop : .pcmConversion) : nil,
             ratePolicy: config.rateFallback.rawValue,
-            isBitPerfect: exclusive && plan.exact)
+            isBitPerfect: exclusive && plan.exact && rateApplied)
     }
 
     private func checkCurrent(_ mine: UInt64) throws {
@@ -699,12 +709,15 @@ public actor Player {
     /// настройкой, а не сброшенный `currentDeviceID` оставлял Stop→Play без
     /// наблюдения за пропажей устройства.
     private func releaseDevice() async {
-        await devices.stopObservingDeviceDeath()
-        if let hogged = hoggedDeviceID {
-            await devices.stopHogging(deviceID: hogged)
-        }
+        // Идентичность снимается ДО ожиданий: команда, начавшаяся за это время,
+        // выставит свою, и старое освобождение её не затрёт.
+        let hogged = hoggedDeviceID
         hoggedDeviceID = nil
         currentDeviceID = nil
+        await devices.stopObservingDeviceDeath()
+        if let hogged {
+            await devices.stopHogging(deviceID: hogged)
+        }
     }
 
     // MARK: - Delegate events
