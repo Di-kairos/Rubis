@@ -72,7 +72,10 @@ public actor Player {
     /// она переживает Play Next, Shuffle и Repeat, а индекс в `queue` — нет.
     /// Без неё переход публиковал вставленный X, пока звучал заряженный B (R03).
     private var armed:
-        (decoder: ObjectIdentifier, generation: UInt64, status: OutputStatus, source: Int)?
+        (
+            decoder: ObjectIdentifier, generation: UInt64, status: OutputStatus, source: Int,
+            proxy: ArmedDecoder
+        )?
     /// Последний декодер, который движок дорендерил до конца. `endOfAudio`
     /// не несёт идентичности, поэтому признаётся только вслед за концом
     /// текущего декодера — опоздавшее событие прежнего трека не двигает
@@ -604,31 +607,34 @@ public actor Player {
     /// ponytail: окно «B ушёл в active между проверкой и очисткой» остаётся —
     /// закрывать выборочной отменой, если движок её опубликует.
     private func armGapless() async {
+        let nextIndex = PlaybackOrder.next(after: index, count: queue.count, repeatMode: repeatMode)
+        let nextSource: Int? = nextIndex.flatMap { next in
+            guard next != index, sourceIndices.indices.contains(next) else { return nil }
+            return sourceIndices[next]
+        }
         if let previous = armed {
-            armed = nil
             if engine.nowPlayingID == previous.decoder {
+                // Стык уже слышен: это состоявшийся переход, а не правка будущего.
+                armed = nil
                 advance(to: previous.decoder, status: previous.status, source: previous.source)
-            } else if engine.queueIsEmpty {
-                await resyncPipeline()
+            } else if let nextSource, nextSource == previous.source {
+                // Следующим остаётся то же вхождение — заряд верен, движок не трогаем.
                 return
             } else {
+                armed = nil
                 engine.clearQueue()
-                // Окно между проверкой выше и очисткой: decoding thread мог забрать
-                // заряженный декодер в active ровно здесь, и `clearQueue` его уже не
-                // достаёт. Тогда — согласованный сброс, а не тихо зазвучавший B.
-                if engine.nowPlayingID == previous.decoder {
+                // Доказательство — в самом декодере (F01): отзыв под замком
+                // гарантирует ноль кадров с этого момента. Ушли ли кадры до
+                // отзыва, знает только он; если ушли — честен лишь сброс.
+                if previous.proxy.revoke() {
                     await resyncPipeline()
                     return
                 }
             }
+        } else {
+            engine.clearQueue()
         }
-        engine.clearQueue()
-        guard
-            let nextIndex = PlaybackOrder.next(
-                after: index, count: queue.count, repeatMode: repeatMode),
-            nextIndex != index,  // repeat track: перезапуск не склеиваем
-            queue.indices.contains(nextIndex)
-        else { return }
+        guard let nextIndex, nextSource != nil, queue.indices.contains(nextIndex) else { return }
         let next = queue[nextIndex]
         // Gapless only at the same real rate; DSD transitions restart cleanly.
         // Частота — из открытого декодера, а не из каталога; снимок тракта
@@ -639,13 +645,15 @@ public actor Player {
             case .pcm(let decoder, let probe) = opened,
             probe.sampleRate == status.sourceSampleRate
         else { return }
-        if (try? engine.enqueue(decoder)) != nil {
+        let proxy = ArmedDecoder(decoder)
+        if (try? engine.enqueue(proxy)) != nil {
             armed = (
-                ObjectIdentifier(decoder as AnyObject), generation,
+                ObjectIdentifier(proxy as AnyObject), generation,
                 status.withSource(
                     sampleRate: probe.sampleRate, bitDepth: probe.bitDepth,
                     channels: probe.channels),
-                sourceIndices.indices.contains(nextIndex) ? sourceIndices[nextIndex] : nextIndex
+                sourceIndices.indices.contains(nextIndex) ? sourceIndices[nextIndex] : nextIndex,
+                proxy
             )
         }
     }
