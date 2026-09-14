@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "d02b5d1"
+head: "765bef9"
 tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
 last_session: 13
 last_reviewed: 2026-09-13
@@ -38,8 +38,9 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`d02b5d1`](https://github.com/Di-kairos/Rubis/commit/d02b5d1) —
-`test(app): EscapementTests bundle; notes service takes transport, permission and keys (R07)`.
+Текущий HEAD: [`765bef9`](https://github.com/Di-kairos/Rubis/commit/765bef9) —
+`Merge phase/10-audit: player audit 2026-09-12 remediation` (2026-09-14, по команде
+владельца; открыт только F03 — отпечаток содержимого, решение владельца).
 2026-09-13 (вторая половина): закрыты F01 (отзываемый заряд `ArmedDecoder` —
 доказательство тишины в самом декодере), F02 (сравнение CUE по кадрам +
 PERFORMER), F04 (token транспорта до Task), R07 (тестовый бандл приложения,
