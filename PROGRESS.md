@@ -8,7 +8,7 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
 head: "765bef9"
 tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
-last_session: 13
+last_session: 14
 last_reviewed: 2026-09-14
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
@@ -16,7 +16,7 @@ next_actions:
   - "F01/F02/F04/R07 закрыты (fadc9f8, 580f113, 08cd5d0, d02b5d1) — ответ аудитору AUDIT_RESPONSE_2026-09-12.md §8; ждём его перепроверки"
   - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
-  - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
+  - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления 0.10.2 → 0.11.0 (механизм 0.10.0 → 0.10.2 подтверждён в S14, чек-лист §6.3); в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
   - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
@@ -28,8 +28,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session13.md
-  latest_kickoff: docs/sessions/SESSION_14_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session14.md
+  latest_kickoff: docs/sessions/SESSION_15_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
@@ -571,6 +571,12 @@ Debug и Release без warnings. Открытое и вопросы к пере
 `AUDIT_RESPONSE_2026-09-12.md` §4 и §6. Ветка не слита: merge в main — по
 команде владельца.
 HEAD ветки: `38729d8` — build(release): strict release mode for make-dmg.sh.
+
+Session 14 (2026-09-14, Mac Mini): без правок кода. Подтверждено живое
+автообновление Sparkle в тихом режиме (`SUAutomaticallyUpdate = 1`):
+0.10.0 (28) → 0.10.2 (30) поставилась на Cmd+Q, диалога в этом режиме нет
+по замыслу — чек-лист §6.3 закрыт. F03 ждёт решения владельца.
+Отчёт — `docs/sessions/progress-report-session14.md`.
 
 ## Фазы (из TASKS.md)
 
