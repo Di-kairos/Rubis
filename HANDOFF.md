@@ -4,10 +4,10 @@
 
 - Последняя сессия: **13** (2026-09-12…14: ответ на внешний аудит плеера — 33
   пункта, три раунда перепроверки; `phase/10-audit` **слита в main** `765bef9`
-  по команде владельца) — итог для аудитора `AUDIT_RESPONSE_2026-09-12.md`
-  §1–§8, сам аудит `AUDIT_PLAYER_2026-09-12.md`
-- Следующая: **14** — решение по F03 (миграция `track.content_hash`), затем
-  живые проверки из `AUDIT_RESPONSE_2026-09-12.md` §6 и релиз 0.11.0
+  по команде владельца) — отчёт `docs/sessions/progress-report-session13.md`,
+  итог для аудитора `AUDIT_RESPONSE_2026-09-12.md` §1–§8
+- Следующая: **14** — kickoff `docs/sessions/SESSION_14_KICKOFF.md`: решение по
+  F03 (миграция `track.content_hash`), живые проверки §9 чек-листа, релиз 0.11.0
 - `main` `765bef9` — закрыты F01/F02/F04/R07 из §14
   (ответ — `AUDIT_RESPONSE_2026-09-12.md` §8). Пакеты **272/269/3**, `EscapementTests`
   **2/2** (`xcodebuild test -scheme Escapement -only-testing:EscapementTests`),

@@ -9,7 +9,7 @@ hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/ru
 head: "765bef9"
 tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
 last_session: 13
-last_reviewed: 2026-09-13
+last_reviewed: 2026-09-14
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "F03 (§14.4): решение владельца — миграция track.content_hash (FLAC: MD5 из STREAMINFO; прочие: хеш головы) и слияние только по совпадению, либо явное принятие риска, либо отказ от переезда между источниками. До решения тест выключен, код не менялся"
@@ -28,8 +28,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session12.md
-  latest_kickoff: docs/sessions/SESSION_13_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session13.md
+  latest_kickoff: docs/sessions/SESSION_14_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
