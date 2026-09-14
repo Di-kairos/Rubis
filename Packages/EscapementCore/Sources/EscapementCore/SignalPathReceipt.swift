@@ -14,14 +14,16 @@ public struct SignalPathReceipt: Sendable, Equatable {
     public var track: String?
     public var codec: String
     public var sourceRate: Double
-    public var sourceBits: Int
+    /// nil — декодер разрядность не сообщил; в отчёте так и пишется.
+    public var sourceBits: Int?
     public var channels: Int
     public var deviceName: String
     /// USB / Built-in / Thunderbolt — как устройство видит система.
     public var deviceTransport: String
     public var deviceRate: Double
     public var exclusive: Bool
-    /// nil — микшер не спрашивали (устройство не наше или проверка не шла).
+    /// nil — микшер не трогали (общий выход или устройство не даёт ручки);
+    /// false — пытались снять и не смогли. Не выводится из `exclusive`.
     public var mixingDisabled: Bool?
     public var dsd: String?
     /// Политика при несовпадении частоты — из настроек Audio.
@@ -30,7 +32,7 @@ public struct SignalPathReceipt: Sendable, Equatable {
 
     public init(
         date: Date, appVersion: String, track: String?, codec: String, sourceRate: Double,
-        sourceBits: Int, channels: Int, deviceName: String, deviceTransport: String,
+        sourceBits: Int?, channels: Int, deviceName: String, deviceTransport: String,
         deviceRate: Double, exclusive: Bool, mixingDisabled: Bool?, dsd: String?,
         fallback: String, bitPerfect: Bool
     ) {
@@ -65,6 +67,11 @@ public struct SignalPathReceipt: Sendable, Equatable {
         return "Not bit-perfect"
     }
 
+    /// Версия тела. Отчёты без строки `Schema` — первая версия: там разрядность
+    /// подставлялась, а микшер выводился из эксклюзива; их подпись по-прежнему
+    /// проверяется, но их поля — предположения, а не измерения.
+    public static let schema = 2
+
     /// Имена полей подписи — по ним же отчёт разбирается обратно
     /// (`ReceiptSigning.parse`).
     public static let keyField = "Key"
@@ -95,25 +102,34 @@ public struct SignalPathReceipt: Sendable, Equatable {
         var lines = [
             "RUBIS MUSIC — SIGNAL PATH RECEIPT",
             "\(Self.stamp(date)) · Rubis Music \(appVersion)",
+            field("Schema", "\(Self.schema)"),
             "",
         ]
         if let track { lines.append(field("Track", track)) }
+        let bits = sourceBits.map { "\($0) bit" } ?? "bit depth unknown"
         lines.append(
             field(
                 "Source",
-                "\(codec.uppercased()) · \(Self.khz(sourceRate)) · \(sourceBits) bit "
-                    + "· \(channels) ch"))
+                "\(codec.uppercased()) · \(Self.khz(sourceRate)) · \(bits) · \(channels) ch"))
         lines.append(field("Device", "\(deviceName) (\(deviceTransport))"))
         lines.append(field("Device rate", Self.khz(deviceRate)))
         lines.append(field("Exclusive", exclusive ? "yes (hog mode)" : "no"))
-        if let mixingDisabled {
-            lines.append(field("Mixer", mixingDisabled ? "switched off" : "left on"))
-        }
+        lines.append(field("Mixer", mixerLine))
         if let dsd { lines.append(field("DSD", dsd)) }
         lines.append(field("Rate policy", fallback))
         lines.append(String(repeating: "-", count: 52))
         lines.append(field("VERDICT", verdict))
         return lines.joined(separator: "\n")
+    }
+
+    /// Микшер словами: результат попытки, а не следствие эксклюзива.
+    var mixerLine: String {
+        switch (exclusive, mixingDisabled) {
+        case (_, .some(true)): return "switched off"
+        case (_, .some(false)): return "could not be switched off — device refused"
+        case (false, .none): return "left on — shared output"
+        case (true, .none): return "unknown"
+        }
     }
 
     /// Отпечаток тела отчёта. Не подпись — доказать авторство он не может,

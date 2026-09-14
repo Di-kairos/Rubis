@@ -48,7 +48,13 @@ enum Palette {
         dark: RGBA(0xFFFFFF, alpha: 0.14), light: RGBA(0x000000, alpha: 0.16))
     static let textPrimary = ColorPair(dark: RGBA(0xF2F0EC), light: RGBA(0x1A1917))
     static let textSecondary = ColorPair(dark: RGBA(0x96948E), light: RGBA(0x6B6862))
+    /// Декор и оттенок неактивных иконок: не для текста, который несёт смысл.
     static let textTertiary = ColorPair(dark: RGBA(0x5A5854), light: RGBA(0x9A968E))
+    /// Приглушённый текст, который всё же читают: тайминги, номера,
+    /// длительности, подписи, пустые состояния. Держит ≥4.5:1 на bg.base и
+    /// bg.raised в обеих темах — tertiary давал 2.7:1, и время в транспорте
+    /// приходилось разглядывать.
+    static let textMuted = ColorPair(dark: RGBA(0x827F79), light: RGBA(0x726F6A))
     static let textDisabled = ColorPair(dark: RGBA(0x3A3937), light: RGBA(0xC4C0B8))
     static let accent = ColorPair(dark: RGBA(0xC9A76A), light: RGBA(0x8A6C2E))
     static let accentMuted = ColorPair(dark: RGBA(0x7A6739), light: RGBA(0xB5A47E))

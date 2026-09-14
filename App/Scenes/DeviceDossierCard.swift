@@ -23,7 +23,7 @@ struct DeviceDossierCard: View {
             if let dossier {
                 HStack(alignment: .firstTextBaseline) {
                     DSText(dossier.name, style: .headline)
-                    DSText(dossier.transport, style: .label, color: DS.Color.textTertiary)
+                    DSText(dossier.transport, style: .label, color: DS.Color.textMuted)
                     Spacer()
                     Button(probing ? "Probing…" : "Probe exclusive access") { probeHog() }
                         .disabled(probing || playing || dossier.builtIn)
@@ -36,8 +36,13 @@ struct DeviceDossierCard: View {
                 }
                 row("Sample rates", Self.rates(dossier.sampleRates))
                 row("Bit depths", dossier.bitDepths.map { "\($0)" }.joined(separator: " / "))
+                // Потолок — про PCM-транспорт, не про приёмник: разбирает ли
+                // ЦАП DoP-маркеры, знает только его владелец.
                 row(
-                    "DSD over PCM", dossier.dopCeiling.map { "up to \($0) (DoP)" } ?? "not possible"
+                    "DSD over PCM",
+                    dossier.dopCeiling.map {
+                        "transport allows up to \($0) via DoP — confirm above if the DAC decodes it"
+                    } ?? "not possible"
                 )
                 if dossier.nativeDSD {
                     row("Native DSD", "the driver offers a DSD stream format")
@@ -48,7 +53,7 @@ struct DeviceDossierCard: View {
             } else {
                 DSText(
                     "No device to look at — pick an output above.", style: .caption,
-                    color: DS.Color.textTertiary)
+                    color: DS.Color.textMuted)
             }
         }
         .task(id: deviceID) { reload() }

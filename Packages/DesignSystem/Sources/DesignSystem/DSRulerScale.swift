@@ -71,6 +71,11 @@ public struct DSRulerScale: View {
         .onHover { hovering = $0 }
         .accessibilityLabel("Playback position")
         .accessibilityValue("\(Int(progress * 100)) percent")
+        // VoiceOver: регулируемый элемент, а не только жест — шаг 5 %.
+        .accessibilityAdjustableAction { direction in
+            let step = direction == .increment ? 0.05 : -0.05
+            onSeek?(min(max(progress + step, 0), 1))
+        }
     }
 
     /// Muted accent when the window is inactive (DESIGN.md §2.1).

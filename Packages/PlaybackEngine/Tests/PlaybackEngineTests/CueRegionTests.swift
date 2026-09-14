@@ -18,6 +18,18 @@ struct CueRegionTests {
         #expect(CueRegion(track: track(start: nil, end: nil)) == nil)
     }
 
+    /// Неконечное или невозможное время из битого листа — файл целиком,
+    /// а не `Int64(inf)` с аварийным завершением (аудит 2026-09-12, #05).
+    @Test func nonFiniteOrHugeBoundsFallBackToTheWholeFile() throws {
+        #expect(CueRegion(track: track(start: .infinity, end: nil)) == nil)
+        #expect(CueRegion(track: track(start: .nan, end: nil)) == nil)
+        #expect(CueRegion(track: track(start: 1e12, end: nil)) == nil)
+        let openEnd = try #require(CueRegion(track: track(start: 1, end: .infinity)))
+        #expect(openEnd.frameLength == -1)
+        let hugeEnd = try #require(CueRegion(track: track(start: 1, end: 1e12)))
+        #expect(hugeEnd.frameLength == -1)
+    }
+
     @Test func secondsBecomeFramesOfTheFilesOwnRate() throws {
         let region = try #require(CueRegion(track: track(start: 33, end: 100)))
         #expect(region.startFrame == 33 * 44100)

@@ -68,9 +68,9 @@ struct TransportBar: View {
                     env.seek(to: fraction)
                 }
                 HStack {
-                    DSText(timeText, style: .numeric, color: DS.Color.textTertiary)
+                    DSText(timeText, style: .numeric, color: DS.Color.textMuted)
                     Spacer()
-                    DSText(totalText, style: .numeric, color: DS.Color.textTertiary)
+                    DSText(totalText, style: .numeric, color: DS.Color.textMuted)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -182,8 +182,11 @@ struct TransportBar: View {
         let rateSegment: String
         if status.deviceSampleRate != status.sourceSampleRate {
             rateSegment = "\(format) → \(String(format: "%.1f", status.deviceSampleRate / 1000))"
+        } else if status.dsdPath != nil {
+            rateSegment = "DSD \(format)"
         } else {
-            rateSegment = "\(status.sourceBitDepth)/\(format)"
+            // Разрядность, которую декодер не сообщил, — вопрос, а не 16.
+            rateSegment = "\(status.sourceBitDepth.map(String.init) ?? "?")/\(format)"
         }
         return [
             rateSegment,
@@ -200,13 +203,17 @@ struct TransportBar: View {
 
     private func statusPopover(_ status: OutputStatus) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.sm) {
-            DSText("Signal path", style: .label, color: DS.Color.textTertiary)
+            DSText("Signal path", style: .label, color: DS.Color.textMuted)
             row("Device", status.deviceName)
-            row("Source", "\(Int(status.sourceSampleRate)) Hz / \(status.sourceBitDepth) bit")
+            row(
+                "Source",
+                "\(Int(status.sourceSampleRate)) Hz / "
+                    + (status.sourceBitDepth.map { "\($0) bit" } ?? "bit depth unknown"))
             row("Device rate", "\(Int(status.deviceSampleRate)) Hz")
             row("Exclusive", status.isExclusive ? "yes (hog mode)" : "no")
-            if let dsd = status.dsdMode {
-                row("DSD", dsd == .dopIfAvailable ? "DoP" : "PCM conversion")
+            row("Mixer", Self.mixerText(status))
+            if let dsd = status.dsdPath {
+                row("DSD", Self.dsdText(dsd))
             }
             row("Bit-perfect", status.isBitPerfect ? "yes" : "no")
             if !status.isBitPerfect {
@@ -232,6 +239,24 @@ struct TransportBar: View {
         .task(id: status.deviceName) { await loadTransport(named: status.deviceName) }
     }
 
+    /// Микшер — результат попытки, не следствие эксклюзива.
+    static func mixerText(_ status: OutputStatus) -> String {
+        switch (status.isExclusive, status.mixingDisabled) {
+        case (_, .some(true)): return "switched off"
+        case (_, .some(false)): return "could not be switched off"
+        case (false, .none): return "on — shared output"
+        case (true, .none): return "unknown"
+        }
+    }
+
+    /// Применённый путь DSD, а не пожелание из настроек.
+    static func dsdText(_ path: DSDPath) -> String {
+        switch path {
+        case .dop: return "DoP — DSD packets inside 24-bit PCM frames"
+        case .pcmConversion: return "converted to PCM — DoP not confirmed for this DAC"
+        }
+    }
+
     // MARK: - Signal path receipt (фишка A)
 
     /// ponytail: устройство ищется по имени — id в `OutputStatus` не приходит.
@@ -252,10 +277,11 @@ struct TransportBar: View {
         return (try? env.artistRepo.artist(id: id))?.name
     }
 
-    /// Отчёт из живого состояния: то, что реально настроено сейчас, а не то,
-    /// что записано в настройках «на будущее».
+    /// Отчёт из применённого снимка тракта: разрядность — из декодера,
+    /// микшер — из ответа HAL, DSD — фактический путь, политика частоты — та,
+    /// что действовала при настройке устройства. Настройки «на будущее» сюда
+    /// не попадают.
     private func receipt(_ status: OutputStatus) -> SignalPathReceipt {
-        let defaults = UserDefaults.standard
         let track = env.currentTrack
         let bundle = Bundle.main.infoDictionary
         let version = bundle?["CFBundleShortVersionString"] as? String ?? "?"
@@ -267,15 +293,14 @@ struct TransportBar: View {
             codec: track?.codec ?? "—",
             sourceRate: status.sourceSampleRate,
             sourceBits: status.sourceBitDepth,
-            channels: track?.channels ?? 2,
+            channels: status.sourceChannels,
             deviceName: status.deviceName,
             deviceTransport: deviceTransport,
             deviceRate: status.deviceSampleRate,
             exclusive: status.isExclusive,
-            // Микшер снимается вместе с эксклюзивом и только с ним.
-            mixingDisabled: status.isExclusive ? true : nil,
-            dsd: status.dsdMode.map { $0 == .dopIfAvailable ? "DoP if available" : "PCM" },
-            fallback: Self.fallbackName(defaults.string(forKey: "rateFallback")),
+            mixingDisabled: status.mixingDisabled,
+            dsd: status.dsdPath.map(Self.dsdText),
+            fallback: Self.fallbackName(status.ratePolicy),
             bitPerfect: status.isBitPerfect)
     }
 

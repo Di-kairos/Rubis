@@ -17,6 +17,10 @@ struct PlaylistsView: View {
     @State private var renamingId: Int64?
     @State private var draftName = ""
     @State private var focused: Int?
+    /// Только что удалённый плейлист и его состав: удаление мгновенное, без
+    /// диалога, но восемь секунд его можно вернуть.
+    @State private var undo: (name: String, trackIds: [Int64])?
+    @State private var undoExpiry: Task<Void, Never>?
 
     var body: some View {
         HSplitView {
@@ -26,7 +30,10 @@ struct PlaylistsView: View {
                 .frame(maxWidth: .infinity)
         }
         .background(DS.Color.bgBase)
-        .task { reload() }
+        .task(id: env.libraryRevision) {
+            reload()
+            loadTracks()
+        }
         .onChange(of: renamingId) { env.renamingPlaylist = renamingId != nil }
         // Уходя с раздела в середине переименования, не оставляем флаг взведённым —
         // иначе Space и стрелки останутся глобально выключены.
@@ -42,7 +49,7 @@ struct PlaylistsView: View {
                 DSIconButton("plus", accessibilityLabel: "New Playlist") { create() }
             }
             if playlists.isEmpty {
-                DSText("No playlists yet — ⌘⇧N", style: .body, color: DS.Color.textTertiary)
+                DSText("No playlists yet — ⌘⇧N", style: .body, color: DS.Color.textMuted)
                     .padding(DS.Space.md)
             }
             ScrollView {
@@ -55,6 +62,15 @@ struct PlaylistsView: View {
                 }
             }
             Spacer(minLength: 0)
+            if let undo {
+                HStack(spacing: DS.Space.sm) {
+                    DSText("Deleted “\(undo.name)”", style: .caption, color: DS.Color.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button("Undo") { restoreDeleted() }
+                        .font(DS.Font.caption)
+                }
+                .padding(DS.Space.md)
+            }
         }
         .background(DS.Color.bgRaised)
         // Return на плейлисте играет его целиком; во время переименования
@@ -112,7 +128,7 @@ struct PlaylistsView: View {
                     DSListRow(isSelected: isCurrent(track)) {
                         HStack(spacing: DS.Space.md) {
                             DSText(
-                                "\(index + 1)", style: .numeric, color: DS.Color.textTertiary
+                                "\(index + 1)", style: .numeric, color: DS.Color.textMuted
                             )
                             .frame(width: 24, alignment: .trailing)
                             UnavailableMark(track: track)
@@ -124,10 +140,12 @@ struct PlaylistsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             DSText(
                                 AlbumDetail.format(duration: track.duration), style: .numeric,
-                                color: DS.Color.textTertiary)
+                                color: DS.Color.textMuted)
                         }
                     }
                     .onTapGesture(count: 2) { env.play(tracks: tracks, startAt: index) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { env.play(tracks: tracks, startAt: index) }
                     .contextMenu {
                         QueueMenuItems(tracks: [track], env: env)
                         Divider()
@@ -148,7 +166,7 @@ struct PlaylistsView: View {
             .overlay {
                 if tracks.isEmpty {
                     DSText(
-                        "Drag tracks here", style: .body, color: DS.Color.textTertiary)
+                        "Drag tracks here", style: .body, color: DS.Color.textMuted)
                 }
             }
             .dropDestination(for: String.self) { payload, _ in
@@ -161,7 +179,7 @@ struct PlaylistsView: View {
                 return true
             }
         } else {
-            DSText("Select a playlist", style: .body, color: DS.Color.textTertiary)
+            DSText("Select a playlist", style: .body, color: DS.Color.textMuted)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(DS.Color.bgBase)
         }
@@ -215,12 +233,34 @@ struct PlaylistsView: View {
 
     private func delete(_ playlist: Playlist) {
         guard let id = playlist.id else { return }
+        let ids = (try? env.playlistRepo.trackIds(in: id)) ?? []
         try? env.playlistRepo.delete(id: id)
         if selected?.id == id {
             selected = nil
             tracks = []
         }
         reload()
+        undo = (playlist.name, ids)
+        undoExpiry?.cancel()
+        undoExpiry = Task {
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled else { return }
+            undo = nil
+        }
+    }
+
+    /// Вернуть удалённый плейлист: имя и состав те же, id новый.
+    private func restoreDeleted() {
+        guard let undo else { return }
+        undoExpiry?.cancel()
+        self.undo = nil
+        guard let created = try? env.playlistRepo.create(name: undo.name),
+            let id = created.id
+        else { return }
+        try? env.playlistRepo.setTracks(undo.trackIds, in: id)
+        reload()
+        selected = playlists.first { $0.id == id }
+        loadTracks()
     }
 
     private func startRename(_ playlist: Playlist) {

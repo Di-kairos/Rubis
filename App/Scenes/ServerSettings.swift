@@ -1,3 +1,4 @@
+import AppKit
 import DesignSystem
 import EscapementCore
 import MusicLibrary
@@ -84,7 +85,7 @@ struct ServerSettings: View {
                     .disabled(cacheSize == 0)
                 Spacer()
             }
-            DSText(cacheSizeLine, style: .caption, color: DS.Color.textTertiary)
+            DSText(cacheSizeLine, style: .caption, color: DS.Color.textMuted)
         }
         .onChange(of: cacheLimitGB) { _, value in
             Task { await env.remote.setCacheLimit(gigabytes: value) }
@@ -105,7 +106,7 @@ struct ServerSettings: View {
         case .idle:
             // Место под строку держится всегда — иначе кнопки прыгают
             // в момент появления результата (урок 0.8.4 про указатель).
-            DSText(" ", style: .caption, color: DS.Color.textTertiary)
+            DSText(" ", style: .caption, color: DS.Color.textMuted)
         case .testing:
             DSText("Checking…", style: .caption, color: DS.Color.textSecondary)
         case .ok(let text):
@@ -156,14 +157,20 @@ struct ServerSettings: View {
         let user = username
         let secret = password
         Task {
+            var client: SubsonicClient?
             do {
-                let client = try SubsonicClient(
-                    serverURL: url, username: user, password: secret)
-                try await client.ping()
+                client = try SubsonicClient(serverURL: url, username: user, password: secret)
+                try await client?.ping()
                 status = .ok("Connected as \(user)")
             } catch {
                 status = .failed(
                     (error as? SubsonicError)?.errorDescription ?? error.localizedDescription)
+            }
+            // Проверка — тоже исходящий запрос: в журнал, как и всё остальное.
+            if let host = client?.host {
+                let succeeded = if case .ok = status { true } else { false }
+                await env.networkLedger.record(
+                    host: host, purpose: "Server check", succeeded: succeeded, bytes: 0)
             }
         }
     }
@@ -171,17 +178,31 @@ struct ServerSettings: View {
     private func save() {
         let trimmed = serverURL.trimmingCharacters(in: .whitespaces)
         let host = SubsonicAccount.host(of: trimmed)
-        guard !host.isEmpty else {
+        // Те же правила, что у клиента: схема, хост, никакого пароля в адресе —
+        // иначе он лёг бы в таблицу источников открытым текстом.
+        guard !host.isEmpty,
+            (try? SubsonicClient(serverURL: trimmed, username: username, password: password))
+                != nil
+        else {
             status = .failed(SubsonicError.invalidServerURL.errorDescription ?? "")
             return
         }
-        // Смена адреса или логина оставляет старый пароль сиротой — убираем.
-        if let old = existing, let oldURL = old.serverUrl, let oldUser = old.username,
-            oldURL != trimmed || oldUser != username
-        {
-            SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: oldURL), username: oldUser)
+        // Новый секрет сначала подтверждается связкой; старый убирается потом.
+        let stored = SubsonicPasswordStore.save(password, host: host, username: username)
+        guard stored == errSecSuccess else {
+            status = .failed(
+                "Keychain refused the password: \(SubsonicPasswordStore.message(for: stored))")
+            return
         }
-        SubsonicPasswordStore.save(password, host: host, username: username)
+        // Ключ связки — (host, username), а не строка адреса: смена порта, пути, схемы
+        // или слеша оставляет запись прежней, и прежнее сравнение строк стирало только
+        // что сохранённый пароль (R01). Удаление — ниже, после успешного upsert: при
+        // отказе БД источник остаётся старым, и его пароль должен уцелеть.
+        let newKey = SubsonicCredentialKey(host: host, username: username)
+        let oldKey = existing.flatMap { old -> SubsonicCredentialKey? in
+            guard let oldURL = old.serverUrl, let oldUser = old.username else { return nil }
+            return SubsonicCredentialKey(serverURL: oldURL, username: oldUser)
+        }
 
         var source =
             existing ?? Source(kind: .subsonic, displayName: host, serverUrl: trimmed)
@@ -191,7 +212,13 @@ struct ServerSettings: View {
         do {
             try env.sourceRepo.upsert(source)
             existing = source
+            if let stale = SubsonicCredentialKey.stale(old: oldKey, new: newKey) {
+                SubsonicPasswordStore.delete(host: stale.host, username: stale.username)
+            }
             status = .ok("Saved")
+            // Живой клиент воспроизведения — на новые адрес и пароль сразу,
+            // а не после перезапуска или следующего Sync.
+            Task { await env.remote.register(source: source) }
         } catch {
             status = .failed(error.localizedDescription)
         }
@@ -210,10 +237,22 @@ struct ServerSettings: View {
 
     private func remove() {
         guard let source = existing else { return }
+        // То же подтверждение, что у локального источника (SPEC §9): вместе с
+        // сервером уходят его треки, их места в плейлистах и пароль.
+        let alert = NSAlert()
+        alert.messageText = "Remove server “\(source.displayName)”?"
+        alert.informativeText =
+            "Its tracks leave the library and every playlist; the saved password is deleted. "
+            + "Downloaded files stay in the cache until it is cleared."
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
         if let url = source.serverUrl, let user = source.username {
             SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: url), username: user)
         }
         try? env.sourceRepo.delete(id: source.id)
+        Task { await env.remote.unregister(sourceId: source.id) }
+        env.sourcesDidChange()
         existing = nil
         serverURL = ""
         username = ""

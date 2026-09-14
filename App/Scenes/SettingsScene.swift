@@ -125,8 +125,11 @@ struct GeneralSettings: View {
     /// Писатель fallback-заметок (D-008): Claude или DeepSeek, ключ каждого
     /// хранится в Keychain под своим account.
     @AppStorage("notesProvider") private var notesProvider = NotesProvider.claude.rawValue
-    @State private var apiKey =
-        KeychainStore.load(account: NotesProvider.claude.keychainAccount) ?? ""
+    /// Ключ выбранного писателя. Грузится по фактическому provider при
+    /// открытии: раньше поле всегда стартовало с ключа Claude, и правка
+    /// символа в поле «DeepSeek API key» записывала ключ Claude в DeepSeek.
+    @State private var apiKey = ""
+    @State private var keyLoaded = false
 
     private var provider: NotesProvider {
         NotesProvider(rawValue: notesProvider) ?? .claude
@@ -146,9 +149,8 @@ struct GeneralSettings: View {
             Section("Album notes") {
                 Toggle("Show liner notes while a track is playing", isOn: $albumNotes)
                     .help(
-                        "Written once per album by the selected writer; Wikipedia "
-                            + "steps in when there is no key or the album is unknown. "
-                            + "Cached forever.")
+                        "Wikipedia first; the selected writer steps in when Wikipedia "
+                            + "has nothing on the album. Fetched once per album and cached.")
                 Picker("Notes writer", selection: $notesProvider) {
                     ForEach(NotesProvider.allCases) { provider in
                         Text(provider.displayName).tag(provider.rawValue)
@@ -156,6 +158,7 @@ struct GeneralSettings: View {
                 }
                 SecureField("\(provider.displayName) API key", text: $apiKey)
                     .onChange(of: apiKey) {
+                        guard keyLoaded else { return }
                         KeychainStore.save(apiKey, account: provider.keychainAccount)
                         // Ключ в акторе кешируется на запуск — сбросить,
                         // иначе новый ключ заработает только после перезапуска.
@@ -170,9 +173,16 @@ struct GeneralSettings: View {
         // Применяем здесь, а не в главном окне: оно может быть закрыто
         // (режим меню-бара), а Settings в этот момент открыт.
         .onChange(of: appearance) { AppAppearance.apply(appearance) }
-        // Смена писателя — поле показывает ключ выбранного провайдера.
-        .onChange(of: notesProvider) {
+        .task {
             apiKey = KeychainStore.load(account: provider.keychainAccount) ?? ""
+            keyLoaded = true
+        }
+        // Смена писателя — поле показывает ключ выбранного провайдера, и эта
+        // подмена сама по себе ничего не сохраняет.
+        .onChange(of: notesProvider) {
+            keyLoaded = false
+            apiKey = KeychainStore.load(account: provider.keychainAccount) ?? ""
+            keyLoaded = true
         }
     }
 }
@@ -243,6 +253,7 @@ struct LibrarySettings: View {
                 SubsonicPasswordStore.delete(host: SubsonicAccount.host(of: url), username: user)
             }
             try? env.sourceRepo.delete(id: source.id)
+            env.sourcesDidChange()
             reload()
         }
     }
@@ -263,6 +274,10 @@ struct AudioSettings: View {
     @State private var devices: [AudioDeviceController.DeviceInfo] = []
     /// Устройство, о котором показываем досье: выбранное или системное.
     @State private var dossierDeviceID: UInt32?
+    @State private var dossierDeviceUID: String?
+    /// Устройства с подтверждённым DoP. HAL не умеет спросить ЦАП, понимает
+    /// ли он DoP-маркеры; без подтверждения DSD идёт через PCM.
+    @State private var dopConfirmed: Set<String> = []
 
     /// Свой экземпляр только для перечисления — HAL-запросы дёшевы,
     /// трогать актор плеера ради списка не нужно.
@@ -300,6 +315,13 @@ struct AudioSettings: View {
                 Text("DoP if available").tag("dopIfAvailable")
                 Text("Always convert to PCM").tag("alwaysConvertToPCM")
             }
+            if dsdMode == "dopIfAvailable", let uid = dossierDeviceUID, !uid.isEmpty {
+                Toggle("This DAC decodes DoP", isOn: dopBinding(uid))
+                    .help(
+                        "macOS cannot ask a DAC whether it understands DoP markers — "
+                            + "a PCM-only device fed DoP plays loud noise. Confirm it once per "
+                            + "device; until then DSD is converted to PCM and the badge says so.")
+            }
             Picker("ReplayGain", selection: .constant("off")) {
                 Text("Off").tag("off")
             }
@@ -321,17 +343,37 @@ struct AudioSettings: View {
         }
         .task {
             devices = (try? await enumerator.outputDevices()) ?? []
+            dopConfirmed = Set(
+                UserDefaults.standard.stringArray(forKey: SettingsKey.dopConfirmedDeviceUIDs)
+                    ?? [])
             await resolveDossierDevice()
             pushConfig()
         }
     }
 
+    /// Подтверждение DoP для конкретного UID; список — в UserDefaults, откуда
+    /// его читает `AppEnvironment.storedAudioConfiguration()`.
+    private func dopBinding(_ uid: String) -> Binding<Bool> {
+        Binding(
+            get: { dopConfirmed.contains(uid) },
+            set: { confirmed in
+                if confirmed { dopConfirmed.insert(uid) } else { dopConfirmed.remove(uid) }
+                UserDefaults.standard.set(
+                    Array(dopConfirmed).sorted(), forKey: SettingsKey.dopConfirmedDeviceUIDs)
+                pushConfig()
+            })
+    }
+
     /// Пустой UID — досье на системный выход: именно в него и будет играть.
     private func resolveDossierDevice() async {
         if preferredDeviceUID.isEmpty {
-            dossierDeviceID = try? await enumerator.defaultOutputDevice()?.id
+            let device = try? await enumerator.defaultOutputDevice()
+            dossierDeviceID = device?.id
+            dossierDeviceUID = device?.uid
         } else {
-            dossierDeviceID = devices.first { $0.uid == preferredDeviceUID }?.id
+            let device = devices.first { $0.uid == preferredDeviceUID }
+            dossierDeviceID = device?.id
+            dossierDeviceUID = device?.uid
         }
     }
 

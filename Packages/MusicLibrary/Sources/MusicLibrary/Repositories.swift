@@ -36,6 +36,12 @@ public struct TrackRepository: Sendable {
         }
     }
 
+    /// Перезапись строки целиком с сохранением id — синхронизация сервера
+    /// доносит изменившиеся теги, не трогая плейлисты и историю.
+    public func update(_ track: Track) throws {
+        try db.writer.write { try track.update($0) }
+    }
+
     public func track(id: Int64) throws -> Track? {
         try db.reader.read { try Track.fetchOne($0, key: id) }
     }
@@ -134,6 +140,23 @@ public struct TrackRepository: Sendable {
                     WHERE source_id = ? AND unavailable IS NOT ?
                     """,
                 arguments: [flag, sourceId, flag])
+            return database.changesCount
+        }
+    }
+
+    /// То же — для конкретных строк. Синхронизация сервера гасит пропавшие
+    /// у него треки, а не удаляет: удаление каскадом вычищало бы плейлисты,
+    /// и неполный ответ сервера превращался бы в потерю данных.
+    @discardableResult
+    public func setUnavailable(_ flag: Bool, ids: [Int64]) throws -> Int {
+        guard !ids.isEmpty else { return 0 }
+        return try db.writer.write { database in
+            let marks = ids.map { _ in "?" }.joined(separator: ",")
+            try database.execute(
+                sql:
+                    "UPDATE track SET unavailable = ? WHERE id IN (\(marks)) AND unavailable IS NOT ?",
+                arguments: StatementArguments(
+                    [flag.databaseValue] + ids.map(\.databaseValue) + [flag.databaseValue]))
             return database.changesCount
         }
     }
@@ -389,7 +412,15 @@ public struct PlaylistRepository: Sendable {
                 database,
                 sql: "SELECT track_id FROM playlist_item WHERE playlist_id = ?",
                 arguments: [playlistId])
-            var position = existing.count
+            // Хвост — за последней занятой позицией, а не за числом строк:
+            // после каскадного удаления трека позиции идут с дырами, и
+            // «число строк» попадает в занятую — UNIQUE по (playlist, position).
+            var position =
+                try Int.fetchOne(
+                    database,
+                    sql:
+                        "SELECT coalesce(max(position), -1) + 1 FROM playlist_item WHERE playlist_id = ?",
+                    arguments: [playlistId]) ?? 0
             for id in ids where !existing.contains(id) {
                 try PlaylistItem(playlistId: playlistId, trackId: id, position: position)
                     .insert(database)

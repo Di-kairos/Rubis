@@ -6,17 +6,19 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "8628976"
-tests: "201 registered: 199 passed, 2 skipped (5 packages); 9 audit regressions reproduced outside active targets"
-last_session: 12
-last_reviewed: 2026-08-12
+head: "d02b5d1"
+tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
+last_session: 13
+last_reviewed: 2026-09-13
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "CUE: живая проверка на настоящем рипе (диск одним FLAC + .cue) — границы на слух, бейдж на стыке"
-  - "Mac App Store (D-009) — не начат, старт по команде владельца"
-  - "A, вторая половина — audio-verify внутри UI (нужен loopback-девайс)"
-  - "Публичная база ЦАПов (вторая половина B) — против SPEC §1.2"
-  - "Прогнать docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
+  - "F03 (§14.4): решение владельца — миграция track.content_hash (FLAC: MD5 из STREAMINFO; прочие: хеш головы) и слияние только по совпадению, либо явное принятие риска, либо отказ от переезда между источниками. До решения тест выключен, код не менялся"
+  - "F01/F02/F04/R07 закрыты (fadc9f8, 580f113, 08cd5d0, d02b5d1) — ответ аудитору AUDIT_RESPONSE_2026-09-12.md §8; ждём его перепроверки"
+  - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
+  - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
+  - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления с 0.10.2; в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
+  - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
+  - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
 links:
@@ -28,19 +30,37 @@ links:
   releases: https://github.com/Di-kairos/rubis-releases
   latest_report: docs/sessions/progress-report-session12.md
   latest_kickoff: docs/sessions/SESSION_13_KICKOFF.md
+  audit: AUDIT_PLAYER_2026-09-12.md
+  audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
 
 # PROGRESS — Rubis / Rubis Music
 
 ## Текущее состояние
 
-Текущий HEAD: [`8628976`](https://github.com/Di-kairos/Rubis/commit/8628976) —
-`test(audit): hand off nine player regression cases and clarifications`.
-2026-09-12: аудит и ответы на уточнения — `AUDIT_PLAYER_2026-09-12.md`;
-девять диагностических тестов переданы файлами в `Tools/audit-regressions/2026-09-12/`.
-В штатные test targets они пока не подключены; на проверенном коде воспроизводят
-девять ошибок. Штатный прогон аудита: 199 успешно, 2 пропущено; сборка успешна.
-Реализация плеера не менялась, версия остаётся 0.10.2 (30).
+Текущий HEAD: [`d02b5d1`](https://github.com/Di-kairos/Rubis/commit/d02b5d1) —
+`test(app): EscapementTests bundle; notes service takes transport, permission and keys (R07)`.
+2026-09-13 (вторая половина): закрыты F01 (отзываемый заряд `ArmedDecoder` —
+доказательство тишины в самом декодере), F02 (сравнение CUE по кадрам +
+PERFORMER), F04 (token транспорта до Task), R07 (тестовый бандл приложения,
+инжектируемые зависимости `AlbumInfoService`). F03 ждёт решения владельца о
+миграции отпечатка содержимого. Пакеты 272/269/3, EscapementTests 2/2.
+Прежний срез аудитора:
+2026-09-13: независимо проверен `fcb620c` / последний код `50c51e4` и ответ
+разработчика §7. Штатные пакеты: **265 зарегистрировано, 263 прошло, 2 пропущено**;
+исходные 9 + 4 диагностики в активных targets и зелёные. Приняты исправления
+R01/R04/R05 и доработки #12/#18 в пределах проверки кода/пакетных тестов.
+
+**Merge пока не рекомендован:** future decoder B остаётся active при nowPlaying=A;
+два разных WAV могут слиться с удалением записи B и заменой ссылки плейлиста на A.
+Дополнительно: пропуск правки CUE на один кадр и поздняя выдача token внутри Task.
+Доказательства, границы проверки и приёмка F01–F04 — `AUDIT_PLAYER_2026-09-12.md` §14.
+Четыре новые диагностики переданы в `Tools/audit-regressions/2026-09-13-followup/`
+вне активных targets; все четыре выявляют несоответствия на проверенном срезе.
+
+Реализация в ходе перепроверки не менялась. App Debug/Release и живые проверки
+не выполнялись повторно. R07: guards присутствуют, тест с удерживаемым транспортом
+открыт; отдельный SPM-пакет ради него не требуется. Ветка `phase/10-audit` не слита.
 
 Session 2 (2026-08-06, MacBook Pro M5 Max): фаза 5 почти закрыта — плейлисты,
 shuffle/repeat/очередь, медиа-клавиши + Now Playing, mini-player, автообновление
@@ -528,6 +548,28 @@ staple, `spctl → accepted / source=Notarized Developer ID` на скачанн
 SHA256 опубликованного DMG сверён скачиванием (`0f792951…`, 12 627 971 байт),
 appcast запушен и проверен по живому URL (`sparkle:version 30`).
 HEAD: `25cf06e` — chore(release): bump version to 0.10.2 (30).
+Session 13 (2026-09-12, Mac Mini): **ответ на внешний аудит плеера**
+(`AUDIT_PLAYER_2026-09-12.md`, 33 пункта, 6 P1). Ветка `phase/10-audit`,
+22 кодовых коммита шестью pack'ами: потеря данных и падения (плейлисты
+больше не вычищаются каскадом — единый `retire`, CUE-парсер отвергает
+`inf`/`nan`/переполнение, `append` после дыр в позициях), достоверный
+транспорт (поколение команды, идемпотентный gapless по `queueIsEmpty`/`nowPlaying`,
+упорядоченные события движка, awaited teardown устройства, shuffle по
+вхождениям), честный тракт (`OutputStatus` — снимок из открытого декодера,
+разрядность nil вместо 16, микшер по факту, DSD-путь применённый, receipt
+Schema 2, часы CUE-сегмента с нуля, DoP только по подтверждению на UID —
+D-014), сервер и приватность (кэш по серверу+аккаунту, проба скачанного
+декодером, Keychain update-not-delete, URL без userinfo, логи без токена,
+журнал Network честен о границах, Sparkle 2.9.6), управление и обратная
+связь (`text.muted` ≥4.5:1 — D-015, Space в любом текстовом поле,
+FolderWatcher наконец подключён, экраны перечитываются по `libraryRevision`,
+алерт вместо `fatalError`, Undo/подтверждение — D-016, история считает
+дальше порога — D-017), поставка (`RUBIS_RELEASE=1` строгий режим). Девять
+регрессий аудитора приняты в test targets и зелёные. Тесты **243/241/2**,
+Debug и Release без warnings. Открытое и вопросы к перепроверке —
+`AUDIT_RESPONSE_2026-09-12.md` §4 и §6. Ветка не слита: merge в main — по
+команде владельца.
+HEAD ветки: `38729d8` — build(release): strict release mode for make-dmg.sh.
 
 ## Фазы (из TASKS.md)
 

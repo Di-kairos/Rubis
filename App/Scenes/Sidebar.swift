@@ -58,7 +58,7 @@ struct Sidebar: View {
                         .font(.system(size: 11))
                         .foregroundStyle(DS.Color.warning)
                         .accessibilityHidden(true)
-                    DSText(status, style: .caption, color: DS.Color.textTertiary)
+                    DSText(status, style: .caption, color: DS.Color.textMuted)
                 }
                 .padding(.horizontal, DS.Space.md)
             }
@@ -68,7 +68,7 @@ struct Sidebar: View {
                 VStack(alignment: .leading, spacing: DS.Space.xs) {
                     DSText(
                         "Scanning \(done)/\(total)", style: .caption,
-                        color: DS.Color.textTertiary)
+                        color: DS.Color.textMuted)
                     DSProgressBar(progress: total > 0 ? Double(done) / Double(total) : 0)
                 }
                 .padding(DS.Space.md)

@@ -61,6 +61,30 @@ struct SignalPathReceiptTests {
                 == SignalPathReceipt.fingerprint(of: "signal path"))
     }
 
+    @Test func bodyCarriesItsSchemaVersion() {
+        #expect(receipt().body().contains("Schema       2"))
+    }
+
+    @Test func unknownBitDepthIsSaidNotGuessed() {
+        var unknown = receipt()
+        unknown.sourceBits = nil
+        let text = unknown.rendered()
+        #expect(text.contains("FLAC · 44.1 kHz · bit depth unknown · 2 ch"))
+        #expect(!text.contains("16 bit"))
+    }
+
+    @Test func mixerLineReportsTheAttemptNotTheHog() {
+        var receipt = receipt()
+        #expect(receipt.mixerLine == "switched off")
+        receipt.mixingDisabled = false
+        #expect(receipt.mixerLine == "could not be switched off — device refused")
+        receipt.mixingDisabled = nil
+        #expect(receipt.mixerLine == "unknown")
+        receipt.exclusive = false
+        #expect(receipt.mixerLine == "left on — shared output")
+        #expect(receipt.rendered().contains("Mixer        left on — shared output"))
+    }
+
     @Test func receiptWithoutATrackStillDescribesTheDevice() {
         var idle = receipt()
         idle.track = nil

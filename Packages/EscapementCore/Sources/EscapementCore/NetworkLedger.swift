@@ -40,7 +40,8 @@ public struct NetworkHostSummary: Sendable, Equatable, Identifiable {
 public actor NetworkLedger {
     private let fileURL: URL
     /// Сколько последних записей держим. Журнал — свидетельство, а не история
-    /// на века: старое вытесняется, счётчики за всё время живут отдельно.
+    /// на века: старое вытесняется, и панель об этом говорит прямо.
+    /// Пожизненных счётчиков нет: очистка начинает новый период учёта.
     private let limit: Int
     private var loaded: [NetworkEvent]?
 
@@ -64,10 +65,29 @@ public actor NetworkLedger {
 
     public func summary() -> [NetworkHostSummary] { Self.summarize(load()) }
 
+    /// Очистка убирает события и их счётчики; остаётся только отметка
+    /// начала нового периода — чтобы пустой список читался как «после
+    /// очистки», а не как «запросов не было никогда».
     public func clear() {
         loaded = []
         try? FileManager.default.removeItem(at: fileURL)
+        try? FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data("\(Date().timeIntervalSince1970)".utf8).write(to: clearedMarkURL)
     }
+
+    /// Когда журнал очищали в последний раз; nil — ни разу.
+    public func clearedAt() -> Date? {
+        guard let text = try? String(contentsOf: clearedMarkURL, encoding: .utf8),
+            let seconds = TimeInterval(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    /// Сколько записей журнал держит — для подписи в панели.
+    public var capacity: Int { limit }
+
+    private var clearedMarkURL: URL { fileURL.appendingPathExtension("cleared") }
 
     /// Свод по хостам: чаще всего беспокоящий — сверху. Чистая функция,
     /// поэтому проверяется тестами без файлов и сети.

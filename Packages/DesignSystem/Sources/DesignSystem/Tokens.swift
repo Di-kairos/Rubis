@@ -26,6 +26,7 @@ extension DS {
         public static let textPrimary = adaptive(Palette.textPrimary)
         public static let textSecondary = adaptive(Palette.textSecondary)
         public static let textTertiary = adaptive(Palette.textTertiary)
+        public static let textMuted = adaptive(Palette.textMuted)
         public static let textDisabled = adaptive(Palette.textDisabled)
         public static let accent = adaptive(Palette.accent)
         public static let accentMuted = adaptive(Palette.accentMuted)

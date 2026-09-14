@@ -110,6 +110,37 @@ public actor AudioDeviceController {
         return status == noErr
     }
 
+    /// Один физический PCM-формат выходного потока: частота (или диапазон,
+    /// если поток объявляет «любую»), разрядность и число каналов вместе.
+    public struct PhysicalFormat: Sendable, Equatable {
+        public let sampleRates: ClosedRange<Double>
+        public let bitsPerChannel: Int
+        public let channels: Int
+
+        /// Годится ли формат для DoP на этой частоте: точная частота, не меньше
+        /// 24 бит и стерео — в одном формате, а не как независимые максимумы.
+        public func carriesDoP(at rate: Double) -> Bool {
+            sampleRates.contains(rate) && bitsPerChannel >= 24 && channels >= 2
+        }
+    }
+
+    /// Физические PCM-форматы выходных потоков устройства.
+    public func physicalFormats(deviceID: UInt32) throws -> [PhysicalFormat] {
+        let device = try requireDevice(deviceID)
+        var result: [PhysicalFormat] = []
+        for stream in (try? device.streams(inScope: .output)) ?? [] {
+            for (format, range) in (try? stream.availablePhysicalFormats) ?? []
+            where format.mFormatID == kAudioFormatLinearPCM {
+                let rates = format.mSampleRate > 0 ? format.mSampleRate...format.mSampleRate : range
+                result.append(
+                    PhysicalFormat(
+                        sampleRates: rates, bitsPerChannel: Int(format.mBitsPerChannel),
+                        channels: Int(format.mChannelsPerFrame)))
+            }
+        }
+        return result
+    }
+
     // MARK: - Досье устройства (фишка B)
 
     /// Физический формат DSD объявляется четырёхсимвольным кодом `dsd `.

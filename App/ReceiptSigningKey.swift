@@ -17,24 +17,34 @@ enum ReceiptSigningKey {
     /// `nil` — связка недоступна (заблокирована, отказ пользователя): отчёт
     /// выйдет с отпечатком вместо подписи, а не без ничего.
     static func load() -> Curve25519.Signing.PrivateKey? {
-        if let existing = read() { return existing }
-        let key = Curve25519.Signing.PrivateKey()
-        if store(key) { return key }
-        // Запись есть, но не читается или не разбирается в ключ — она мертва.
-        // Оставить её значило бы навсегда остаться с отпечатком вместо подписи.
-        SecItemDelete(base() as CFDictionary)
-        return store(key) ? key : nil
-    }
-
-    private static func read() -> Curve25519.Signing.PrivateKey? {
         var query = base()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-            let data = item as? Data
-        else { return nil }
-        return try? Curve25519.Signing.PrivateKey(rawRepresentation: data)
+        switch SecItemCopyMatching(query as CFDictionary, &item) {
+        case errSecSuccess:
+            if let data = item as? Data,
+                let key = try? Curve25519.Signing.PrivateKey(rawRepresentation: data)
+            {
+                return key
+            }
+            // Запись есть, но это не ключ — она мертва. Только в этом случае
+            // её и заменяем: иначе отчёт навсегда остался бы с отпечатком.
+            SecItemDelete(base() as CFDictionary)
+            return create()
+        case errSecItemNotFound:
+            return create()
+        default:
+            // Связка заблокирована, доступ запрещён, диалог невозможен —
+            // временная беда. Ключ установки не трогаем: ротация по отказу
+            // доступа меняла бы идентичность отчётов без причины.
+            return nil
+        }
+    }
+
+    private static func create() -> Curve25519.Signing.PrivateKey? {
+        let key = Curve25519.Signing.PrivateKey()
+        return store(key) ? key : nil
     }
 
     private static func store(_ key: Curve25519.Signing.PrivateKey) -> Bool {

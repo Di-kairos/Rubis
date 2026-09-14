@@ -37,7 +37,7 @@ struct ListeningHistoryView: View {
                     events.isEmpty
                         ? "Nothing played yet — history starts with the first track you hear."
                         : "Nothing in this period.",
-                    style: .body, color: DS.Color.textTertiary
+                    style: .body, color: DS.Color.textMuted
                 )
                 .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
@@ -94,7 +94,7 @@ struct ListeningHistoryView: View {
                             Spacer()
                             DSText(
                                 play.date.formatted(date: .abbreviated, time: .shortened),
-                                style: .caption, color: DS.Color.textTertiary)
+                                style: .caption, color: DS.Color.textMuted)
                         }
                         .padding(.horizontal, DS.Space.md)
                     }
@@ -152,7 +152,7 @@ struct HistoryTallyList: View {
                     }
                     Spacer()
                     DSText(
-                        Self.listened(row.seconds), style: .caption, color: DS.Color.textTertiary)
+                        Self.listened(row.seconds), style: .caption, color: DS.Color.textMuted)
                     DSText("\(row.count)", style: .numeric, color: DS.Color.textSecondary)
                         .frame(minWidth: 28, alignment: .trailing)
                 }

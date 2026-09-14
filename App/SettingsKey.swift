@@ -10,6 +10,9 @@ enum SettingsKey {
     static let appearance = "ui.appearance"
     /// Потолок кэша скачанных с сервера треков, в гигабайтах (SPEC §6.2).
     static let streamCacheSizeGB = "server.streamCacheSizeGB"
+    /// UID устройств, про которые владелец подтвердил разбор DoP. Читают
+    /// вкладка Audio и сборка `AudioConfiguration`.
+    static let dopConfirmedDeviceUIDs = "audio.dopConfirmedDeviceUIDs"
 
     static let defaultStreamCacheSizeGB = 8
 }

@@ -41,23 +41,59 @@ enum NotesProvider: String, CaseIterable, Identifiable {
 
 /// Актор: сериализует сетевые походы и файловый кеш.
 actor AlbumInfoService {
+    /// Один сетевой запрос. Подменяется тестами — приёмка R07 держит Wikipedia
+    /// и проверяет, что писатель не вызывается после выключения заметок.
+    typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
     private let cacheRoot: URL
-    private let session: URLSession
+    private let transport: Transport
+    /// Разрешены ли заметки прямо сейчас — спрашивается у каждой двери наружу.
+    private let permission: @Sendable () -> Bool
+    /// Ключ писателя по провайдеру; по умолчанию — связка ключей.
+    private let apiKeys: @Sendable (NotesProvider) -> String?
     /// Ключи читаются из связки один раз за запуск: писатель спрашивается
     /// на каждый новый альбом, а каждое обращение к Keychain — потенциальный
     /// диалог. Живёт в акторе, поэтому без замков и глобального состояния.
     private var keyCache: [NotesProvider: String] = [:]
     /// Журнал соединений (SPEC §1.2): каждый запрос заметок в нём виден.
     private let ledger: NetworkLedger
+    /// Идущие запросы по альбому: быстрое A→B→A ждёт первый, а не шлёт второй.
+    private var inFlight: [Int64: Task<AlbumInfo?, Never>] = [:]
+    /// Недавние промахи: альбом, о котором нигде ничего нет, не спрашивается
+    /// заново на каждый переход между его треками.
+    private var misses: [Int64: Date] = [:]
+    private static let missTTL: TimeInterval = 600
 
-    init(ledger: NetworkLedger) {
+    init(
+        ledger: NetworkLedger,
+        transport: Transport? = nil,
+        permission: @escaping @Sendable () -> Bool = AlbumInfoService.storedPermission,
+        apiKeys: @escaping @Sendable (NotesProvider) -> String? = {
+            KeychainStore.load(account: $0.keychainAccount)
+        },
+        cacheRoot: URL? = nil
+    ) {
         self.ledger = ledger
-        cacheRoot = FileManager.default
+        self.permission = permission
+        self.apiKeys = apiKeys
+        self.cacheRoot =
+            cacheRoot
+            ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Escapement/album-info", isDirectory: true)
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 20
-        session = URLSession(configuration: config)
+        if let transport {
+            self.transport = transport
+        } else {
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = 20
+            let session = URLSession(configuration: config)
+            self.transport = { request in try await session.data(for: request) }
+        }
+    }
+
+    /// Настройка «Show liner notes» как её видит приложение.
+    static let storedPermission: @Sendable () -> Bool = {
+        UserDefaults.standard.object(forKey: "albumNotes") as? Bool ?? false
     }
 
     /// Кеш → Wikipedia → писатель (Claude/DeepSeek). Порядок вернулся к D-008
@@ -69,8 +105,25 @@ actor AlbumInfoService {
     func info(for album: Album) async -> AlbumInfo? {
         guard let id = album.id, let title = nonEmpty(album.title) else { return nil }
         if let cached = readCache(albumId: id) { return cached }
+        if let missed = misses[id], Date().timeIntervalSince(missed) < Self.missTTL {
+            return nil
+        }
+        if let running = inFlight[id] { return await running.value }
+        let task = Task { [weak self] () -> AlbumInfo? in
+            guard let self else { return nil }
+            return await self.fetch(albumId: id, title: title, album: album)
+        }
+        inFlight[id] = task
+        defer { inFlight[id] = nil }
+        return await task.value
+    }
 
+    private func fetch(albumId id: Int64, title: String, album: Album) async -> AlbumInfo? {
+        guard permission() else { return nil }
         var result = await fetchWikipedia(title: title, artist: album.albumArtist)
+        // Пока ждали Wikipedia, заметки могли выключить: следующий шаг —
+        // платный запрос писателю, и начинать его уже нельзя.
+        guard permission() else { return nil }
         if result == nil {
             switch Self.selectedProvider {
             case .claude:
@@ -81,7 +134,12 @@ actor AlbumInfoService {
                     title: title, artist: album.albumArtist, year: album.year)
             }
         }
-        if let result { writeCache(albumId: id, info: result) }
+        if let result {
+            writeCache(albumId: id, info: result)
+            misses[id] = nil
+        } else {
+            misses[id] = Date()
+        }
         return result
     }
 
@@ -112,7 +170,7 @@ actor AlbumInfoService {
         guard let searchURL = search?.url,
             let searchData = try? await data(from: URLRequest(url: searchURL)),
             let pages = try? JSONDecoder().decode(WikiSearch.self, from: searchData).pages,
-            let key = albumPage(in: pages)?.key,
+            let key = albumPage(in: pages, artist: artist)?.key,
             let summaryURL = URL(
                 string: "https://en.wikipedia.org/api/rest_v1/page/summary/"
                     + (key.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? key))
@@ -127,9 +185,22 @@ actor AlbumInfoService {
         return AlbumInfo(source: .wikipedia, text: extract)
     }
 
-    private func albumPage(in pages: [WikiSearch.Page]) -> WikiSearch.Page? {
-        pages.first { $0.description?.localizedCaseInsensitiveContains("album") == true }
-            ?? pages.first
+    /// Только страницы, чьё описание говорит «album»; при известном артисте —
+    /// сперва та, где он назван. Первый попавшийся результат без этой
+    /// проверки подменял альбом артистом или одноимённым фильмом, и это
+    /// уходило в вечный кеш.
+    private func albumPage(in pages: [WikiSearch.Page], artist: String?) -> WikiSearch.Page? {
+        let albums = pages.filter {
+            $0.description?.localizedCaseInsensitiveContains("album") == true
+        }
+        if let artist = nonEmpty(artist),
+            let match = albums.first(where: {
+                $0.description?.localizedCaseInsensitiveContains(artist) == true
+            })
+        {
+            return match
+        }
+        return albums.first
     }
 
     private struct WikiSearch: Decodable {
@@ -169,8 +240,7 @@ actor AlbumInfoService {
     /// Ключ провайдера: из связки один раз, дальше из памяти процесса.
     private func apiKey(for provider: NotesProvider) -> String? {
         if let cached = keyCache[provider] { return cached }
-        guard let key = KeychainStore.load(account: provider.keychainAccount), !key.isEmpty
-        else { return nil }
+        guard let key = apiKeys(provider), !key.isEmpty else { return nil }
         keyCache[provider] = key
         return key
     }
@@ -300,10 +370,12 @@ actor AlbumInfoService {
     /// Единственная дверь наружу у заметок — здесь же запись в журнал,
     /// поэтому «незаписанного» запроса не бывает.
     private func data(from request: URLRequest) async throws -> Data {
+        // Отзыв разрешения догоняет запрос до отправки байтов.
+        guard permission() else { throw CancellationError() }
         let host = request.url?.host ?? ""
         let result: Result<(Data, URLResponse), any Error>
         do {
-            result = .success(try await session.data(for: request))
+            result = .success(try await transport(request))
         } catch {
             result = .failure(error)
         }
@@ -338,17 +410,25 @@ actor AlbumInfoService {
 enum KeychainStore {
     private static let service = "com.dikairos.escapement"
 
-    static func save(_ value: String, account: String) {
+    /// Обновление на месте; добавление — только когда записи нет (тот же
+    /// урок, что у пароля Subsonic: Delete→Add терял ключ при отказе связки
+    /// и стирал выданное записи «Always Allow»).
+    @discardableResult
+    static func save(_ value: String, account: String) -> OSStatus {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
-        SecItemDelete(query as CFDictionary)
-        guard !value.isEmpty, let data = value.data(using: .utf8) else { return }
+        guard !value.isEmpty, let data = value.data(using: .utf8) else {
+            return SecItemDelete(query as CFDictionary)
+        }
+        let update = SecItemUpdate(
+            query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        guard update == errSecItemNotFound else { return update }
         var add = query
         add[kSecValueData as String] = data
-        SecItemAdd(add as CFDictionary, nil)
+        return SecItemAdd(add as CFDictionary, nil)
     }
 
     static func load(account: String) -> String? {

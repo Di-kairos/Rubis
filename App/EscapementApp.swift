@@ -1,5 +1,7 @@
+import AppKit
 import DesignSystem
 import EscapementCore
+import MusicLibrary
 import Sparkle
 import SwiftUI
 
@@ -51,8 +53,22 @@ struct EscapementApp: App {
         do {
             return try AppEnvironment()
         } catch {
-            // Без БД приложение бессмысленно — падаем с внятной причиной.
-            fatalError("cannot open library database: \(error)")
+            // Без БД приложение бессмысленно, но крэш-репорт — не объяснение.
+            // Файл не трогаем: битую или чужую базу владелец откладывает сам,
+            // диалог показывает, где она лежит.
+            let alert = NSAlert()
+            alert.alertStyle = .critical
+            alert.messageText = "Rubis Music can't open its library"
+            alert.informativeText =
+                "\(error.localizedDescription)\n\n\(AppDatabase.standardURL.path)\n\n"
+                + "Nothing was changed. Move the file aside to start with an empty library, "
+                + "or restore it from a backup."
+            alert.addButton(withTitle: "Quit")
+            alert.addButton(withTitle: "Show in Finder")
+            if alert.runModal() == .alertSecondButtonReturn {
+                NSWorkspace.shared.activateFileViewerSelecting([AppDatabase.standardURL])
+            }
+            exit(1)
         }
     }
 

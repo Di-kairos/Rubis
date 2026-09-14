@@ -56,7 +56,7 @@ struct TracksList: View {
                     .fill(DS.Contrast.stroke(increased: contrast == .increased))
                     .frame(height: 1)
                 if isLoading {
-                    DSText("Loading library…", style: .body, color: DS.Color.textTertiary)
+                    DSText("Loading library…", style: .body, color: DS.Color.textMuted)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     trackList(columns: columns)
@@ -64,7 +64,9 @@ struct TracksList: View {
             }
         }
         .background(DS.Color.bgBase)
-        .task {
+        // id: перечитывается после скана/синка — иначе открытый раздел жил
+        // бы со снимком на момент открытия.
+        .task(id: env.libraryRevision) {
             let repo = env.trackRepo
             let loaded = await Task.detached(priority: .userInitiated) {
                 (try? repo.allWithNames()) ?? []
@@ -101,6 +103,8 @@ struct TracksList: View {
                     columns: columns
                 )
                 .onTapGesture(count: 2) { play(from: positions[row.id]) }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { play(from: positions[row.id]) }
                 .draggable(row.track.dragPayload)
                 .contextMenu { QueueMenuItems(tracks: menuTargets(row), env: env) }
                 .listRowInsets(EdgeInsets())
@@ -169,7 +173,7 @@ struct TrackListHeader: View {
     var body: some View {
         HStack(spacing: DS.Space.md) {
             Spacer().frame(width: Col.mark)
-            DSText("#", style: .label, color: DS.Color.textTertiary)
+            DSText("#", style: .label, color: DS.Color.textMuted)
                 .frame(width: Col.index, alignment: .trailing)
             button(.title).frame(maxWidth: .infinity, alignment: .leading)
             if columns.artist {
@@ -235,7 +239,7 @@ struct TrackListRow: View {
                     if isCurrent {
                         PlayingMark(isPlaying: true)
                     } else {
-                        DSText("\(index)", style: .numeric, color: DS.Color.textTertiary)
+                        DSText("\(index)", style: .numeric, color: DS.Color.textMuted)
                     }
                 }
                 .frame(width: Col.index, alignment: .trailing)
@@ -254,13 +258,13 @@ struct TrackListRow: View {
                 }
                 DSText(
                     AlbumDetail.format(duration: row.track.duration), style: .numeric,
-                    color: DS.Color.textTertiary
+                    color: DS.Color.textMuted
                 )
                 .frame(width: Col.duration, alignment: .trailing)
                 if columns.format {
                     DSText(
                         row.track.codec.uppercased(), style: .caption,
-                        color: DS.Color.textTertiary
+                        color: DS.Color.textMuted
                     )
                     .frame(width: Col.format, alignment: .trailing)
                 }

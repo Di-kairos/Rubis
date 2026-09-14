@@ -2,6 +2,7 @@ import EscapementCore
 import Foundation
 import MusicLibrary
 import SubsonicKit
+import Synchronization
 
 /// Треки с сервера как обычные файлы (SPEC §6.2, фаза 6 pack 5).
 ///
@@ -15,6 +16,9 @@ actor RemotePlayback {
     /// Клиенты по источникам: сборка лезет в связку ключей, а дёргать её на
     /// каждый трек — и медленно, и лишний повод для диалога macOS.
     private var clients: [String: SubsonicClient] = [:]
+    /// Пространство кэша каждого источника (сервер + пользователь). Читается
+    /// вне актора: очередь собирает адреса файлов синхронно.
+    private let scopes = Mutex<[String: String]>([:])
 
     init(cache: StreamCache, ledger: NetworkLedger) {
         self.cache = cache
@@ -29,8 +33,14 @@ actor RemotePlayback {
     /// Адрес, по которому трек лежит или будет лежать. Очередь собирается
     /// заранее — файл к этому моменту может ещё качаться.
     nonisolated func location(for track: Track) -> URL? {
-        guard let remoteId = track.remoteId else { return nil }
-        return cache.location(remoteId: remoteId, codec: track.codec)
+        guard let remoteId = track.remoteId, let scope = scope(of: track.sourceId) else {
+            return nil
+        }
+        return cache.location(remoteId: remoteId, codec: track.codec, scope: scope)
+    }
+
+    private nonisolated func scope(of sourceId: String) -> String? {
+        scopes.withLock { $0[sourceId] }
     }
 
     /// Потолок кэша из настроек (SPEC §6.2). Уменьшил — лишнее уезжает сразу.
@@ -53,6 +63,16 @@ actor RemotePlayback {
             return
         }
         clients[source.id] = client
+        if let probe = client.downloadURL(id: "-") {
+            let scope = StreamCache.scope(for: probe)
+            scopes.withLock { $0[source.id] = scope }
+        }
+    }
+
+    /// Источник удалён: его клиент и пространство кэша больше не нужны.
+    func unregister(sourceId: String) {
+        clients[sourceId] = nil
+        scopes.withLock { $0[sourceId] = nil }
     }
 
     /// Сервер отвечает? Один `ping` (SPEC §6.3). Источник без пароля в связке
@@ -80,18 +100,26 @@ actor RemotePlayback {
             let client = clients[track.sourceId],
             let url = client.downloadURL(id: remoteId)
         else { return nil }
-        if cache.isCached(remoteId: remoteId, codec: track.codec) {
-            return cache.location(remoteId: remoteId, codec: track.codec)
-        }
+        // Без короткого пути мимо кэша: `file` отмечает обращение, по нему
+        // считается давность при вытеснении.
         do {
             let file = try await cache.file(remoteId: remoteId, codec: track.codec, from: url)
             await record(url: url, succeeded: true, file: file)
             return file
         } catch {
-            Log.library.error("stream download failed: \(error, privacy: .public)")
+            Log.library.error("stream download failed: \(Log.describe(error), privacy: .public)")
             await record(url: url, succeeded: false, file: nil)
             return nil
         }
+    }
+
+    /// Скачанный файл прошёл пробу, но декодер споткнулся на нём позже:
+    /// объект выбрасывается, следующий `fetch` качает заново.
+    func invalidate(_ track: Track) async {
+        guard Self.isRemote(track), let remoteId = track.remoteId,
+            let scope = scope(of: track.sourceId)
+        else { return }
+        await cache.remove(remoteId: remoteId, codec: track.codec, scope: scope)
     }
 
     /// Скачанное считается по факту: панель Settings → Network обещает

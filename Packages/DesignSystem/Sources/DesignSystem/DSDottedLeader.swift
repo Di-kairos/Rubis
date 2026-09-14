@@ -27,7 +27,7 @@ public struct DSDottedLeader: View {
     HStack(spacing: DS.Space.sm) {
         DSText("Adam's Apple", style: .headline)
         DSDottedLeader()
-        DSText("6:51", style: .numeric, color: DS.Color.textTertiary)
+        DSText("6:51", style: .numeric, color: DS.Color.textMuted)
     }
     .padding(DS.Space.xl)
     .background(DS.Color.bgBase)
@@ -38,7 +38,7 @@ public struct DSDottedLeader: View {
     HStack(spacing: DS.Space.sm) {
         DSText("Adam's Apple", style: .headline)
         DSDottedLeader()
-        DSText("6:51", style: .numeric, color: DS.Color.textTertiary)
+        DSText("6:51", style: .numeric, color: DS.Color.textMuted)
     }
     .padding(DS.Space.xl)
     .background(DS.Color.bgBase)

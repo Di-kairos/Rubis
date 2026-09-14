@@ -27,7 +27,7 @@ struct AlbumsShowcase: View {
                         ? "Drop a music folder here, or add one in Settings (⌘,) → Library"
                         : "No albums in “\(source?.displayName ?? "")” yet — rescan or add music",
                     style: .body,
-                    color: DS.Color.textTertiary
+                    color: DS.Color.textMuted
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -127,6 +127,8 @@ struct AlbumsShowcase: View {
                     .strokeBorder(isFeatured ? DS.Color.accent : .clear, lineWidth: 1.5)
             )
             .onTapGesture(count: 2) { env.play(album: album) }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { env.play(album: album) }
             .onTapGesture { focused = index }
             .help("\(album.title) — \(album.albumArtist ?? "")")
             .accessibilityLabel("\(album.title), \(album.albumArtist ?? "")")

@@ -19,6 +19,21 @@ struct NetworkLedgerTests {
             purpose: purpose, succeeded: ok, bytes: bytes)
     }
 
+    @Test func clearLeavesOnlyTheMarkOfANewPeriod() async {
+        let file = tempFile()
+        defer {
+            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file.appendingPathExtension("cleared"))
+        }
+        let ledger = NetworkLedger(fileURL: file)
+        #expect(await ledger.clearedAt() == nil)
+        await ledger.record(host: "a.example", purpose: "Test", succeeded: true, bytes: 1)
+        await ledger.clear()
+        #expect(await ledger.events().isEmpty)
+        #expect(await ledger.clearedAt() != nil)
+        #expect(await ledger.capacity == 1000)
+    }
+
     @Test func summaryGroupsByHostAndCountsFailures() {
         let summary = NetworkLedger.summarize([
             event("en.wikipedia.org", secondsAgo: 30),

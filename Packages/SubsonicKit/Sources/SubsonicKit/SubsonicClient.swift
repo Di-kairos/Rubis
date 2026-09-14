@@ -33,7 +33,14 @@ public struct SubsonicClient: Sendable {
         makeSalt: @escaping @Sendable () -> String = SubsonicClient.randomSalt
     ) throws {
         let trimmed = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.host != nil else {
+        // Только http/https и никакого userinfo: `https://user:pass@host` клал бы
+        // пароль в таблицу источников открытым текстом — мимо связки ключей.
+        // http разрешён ради сервера в локальной сети; пропустит ли его ATS —
+        // решает система, «Test connection» покажет результат.
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(),
+            scheme == "http" || scheme == "https",
+            let host = url.host, !host.isEmpty, url.user == nil, url.password == nil
+        else {
             throw SubsonicError.invalidServerURL
         }
         self.baseURL = url

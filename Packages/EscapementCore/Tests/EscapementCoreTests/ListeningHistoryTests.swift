@@ -86,6 +86,23 @@ struct ListeningHistoryTests {
 
     // MARK: - Файл
 
+    @Test func extendGrowsTheRecordedPlayOnlyUpwards() async {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let history = ListeningHistory(fileURL: file)
+        let stamp = Date(timeIntervalSince1970: 1_700_000_000)
+        await history.record(
+            trackId: 7, title: "Long", artist: "A", album: "B", seconds: 240, date: stamp)
+        await history.extend(trackId: 7, recordedAt: stamp, seconds: 598)
+        #expect(await history.events().last?.seconds == 598)
+        await history.extend(trackId: 7, recordedAt: stamp, seconds: 100)
+        #expect(await history.events().last?.seconds == 598)
+        // Чужая отметка — не тот зачёт: ничего не меняется.
+        await history.extend(trackId: 7, recordedAt: stamp.addingTimeInterval(1), seconds: 900)
+        #expect(await history.events().last?.seconds == 598)
+        #expect(await history.events().count == 1)
+    }
+
     @Test func playSurvivesReopening() async {
         let file = tempFile()
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }

@@ -13,12 +13,21 @@ actor SubsonicSync {
     private let sourceId: String
     private let db: AppDatabase
     private let covers: CoverCache
+    private let ledger: NetworkLedger
+    /// Сколько запросов ушло за обход: каталог страницами, альбом за
+    /// альбомом, обложки. В журнал соединений — одной строкой с числом,
+    /// а не сотнями записей, вытесняющих всё остальное из окна в 1000.
+    private var requests = 0
 
-    init(client: SubsonicClient, sourceId: String, db: AppDatabase, covers: CoverCache) {
+    init(
+        client: SubsonicClient, sourceId: String, db: AppDatabase, covers: CoverCache,
+        ledger: NetworkLedger
+    ) {
         self.client = client
         self.sourceId = sourceId
         self.db = db
         self.covers = covers
+        self.ledger = ledger
     }
 
     /// Ход синхронизации — для полоски в сайдбаре, как у скана папок.
@@ -36,13 +45,23 @@ actor SubsonicSync {
                     let summary = try await self.sync { progress in
                         continuation.yield(progress)
                     }
+                    await self.account(succeeded: true)
                     continuation.yield(summary)
                     continuation.finish()
                 } catch {
+                    await self.account(succeeded: false)
                     continuation.finish(throwing: error)
                 }
             }
         }
+    }
+
+    /// Одна строка журнала на весь обход. Размер ответов клиент не считает —
+    /// в журнале честный ноль, а не выдуманное число.
+    private func account(succeeded: Bool) async {
+        await ledger.record(
+            host: client.host, purpose: "Catalog sync · \(requests) requests",
+            succeeded: succeeded, bytes: 0)
     }
 
     private func sync(report: (Progress) -> Void) async throws -> Progress {
@@ -53,11 +72,15 @@ actor SubsonicSync {
 
         let known = try trackRepo.remoteIds(inSource: sourceId)
         var seen: Set<String> = []
+        /// Известные треки, которые сервер отдал снова: снять пометку
+        /// недоступности, если прошлый обход их не досчитался.
+        var reappeared: [Int64] = []
         var inserted = 0
 
         for (index, remoteAlbum) in albums.enumerated() {
             report(.albums(done: index, total: albums.count))
             let detail = try await client.album(id: remoteAlbum.id)
+            requests += 1
 
             let artist = try remoteAlbum.artist.map { try artistRepo.findOrCreate(name: $0) }
             let album = try albumRepo.findOrCreate(
@@ -67,18 +90,30 @@ actor SubsonicSync {
             await fetchCover(for: remoteAlbum, album: album, repo: albumRepo)
 
             var fresh: [Track] = []
+            // Известные треки альбома — одной выборкой: изменившиеся теги
+            // (название, формат, длительность, номер) переписываются под тем
+            // же id, чтобы плейлисты и история пережили правку на сервере.
+            let knownIDs = detail.songs.compactMap { known[$0.id] }
+            let stored = Dictionary(
+                uniqueKeysWithValues: try trackRepo.tracks(ids: knownIDs).compactMap { row in
+                    row.id.map { ($0, row) }
+                })
             for song in detail.songs {
                 seen.insert(song.id)
-                // Уже лежащие треки не переписываем: у сервера нет отметки
-                // времени, по которой можно понять, что запись изменилась.
-                // ponytail: расхождение чинится удалением источника и новой
-                // синхронизацией — вернуться сюда, если начнёт мешать.
-                guard known[song.id] == nil else { continue }
                 let songArtist = try song.artist.map { try artistRepo.findOrCreate(name: $0) }
-                fresh.append(
-                    SubsonicCatalog.track(
-                        from: song, sourceId: sourceId,
-                        artistId: songArtist?.id ?? artist?.id, albumId: album.id))
+                var candidate = SubsonicCatalog.track(
+                    from: song, sourceId: sourceId,
+                    artistId: songArtist?.id ?? artist?.id, albumId: album.id)
+                guard let knownID = known[song.id] else {
+                    fresh.append(candidate)
+                    continue
+                }
+                reappeared.append(knownID)
+                guard let current = stored[knownID] else { continue }
+                candidate.id = knownID
+                candidate.addedAt = current.addedAt
+                candidate.unavailable = current.unavailable
+                if Self.differs(current, candidate) { try trackRepo.update(candidate) }
             }
             if !fresh.isEmpty {
                 _ = try trackRepo.insert(fresh)
@@ -86,18 +121,26 @@ actor SubsonicSync {
             }
         }
 
-        // Пропавшее у сервера уходит и отсюда — но только когда сервер вообще
-        // что-то отдал: пустой ответ бывает и у сломанного сервера, а стирать
-        // библиотеку из-за сетевой икоты нельзя.
+        // Пропавшее у сервера гаснет, а не удаляется: удаление каскадом
+        // вычищало бы плейлисты, а неполный обход (сервер отдал часть
+        // каталога) — необратимо. Погашенное вернётся следующим обходом,
+        // который его снова увидит. Пустой ответ — вовсе не повод трогать
+        // библиотеку: так выглядит и сломанный сервер.
+        try trackRepo.setUnavailable(false, ids: reappeared)
         var removed = 0
         if !albums.isEmpty {
             let gone = known.filter { !seen.contains($0.key) }.map(\.value)
-            if !gone.isEmpty {
-                try trackRepo.delete(ids: gone)
-                removed = gone.count
-            }
+            removed = try trackRepo.setUnavailable(true, ids: gone)
         }
         return .finished(tracks: inserted, removed: removed)
+    }
+
+    /// Поля, которые сервер может изменить у известного трека.
+    private static func differs(_ a: Track, _ b: Track) -> Bool {
+        a.title != b.title || a.artistId != b.artistId || a.albumId != b.albumId
+            || a.trackNo != b.trackNo || a.discNo != b.discNo || a.duration != b.duration
+            || a.codec != b.codec || a.sampleRate != b.sampleRate || a.bitDepth != b.bitDepth
+            || a.channels != b.channels || a.bitrate != b.bitrate
     }
 
     /// Обложка с сервера в общий кэш (фаза 6, pack 4). Серверная картинка
@@ -114,11 +157,12 @@ actor SubsonicSync {
             let coverArtId = remote.coverArt
         else { return }
         do {
+            requests += 1
             let data = try await client.coverArt(id: coverArtId)
             let hash = try covers.store(data)
             try repo.setCoverHashIfMissing(hash, albumId: albumId)
         } catch {
-            Log.library.debug("subsonic cover skipped: \(error, privacy: .public)")
+            Log.library.debug("subsonic cover skipped: \(Log.describe(error), privacy: .public)")
         }
     }
 
@@ -128,6 +172,7 @@ actor SubsonicSync {
         var offset = 0
         let page = 500
         while true {
+            requests += 1
             let batch = try await client.albums(offset: offset, size: page)
             result.append(contentsOf: batch)
             if batch.count < page { break }

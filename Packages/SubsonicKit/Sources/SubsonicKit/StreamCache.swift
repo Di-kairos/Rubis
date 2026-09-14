@@ -14,6 +14,12 @@ import Foundation
 public actor StreamCache {
     /// Загрузка одного адреса во временный файл. Подменяется в тестах.
     public typealias Download = @Sendable (URL) async throws -> URL
+    /// Проверка скачанного файла до того, как он станет записью кэша. Бросает
+    /// — файл выбрасывается, ошибка уходит вызывающему. Сервер отвечает
+    /// HTTP 200 и на ошибку API, и страницей входа; без проверки такой ответ
+    /// лёг бы в кэш навсегда. Сам кэш про звук не знает — проверку даёт
+    /// слой воспроизведения.
+    public typealias Validate = @Sendable (URL) throws -> Void
 
     /// Сколько файлов кэш держит при любом лимите. Играющий трек и
     /// префетченный следующий вытеснять нельзя — иначе кэш убивает то самое
@@ -22,21 +28,30 @@ public actor StreamCache {
 
     private let root: URL
     private let download: Download
+    private let validate: Validate
     /// Потолок кэша в байтах (SPEC §6.2, по умолчанию 8 ГБ).
     private var limit: Int64
     /// Идущие загрузки: второй запрос того же трека ждёт первую, а не качает
-    /// файл дважды (Play и префетч легко сходятся на одном треке).
-    private var inFlight: [String: Task<URL, Error>] = [:]
+    /// файл дважды (Play и префетч легко сходятся на одном треке). Ключ владения
+    /// (`id`) нужен, чтобы завершившаяся задача не сняла с учёта ЧУЖУЮ — новую
+    /// загрузку того же трека, начатую после Clear (R05).
+    private var inFlight: [String: (id: UUID, task: Task<URL, Error>)] = [:]
+    /// Поколение кэша: Clear его сдвигает. Отмена в Swift кооперативна — задача,
+    /// у которой результат уже готов, без этой проверки возвращала выброшенные
+    /// байты обратно в очищенный кэш (R05, перепроверка аудита 13.09.2026).
+    private var generation = 0
 
     /// Корень по умолчанию — `~/Library/Caches/Escapement/stream`.
     public init(
         root: URL? = nil,
         limitBytes: Int64 = 8 * 1024 * 1024 * 1024,
-        download: @escaping Download = StreamCache.urlSessionDownload
+        download: @escaping Download = StreamCache.urlSessionDownload,
+        validate: @escaping Validate = { _ in }
     )
         throws
     {
         self.limit = limitBytes
+        self.validate = validate
         self.root =
             root
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -45,19 +60,42 @@ public actor StreamCache {
         try FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true)
     }
 
+    /// Пространство кэша по происхождению: сервер (схема, хост, порт, базовый
+    /// путь API) и пользователь. Один и тот же `id` на двух серверах — разные
+    /// файлы; смена адреса или аккаунта — тоже. Пароль, токен и соль сюда не
+    /// входят: они меняются на каждый запрос и не должны попадать в имена.
+    public nonisolated static func scope(for url: URL) -> String {
+        let user =
+            URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+            .first { $0.name == "u" }?.value ?? ""
+        let base = url.deletingLastPathComponent().path
+        return
+            "\(url.scheme?.lowercased() ?? "")://\(url.host?.lowercased() ?? ""):\(url.port ?? -1)\(base)|\(user)"
+    }
+
     /// Адрес, по которому трек лежит или будет лежать. Идентификатор сервера
     /// в имя файла не попадает как есть — он приходит снаружи и может
-    /// содержать что угодно; берём его отпечаток.
-    public nonisolated func location(remoteId: String, codec: String) -> URL {
-        let digest = SHA256.hash(data: Data(remoteId.utf8))
+    /// содержать что угодно; берём отпечаток пары «происхождение + id».
+    public nonisolated func location(remoteId: String, codec: String, scope: String) -> URL {
+        let digest = SHA256.hash(data: Data("\(scope)\u{0}\(remoteId)".utf8))
             .map { String(format: "%02x", $0) }.joined()
-        let suffix = codec.isEmpty || codec == "unknown" ? "audio" : codec
-        return root.appendingPathComponent("\(digest).\(suffix)")
+        return root.appendingPathComponent("\(digest).\(Self.suffix(for: codec))")
+    }
+
+    /// Расширение файла в кэше. `codec` приходит с сервера как есть — строка
+    /// с `/` или `..` вышла бы за пределы каталога кэша. Только короткие
+    /// ASCII-буквы и цифры, всё остальное — `audio`.
+    static func suffix(for codec: String) -> String {
+        let clean =
+            !codec.isEmpty && codec.count <= 8 && codec != "unknown"
+            && codec.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
+        return clean ? codec.lowercased() : "audio"
     }
 
     /// Файл уже на диске?
-    public nonisolated func isCached(remoteId: String, codec: String) -> Bool {
-        FileManager.default.fileExists(atPath: location(remoteId: remoteId, codec: codec).path)
+    public nonisolated func isCached(remoteId: String, codec: String, scope: String) -> Bool {
+        FileManager.default.fileExists(
+            atPath: location(remoteId: remoteId, codec: codec, scope: scope).path)
     }
 
     /// Файл трека: с диска, если он там есть, иначе качает целиком.
@@ -67,24 +105,32 @@ public actor StreamCache {
     ///
     /// ponytail: кэш растёт без предела — лимит и вытеснение идут pack'ом 6.
     public func file(remoteId: String, codec: String, from url: URL) async throws -> URL {
-        let destination = location(remoteId: remoteId, codec: codec)
+        let destination = location(remoteId: remoteId, codec: codec, scope: Self.scope(for: url))
         if FileManager.default.fileExists(atPath: destination.path) {
             touch(destination)
             return destination
         }
-        if let running = inFlight[destination.path] { return try await running.value }
+        if let running = inFlight[destination.path] { return try await running.task.value }
 
-        let task = Task<URL, Error> { [download] in
+        let id = UUID()
+        let startedAt = generation
+        let task = Task<URL, Error> { [download, validate] in
             let temporary = try await download(url)
+            // Временный файл убирается в обоих исходах — и когда результат
+            // публикуется, и когда он оказался просроченным.
             defer { try? FileManager.default.removeItem(at: temporary) }
+            // Clear между стартом и завершением: старые байты в очищенный кэш
+            // не возвращаем, даже если загрузка успела дойти до конца.
+            guard self.isCurrent(startedAt) else { throw CancellationError() }
+            try validate(temporary)
             // Второй запрос мог успеть первым — победитель уже на месте.
             if !FileManager.default.fileExists(atPath: destination.path) {
                 try FileManager.default.moveItem(at: temporary, to: destination)
             }
             return destination
         }
-        inFlight[destination.path] = task
-        defer { inFlight[destination.path] = nil }
+        inFlight[destination.path] = (id, task)
+        defer { forget(path: destination.path, id: id) }
         let file = try await task.value
         evict()
         return file
@@ -105,10 +151,32 @@ public actor StreamCache {
 
     /// Ручная очистка. Играющий трек уже открыт движком: файл исчезает из
     /// каталога, но воспроизведение доигрывает по открытому дескриптору.
+    /// Идущие загрузки отменяются — иначе они донесли бы в пустой кэш то,
+    /// что владелец только что выбросил.
     public func clear() {
+        // Сдвиг поколения — то, что отличает «отменена» от «успела вернуться».
+        generation &+= 1
+        for entry in inFlight.values { entry.task.cancel() }
+        inFlight.removeAll()
         for entry in entries() {
             try? FileManager.default.removeItem(at: entry.url)
         }
+    }
+
+    /// Загрузка стартовала до последнего Clear?
+    private func isCurrent(_ startedAt: Int) -> Bool { startedAt == generation }
+
+    /// Снять с учёта только СВОЮ запись: после Clear ключ мог занять новый
+    /// запрос того же трека, и его нельзя выкидывать чужим `defer`.
+    private func forget(path: String, id: UUID) {
+        if inFlight[path]?.id == id { inFlight[path] = nil }
+    }
+
+    /// Выбрасывает один объект: файл прошёл проверку, но декодер на нём
+    /// споткнулся позже — следующая попытка качает заново.
+    public func remove(remoteId: String, codec: String, scope: String) {
+        try? FileManager.default.removeItem(
+            at: location(remoteId: remoteId, codec: codec, scope: scope))
     }
 
     /// Вытеснение по давности использования: свежие остаются, старые уходят,

@@ -7,14 +7,20 @@ import GRDB
 public struct AppDatabase: Sendable {
     public let pool: DatabasePool
 
+    /// Where the production database lives — also what the app shows when it
+    /// cannot open it, so the owner can move the file aside by hand.
+    public static var standardURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Escapement", isDirectory: true)
+            .appendingPathComponent("library.sqlite")
+    }
+
     /// Production database at ~/Library/Application Support/Escapement/library.sqlite.
     public static func standard() throws -> AppDatabase {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[
-            0
-        ]
-        .appendingPathComponent("Escapement", isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return try AppDatabase(path: dir.appendingPathComponent("library.sqlite").path)
+        let url = standardURL
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        return try AppDatabase(path: url.path)
     }
 
     /// On-disk database at an explicit path. WAL is on by default for DatabasePool.

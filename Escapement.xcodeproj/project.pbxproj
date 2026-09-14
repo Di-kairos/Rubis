@@ -37,17 +37,29 @@
 		7BC8170DC2655E8546452F14 /* NowPlayingQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */; };
 		803810B6B894C2B71E9C5C72 /* Playlists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB66BEAD427530E18C9938 /* Playlists.swift */; };
 		895E4596F59F576829C546C2 /* SearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F6AF7573F3C412EB3A0E9B3 /* SearchResults.swift */; };
+		89DE623BC5C4B1E95224A5D6 /* AlbumInfoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FE7E34B6ABA05BCD09057A /* AlbumInfoServiceTests.swift */; };
 		905976CB24ABC2ED498EEB48 /* AlbumDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */; };
 		939ED51A83916F2529749C21 /* MenuBarPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1E5FEE0BD1CA78A3715F09 /* MenuBarPresence.swift */; };
 		A193F36BD4DF76420ED5B25D /* PlaybackEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 60F1F9F378E8199089CA8B72 /* PlaybackEngine */; };
 		B44360EBA401784613BB8726 /* MediaIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4654C15A6867CBA18211295 /* MediaIntegration.swift */; };
 		B96D71BCB63EA866765FEB13 /* MusicLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 5A976ACA2ECE41D9E5873BD6 /* MusicLibrary */; };
+		C82205F0B2961C031AB31257 /* TextFieldKeyGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */; };
 		D06458A2DFC3495C3B2BC16A /* AlbumInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45ACBD7C97E46069FD8C761A /* AlbumInfo.swift */; };
 		D55B00A2C0F7F57F5DBA8FC4 /* DeviceDossierCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F7194BC341531BF25D9B94 /* DeviceDossierCard.swift */; };
 		D774998C90020DCDC9504CEE /* SubsonicSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15564070708FE5323E183E1D /* SubsonicSync.swift */; };
 		EDA1FC3BB125318075AB2F4F /* EscapementCore in Frameworks */ = {isa = PBXBuildFile; productRef = C870E08BF572A29F2F19AE54 /* EscapementCore */; };
 		FC5841812B0322B304E7F8C0 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = D61AF376BFE2E74CC999958E /* DesignSystem */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		50BDD40EA72DA730AB2294CA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3297A4084386CB235E7DD719 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 72131EFA7B59920F47E1BD39;
+			remoteInfo = Escapement;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		052E57F78A8F699A4E85EAA1 /* KeyboardList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardList.swift; sourceTree = "<group>"; };
@@ -71,6 +83,7 @@
 		57D61577A84493D0FE4A11A3 /* PlaybackEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PlaybackEngine; path = Packages/PlaybackEngine; sourceTree = SOURCE_ROOT; };
 		6186081353886B17DD038F1F /* AlbumsGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumsGrid.swift; sourceTree = "<group>"; };
 		66FB66BEAD427530E18C9938 /* Playlists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlists.swift; sourceTree = "<group>"; };
+		71FE7E34B6ABA05BCD09057A /* AlbumInfoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumInfoServiceTests.swift; sourceTree = "<group>"; };
 		817449642A07EC521CC919DE /* ScrollTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollTrack.swift; sourceTree = "<group>"; };
 		82275FD42280EC8A55A8CD7A /* SubsonicKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SubsonicKit; path = Packages/SubsonicKit; sourceTree = SOURCE_ROOT; };
 		88ACAC7C6CAD73585D762B31 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -80,11 +93,13 @@
 		9D6D8A68C52F220E59782953 /* RemotePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePlayback.swift; sourceTree = "<group>"; };
 		A0F4C769CDF187F104033B37 /* DebugHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugHarness.swift; sourceTree = "<group>"; };
 		A3FE134B1C0BAD8D8FB3588F /* UpdateLedgerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLedgerDelegate.swift; sourceTree = "<group>"; };
+		AFEF2E2FA61D534C4855976B /* EscapementTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EscapementTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9BFC065A8974E0BBC3E1D5F /* NetworkSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettings.swift; sourceTree = "<group>"; };
 		CA25FCB47B384004AAD3364F /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		CE785E780F28894DDA0A59F7 /* ListeningHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningHistoryView.swift; sourceTree = "<group>"; };
+		CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldKeyGuard.swift; sourceTree = "<group>"; };
 		DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingQueue.swift; sourceTree = "<group>"; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
@@ -125,6 +140,7 @@
 				9A2B488372215BD395F1076F /* SettingsKey.swift */,
 				E8E957F0EE2C02A343E538E4 /* SubsonicAccount.swift */,
 				15564070708FE5323E183E1D /* SubsonicSync.swift */,
+				CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */,
 				A3FE134B1C0BAD8D8FB3588F /* UpdateLedgerDelegate.swift */,
 				2F2247502F75DD4B505A1583 /* Resources */,
 				E7B4B35890D8DC655121CD10 /* Scenes */,
@@ -144,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				BB27EE93F7BB4DE77FF7059C /* Escapement.app */,
+				AFEF2E2FA61D534C4855976B /* EscapementTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				2CDE4D07DE91E2F89D56CAD8 /* App */,
+				A2317EAD561B51B77F53F2F1 /* AppTests */,
 				5CFEDDE2813CC9B0FECA4052 /* Config */,
 				6429AB3445D852F6B52909BF /* Packages */,
 				314ABF676BA09340B3BE7837 /* Products */,
@@ -176,6 +194,14 @@
 				82275FD42280EC8A55A8CD7A /* SubsonicKit */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		A2317EAD561B51B77F53F2F1 /* AppTests */ = {
+			isa = PBXGroup;
+			children = (
+				71FE7E34B6ABA05BCD09057A /* AlbumInfoServiceTests.swift */,
+			);
+			path = AppTests;
 			sourceTree = "<group>";
 		};
 		E7B4B35890D8DC655121CD10 /* Scenes */ = {
@@ -208,6 +234,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6DF627482E0656E8C0697599 /* EscapementTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DD241E5239C7F6AF796DADD /* Build configuration list for PBXNativeTarget "EscapementTests" */;
+			buildPhases = (
+				DA761A422D60080B10BABFB1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2511F19C90BB7D023E1F5A4B /* PBXTargetDependency */,
+			);
+			name = EscapementTests;
+			packageProductDependencies = (
+			);
+			productName = EscapementTests;
+			productReference = AFEF2E2FA61D534C4855976B /* EscapementTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		72131EFA7B59920F47E1BD39 /* Escapement */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F0F9F4338EFAC8DCC986D501 /* Build configuration list for PBXNativeTarget "Escapement" */;
@@ -243,6 +287,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					6DF627482E0656E8C0697599 = {
+						DevelopmentTeam = TA24A89R8H;
+						ProvisioningStyle = Manual;
+					};
 					72131EFA7B59920F47E1BD39 = {
 						DevelopmentTeam = TA24A89R8H;
 						ProvisioningStyle = Manual;
@@ -271,6 +319,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				6DF627482E0656E8C0697599 /* EscapementTests */,
 				72131EFA7B59920F47E1BD39 /* Escapement */,
 			);
 		};
@@ -342,6 +391,7 @@
 				60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */,
 				4DCC62ED5116B58CA23D8CF7 /* SubsonicAccount.swift in Sources */,
 				D774998C90020DCDC9504CEE /* SubsonicSync.swift in Sources */,
+				C82205F0B2961C031AB31257 /* TextFieldKeyGuard.swift in Sources */,
 				221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */,
 				2AAFCE253BF65518BF0942EC /* TracksList.swift in Sources */,
 				37EE37F000DCCDD7CAD6C1E9 /* TransportBar.swift in Sources */,
@@ -350,7 +400,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DA761A422D60080B10BABFB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89DE623BC5C4B1E95224A5D6 /* AlbumInfoServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2511F19C90BB7D023E1F5A4B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 72131EFA7B59920F47E1BD39 /* Escapement */;
+			targetProxy = 50BDD40EA72DA730AB2294CA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		04AE8D5C5362F454EDEC17BB /* Debug */ = {
@@ -414,6 +480,27 @@
 			};
 			name = Debug;
 		};
+		135B371FCBA31BDCBF72A3F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_ENTITLEMENTS = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement.tests;
+				PRODUCT_MODULE_NAME = EscapementTests;
+				PRODUCT_NAME = EscapementTests;
+				SDKROOT = macosx;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rubis Music.app/Contents/MacOS/Rubis Music";
+			};
+			name = Debug;
+		};
 		20201DD716B20C9CC2ED10F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -446,6 +533,27 @@
 				);
 				SDKROOT = macosx;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+			};
+			name = Release;
+		};
+		9B53F0223803CB3A2A7B1269 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_ENTITLEMENTS = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.dikairos.escapement.tests;
+				PRODUCT_MODULE_NAME = EscapementTests;
+				PRODUCT_NAME = EscapementTests;
+				SDKROOT = macosx;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rubis Music.app/Contents/MacOS/Rubis Music";
 			};
 			name = Release;
 		};
@@ -506,6 +614,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2DD241E5239C7F6AF796DADD /* Build configuration list for PBXNativeTarget "EscapementTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				135B371FCBA31BDCBF72A3F1 /* Debug */,
+				9B53F0223803CB3A2A7B1269 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		C340F500033BBEF9F4D14A02 /* Build configuration list for PBXProject "Escapement" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -555,7 +672,7 @@
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.6.0;
+				minimumVersion = 2.9.6;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
