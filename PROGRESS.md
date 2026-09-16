@@ -12,11 +12,10 @@ last_session: 15
 last_reviewed: 2026-09-16
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9): track.content_hash (v4), слияние только при совпадении подписи и отпечатка — ждём перепроверки аудитора по §8–§9"
-  - "Codex-ревью F03 не принято осознанно: одинаковое содержимое в двух источниках по-прежнему сливается (фича владельца), точность mtime в ключе уборки (доисторическое) — в бэклог"
-  - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
-  - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
-  - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления 0.10.2 → 0.11.0 (механизм 0.10.0 → 0.10.2 подтверждён в S14, чек-лист §6.3); в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
+  - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
+  - "Релиз 0.11.0 — только с MacBook (на Mac Mini нет Developer ID): RUBIS_RELEASE=1 ./Tools/make-dmg.sh, ретест 0.10.2 → 0.11.0 (§9.11); в заметках F03/отпечаток, DSD через PCM до галки (D-014), text.muted, Undo плейлистов"
+  - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
+  - "Бэклог S15: тихая ошибка резолва закладки при рескане (NSCocoaErrorDomain 259 только в логе); «Add to Playlist» в контекстном меню трека (UX, владелец); Codex — точность mtime в ключе уборки"
   - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
@@ -28,8 +27,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session14.md
-  latest_kickoff: docs/sessions/SESSION_15_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session15.md
+  latest_kickoff: docs/sessions/SESSION_16_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---

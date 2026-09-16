@@ -2,7 +2,15 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **14** (2026-09-14, Mac Mini: без кода; живое
+- Последняя сессия: **15** (2026-09-16, Mac Mini: **F03 закрыт** —
+  `track.content_hash`, миграция v4, D-019, код `33e5b75`; Xcode 27 —
+  `import Combine`, сборка без сертификата; живые проверки 9.7 и 9.10 ✅ на
+  Debug-стенде `build/run-live-check.sh`) — отчёт
+  `docs/sessions/progress-report-session15.md`
+- Следующая: **16** — kickoff `docs/sessions/SESSION_16_KICKOFF.md`: остаток
+  живых проверок §9 руками владельца, релиз 0.11.0 с MacBook (на Mac Mini нет
+  Developer ID)
+- Сессия **14** (2026-09-14, Mac Mini: без кода; живое
   автообновление Sparkle 0.10.0 → 0.10.2 подтверждено, тихий режим
   `SUAutomaticallyUpdate = 1` ставит на Cmd+Q без диалога) — отчёт
   `docs/sessions/progress-report-session14.md`
@@ -10,13 +18,9 @@
   пункта, три раунда перепроверки; `phase/10-audit` **слита в main** `765bef9`
   по команде владельца) — отчёт `docs/sessions/progress-report-session13.md`,
   итог для аудитора `AUDIT_RESPONSE_2026-09-12.md` §1–§8
-- Следующая: **15** — kickoff `docs/sessions/SESSION_15_KICKOFF.md`: решение по
-  F03 (миграция `track.content_hash`), живые проверки §9 чек-листа, релиз 0.11.0
-- `main` `765bef9` — закрыты F01/F02/F04/R07 из §14
-  (ответ — `AUDIT_RESPONSE_2026-09-12.md` §8). Пакеты **272/269/3**, `EscapementTests`
-  **2/2** (`xcodebuild test -scheme Escapement -only-testing:EscapementTests`),
-  Debug без warnings. **Открыт F03** — ждёт решения владельца о миграции
-  `track.content_hash`. Решения сессии — D-014…D-018
+- `main` код `33e5b75` — все пункты аудита §14 закрыты (F03 — §9 ответа).
+  Пакеты **277/277**, `EscapementTests` **2/2**, Debug без warnings (Xcode 27).
+  Решения — D-014…D-019
 - **Поведение изменилось для владельца:** DSD идёт через PCM, пока для его
   ЦАПа не стоит галка «This DAC decodes DoP» (Settings → Audio, D-014)
 - Прежняя сессия **12** (2026-08-12: CUE влит и вылечен по битам, релиз
