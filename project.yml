@@ -110,6 +110,9 @@ targets:
         shell: /bin/bash
         script: |
           set -e
+          # Сборка без подписи (машина без Developer ID, `CODE_SIGNING_ALLOWED=NO`):
+          # переподписывать нечем и незачем — такой бандл не распространяется.
+          [ "$CODE_SIGNING_ALLOWED" = "NO" ] && exit 0
           identity="${EXPANDED_CODE_SIGN_IDENTITY:-$CODE_SIGN_IDENTITY}"
           # Штамп времени нужен только дистрибутиву: в Debug это лишний поход
           # к серверу Apple на каждый фреймворк.

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import DesignSystem
 import EscapementCore
 import SwiftUI
