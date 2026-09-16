@@ -81,11 +81,9 @@ struct AuditFollowupTests {
     }
 
     /// Два настоящих WAV с разным PCM, но одинаковыми именем, размером и mtime.
-    /// F03: без сохранённого отпечатка содержимого доказать тождество нельзя —
-    /// ждёт решения владельца (миграция `track.content_hash` либо явное
-    /// принятие риска). До него тест в наборе, но выключен.
-    @Test(.disabled("F03: ждёт решения владельца об отпечатке содержимого"))
-    func differentAudioMustNotReplaceAnOfflinePlaylistEntry() async throws {
+    /// F03: тождество доказывает только отпечаток содержимого
+    /// (`track.content_hash`, миграция v4) — разные данные не сливаются.
+    @Test func differentAudioMustNotReplaceAnOfflinePlaylistEntry() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(
             "followup-twins-\(UUID())")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -137,6 +135,117 @@ struct AuditFollowupTests {
         #expect(summary.deduplicated == 0)
         #expect(linked == [originalID])
         #expect(survivors.contains { $0.id == originalID && $0.sourceId == sourceB.id })
+    }
+
+    /// Обратный порядок (F03, приёмка): B уже недоступен, когда A входит новым
+    /// — переезд между источниками (шаг 4b) не должен отдать строку B файлу A.
+    /// Потом B возвращается: обе строки живы, каждая под своим источником.
+    @Test func differentAudioMustNotBeAdoptedAcrossSourcesAndBReturns() async throws {
+        let (root, a, b, db, scanner, sourceA, sourceB) = try twins()
+        defer { try? FileManager.default.removeItem(at: root) }
+        _ = a
+        _ = try await scanner.scan(source: sourceB)
+        let before = try #require(try await db.reader.read { try Track.fetchOne($0) })
+        let originalID = try #require(before.id)
+        let playlists = PlaylistRepository(db: db)
+        let pid = try #require(playlists.create(name: "Keep B").id)
+        try playlists.setTracks([originalID], in: pid)
+        // Файл B пропал — строка недоступна ещё до появления A. Файл, а не
+        // папку: закладка на папку переживает её переезд и нашла бы файл.
+        let hidden = root.appendingPathComponent("hidden.wav")
+        try FileManager.default.moveItem(at: b.appendingPathComponent("disc.wav"), to: hidden)
+        #expect(try await scanner.scan(source: sourceB).unavailable == 1)
+
+        let arrival = try await scanner.scan(source: sourceA)
+        #expect(arrival.moved == 0)
+        #expect(arrival.added == 1)
+        #expect(try playlists.trackIds(in: pid) == [originalID])
+        #expect(try TrackRepository(db: db).unavailableCount() == 1)
+
+        // B вернулся: пометка снята, двойников нет, плейлист ведёт на B.
+        try FileManager.default.moveItem(at: hidden, to: b.appendingPathComponent("disc.wav"))
+        let back = try await scanner.scan(source: sourceB)
+        #expect(back.restored == 1)
+        #expect(back.deduplicated == 0)
+        let survivors = try await db.reader.read { try Track.fetchAll($0) }
+        #expect(survivors.count == 2)
+        #expect(survivors.contains { $0.id == originalID && $0.sourceId == sourceB.id })
+        #expect(try TrackRepository(db: db).unavailableCount() == 0)
+    }
+
+    /// Строки старше миграции v4 (без отпечатка) не сливаются никогда — даже
+    /// при полном совпадении подписи и имени; нетронутые файлы получают
+    /// отпечаток на следующем скане, и тогда настоящий двойник сворачивается.
+    @Test func rowsWithoutFingerprintNeverMergeUntilStamped() async throws {
+        let (root, _, _, db, scanner, sourceA, sourceB) = try twins()
+        defer { try? FileManager.default.removeItem(at: root) }
+        _ = try await scanner.scan(source: sourceB)
+        _ = try await scanner.scan(source: sourceA)
+        let ids = try await db.reader.read { try Int64.fetchAll($0, sql: "SELECT id FROM track") }
+        #expect(ids.count == 2)
+        // Как будто обе строки записаны до миграции: отпечатков нет, B недоступен.
+        let bID = try #require(
+            try await db.reader.read {
+                try Int64.fetchOne(
+                    $0, sql: "SELECT id FROM track WHERE source_id = ?", arguments: [sourceB.id])
+            })
+        try await db.writer.write { database in
+            try database.execute(sql: "UPDATE track SET content_hash = NULL")
+            try database.execute(
+                sql: "UPDATE track SET unavailable = 1 WHERE id = ?", arguments: [bID])
+        }
+        let rescan = try await scanner.scan(source: sourceA)
+        #expect(rescan.deduplicated == 0)
+        #expect(rescan.unchanged == 1)
+        let stamped = try await db.reader.read {
+            try String.fetchAll(
+                $0, sql: "SELECT content_hash FROM track WHERE source_id = ?",
+                arguments: [sourceA.id])
+        }
+        #expect(stamped.count == 1)
+        #expect(stamped.first?.hasPrefix("sha256:") == true)
+        // B тоже нетронутый, но недоступный: отпечаток не досыпается, строка живёт.
+        let bHash = try await db.reader.read {
+            try String.fetchOne(
+                $0, sql: "SELECT content_hash FROM track WHERE id = ?", arguments: [bID])
+        }
+        #expect(bHash == nil)
+        #expect(try TrackRepository(db: db).count() == 2)
+    }
+
+    /// Два источника с файлом `disc.wav` одного имени, размера и mtime, но с
+    /// разным PCM.
+    private func twins() throws -> (
+        root: URL, a: URL, b: URL, db: TestDatabase, scanner: LibraryScanner, sourceA: Source,
+        sourceB: Source
+    ) {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "followup-twins-\(UUID())")
+        let a = root.appendingPathComponent("A")
+        let b = root.appendingPathComponent("B")
+        try FileManager.default.createDirectory(at: a, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: b, withIntermediateDirectories: true)
+        let bytesA = wav(sample: 1234)
+        let bytesB = wav(sample: -4321)
+        let stamp = Date(timeIntervalSince1970: 1_700_000_000)
+        for (directory, bytes) in [(a, bytesA), (b, bytesB)] {
+            let url = directory.appendingPathComponent("disc.wav")
+            try bytes.write(to: url)
+            try FileManager.default.setAttributes(
+                [.modificationDate: stamp], ofItemAtPath: url.path)
+        }
+        let db = try AppDatabase.inMemory()
+        var sourceA = Source(kind: .local, displayName: "A")
+        sourceA.bookmark = try LibraryScanner.makeBookmark(for: a)
+        var sourceB = Source(kind: .local, displayName: "B")
+        sourceB.bookmark = try LibraryScanner.makeBookmark(for: b)
+        let sources = SourceRepository(db: db)
+        try sources.upsert(sourceA)
+        try sources.upsert(sourceB)
+        let scanner = LibraryScanner(
+            db: db, covers: try CoverCache(root: root.appendingPathComponent("covers")),
+            logURL: root.appendingPathComponent("scan.log"))
+        return (root, a, b, db, scanner, sourceA, sourceB)
     }
 
     private func wav(sample: Int16) -> Data {

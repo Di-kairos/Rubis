@@ -245,6 +245,13 @@ enum Migrations {
                     """)
         }
 
+        // Отпечаток содержимого (F03 аудита 2026-09-12): переезд между
+        // источниками и уборка двойников сливают строки только при совпадении
+        // отпечатка. Заполняется сканом; строки без него не сливаются никогда.
+        migrator.registerMigration("v4_track_content_hash") { db in
+            try db.execute(sql: "ALTER TABLE track ADD COLUMN content_hash TEXT")
+        }
+
         return migrator
     }
 }

@@ -122,6 +122,10 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
     public var cueStart: Double?
     /// Конец сегмента; `nil` у последней дорожки — она играет до конца файла.
     public var cueEnd: Double?
+    /// Отпечаток содержимого файла (F03): FLAC — MD5 из STREAMINFO, прочие —
+    /// SHA-256 окон файла. Без совпадения отпечатков строки не сливаются.
+    /// `nil` — файл ещё не отпечатан (строка старше миграции) или удалённый.
+    public var contentHash: String?
 
     /// Трек живёт внутри общего файла, а не занимает его целиком.
     public var isCueSegment: Bool { cueStart != nil }
@@ -149,7 +153,8 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         addedAt: Date = Date(),
         unavailable: Bool = false,
         cueStart: Double? = nil,
-        cueEnd: Double? = nil
+        cueEnd: Double? = nil,
+        contentHash: String? = nil
     ) {
         self.id = id
         self.sourceId = sourceId
@@ -174,6 +179,7 @@ public struct Track: Codable, Sendable, Equatable, Identifiable {
         self.unavailable = unavailable
         self.cueStart = cueStart
         self.cueEnd = cueEnd
+        self.contentHash = contentHash
     }
 }
 

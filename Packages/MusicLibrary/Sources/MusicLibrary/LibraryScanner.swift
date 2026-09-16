@@ -69,6 +69,8 @@ public actor LibraryScanner {
         var cueStart: Double?
         /// Имя исполнителя строки — чтобы правка PERFORMER в листе была видна.
         var artistName: String?
+        /// Отпечаток содержимого (F03); `nil` — строка старше миграции.
+        var contentHash: String?
 
         static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
             .convertFromSnakeCase
@@ -82,21 +84,24 @@ public actor LibraryScanner {
         var fileSize: Int64
         var modifiedAt: Date
         var cueStart: Double?
+        var contentHash: String
 
         static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy
             .convertFromSnakeCase
 
+        /// Строки без отпечатка не участвуют: тождество без него недоказуемо (F03).
         static func query(unavailable: Bool) -> String {
             """
-            SELECT id, source_id, relative_path, file_size, modified_at, cue_start
+            SELECT id, source_id, relative_path, file_size, modified_at, cue_start, content_hash
             FROM track WHERE unavailable = \(unavailable ? 1 : 0)
-              AND file_size IS NOT NULL AND modified_at IS NOT NULL
+              AND file_size IS NOT NULL AND modified_at IS NOT NULL AND content_hash IS NOT NULL
             """
         }
 
         var key: String {
             let name = relativePath.split(separator: "/").last.map(String.init) ?? relativePath
-            return "\(fileSize)|\(modifiedAt.timeIntervalSince1970)|\(cueStart ?? -1)|\(name)"
+            return
+                "\(fileSize)|\(modifiedAt.timeIntervalSince1970)|\(cueStart ?? -1)|\(name)|\(contentHash)"
         }
     }
 
@@ -304,6 +309,7 @@ public actor LibraryScanner {
                 database,
                 sql: """
                     SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable, cue_start,
+                           content_hash,
                            (SELECT name FROM artist WHERE artist.id = track.artist_id) AS artist_name
                     FROM track WHERE source_id = ?
                     """,
@@ -319,9 +325,12 @@ public actor LibraryScanner {
         }
 
         // 3. Инкрементальность: только новые и изменённые (mtime или size)
-        var toRead: [(relative: String, url: URL, existingID: Int64?)] = []
+        var toRead: [(relative: String, url: URL, existingID: Int64?, hash: String?)] = []
         /// Вернувшиеся файлы — снять пометку недоступности.
         var restoredIDs: [Int64] = []
+        /// Нетронутые файлы, чьи строки старше миграции v4: отпечаток досыпаем
+        /// без перечитывания тегов, иначе они никогда не научатся переезжать.
+        var unfingerprinted: [(url: URL, ids: [Int64])] = []
         /// Файлы, у которых пропал (или перестал резать) лист: в базе лежат
         /// сегменты, а писать надо одну строку. Лишние строки уйдут при записи
         /// — вместе с переносом ссылок плейлистов на выжившую.
@@ -356,11 +365,13 @@ public actor LibraryScanner {
                 {
                     summary.unchanged += rows.count
                     restoredIDs.append(contentsOf: rows.filter(\.unavailable).map(\.id))
+                    let blank = rows.filter { $0.contentHash == nil }.map(\.id)
+                    if !blank.isEmpty { unfingerprinted.append((info.url, blank)) }
                     continue
                 }
                 if cues[relative]?.isSegmented == true {
                     // Сегменты CUE сопоставляются по началу дорожки при записи.
-                    toRead.append((relative, info.url, nil))
+                    toRead.append((relative, info.url, nil, nil))
                 } else {
                     // Обычный трек: id строки «весь файл» сохраняем вместе с
                     // плейлистами и историей. Если файл раньше был порезан
@@ -370,23 +381,55 @@ public actor LibraryScanner {
                     let firstSegment = rows.filter { $0.cueStart != nil }
                         .min { ($0.cueStart ?? 0) < ($1.cueStart ?? 0) }
                     if whole == nil || rows.count > 1 { collapsing.insert(relative) }
-                    toRead.append((relative, info.url, (whole ?? firstSegment)?.id))
+                    toRead.append((relative, info.url, (whole ?? firstSegment)?.id, nil))
                 }
             } else {
-                toRead.append((relative, info.url, nil))
+                toRead.append((relative, info.url, nil, nil))
             }
         }
 
-        // 4. Пропавшие пути: сначала ищем перенос — тот же size+mtime под новым
-        //    именем. Узнали → трек сохраняет id (а с ним плейлисты и историю),
-        //    просто меняет путь. Не узнали → помечаем недоступным, не удаляем:
-        //    том мог быть отключён (D-002), файл может вернуться.
+        // 3b. Досыпка отпечатков строкам старше миграции v4 — один раз на
+        //     библиотеку, по 64 КиБ на файл.
+        //     ponytail: последовательно; на десятках тысяч файлов — в TaskGroup.
+        if !unfingerprinted.isEmpty {
+            let stamped = unfingerprinted.compactMap { item in
+                ContentHash.compute(url: item.url).map { (hash: $0, ids: item.ids) }
+            }
+            try await db.writer.write { database in
+                for item in stamped {
+                    try database.execute(
+                        sql: """
+                            UPDATE track SET content_hash = ?
+                            WHERE id IN (\(item.ids.map { _ in "?" }.joined(separator: ",")))
+                            """,
+                        arguments: StatementArguments([item.hash] + item.ids.map { $0 }))
+                }
+            }
+        }
+
+        /// Отпечаток нового файла — считается лениво, только когда есть с чем
+        /// сравнивать; результат едет дальше в запись строки.
+        func fingerprint(_ index: Int) -> String? {
+            if let hash = toRead[index].hash { return hash }
+            let hash = ContentHash.compute(url: toRead[index].url)
+            toRead[index].hash = hash
+            return hash
+        }
+
+        // 4. Пропавшие пути: сначала ищем перенос — тот же size+mtime и тот же
+        //    отпечаток содержимого под новым именем. Узнали → трек сохраняет
+        //    id (а с ним плейлисты и историю), просто меняет путь. Не узнали →
+        //    помечаем недоступным, не удаляем: том мог быть отключён (D-002),
+        //    файл может вернуться. Строка без отпечатка не узнаётся (F03).
         var missing = known.filter { onDisk[$0.key] == nil }.flatMap(\.value)
         if !missing.isEmpty {
             var newIndexBySignature: [String: Int] = [:]
             for (index, item) in toRead.enumerated() where item.existingID == nil {
-                if let info = onDisk[item.relative], cues[item.relative]?.isSegmented != true {
-                    newIndexBySignature[Self.signature(size: info.size, mtime: info.mtime)] = index
+                if let info = onDisk[item.relative], cues[item.relative]?.isSegmented != true,
+                    let hash = fingerprint(index)
+                {
+                    newIndexBySignature[
+                        Self.signature(size: info.size, mtime: info.mtime, hash: hash)] = index
                 }
             }
             var stillMissing: [KnownTrack] = []
@@ -396,9 +439,10 @@ public actor LibraryScanner {
                 // прежние строки погасит уборка двойников ниже.
                 guard candidate.cueStart == nil,
                     let size = candidate.fileSize, let mtime = candidate.modifiedAt,
+                    let hash = candidate.contentHash,
                     let index =
                         newIndexBySignature
-                        .removeValue(forKey: Self.signature(size: size, mtime: mtime))
+                        .removeValue(forKey: Self.signature(size: size, mtime: mtime, hash: hash))
                 else {
                     stillMissing.append(candidate)
                     continue
@@ -413,32 +457,36 @@ public actor LibraryScanner {
         //     источников разложены по направлениям музыки. В базе он висит
         //     недоступным под старым источником; узнаём по той же подписи и
         //     забираем строку себе: id, плейлисты и история переживают переезд,
-        //     призрак в прежнем источнике не остаётся.
-        let arrivals: [(index: Int, signature: String)] = toRead.enumerated()
-            .compactMap { index, item in
-                guard item.existingID == nil, let info = onDisk[item.relative] else { return nil }
-                return (index, Self.signature(size: info.size, mtime: info.mtime))
-            }
-        if !arrivals.isEmpty {
+        //     призрак в прежнем источнике не остаётся. Только при совпадении
+        //     отпечатка: сирота без него остаётся сиротой (F03).
+        let arrivalIndices = toRead.indices.filter {
+            toRead[$0].existingID == nil && onDisk[toRead[$0].relative] != nil
+        }
+        if !arrivalIndices.isEmpty {
             let orphans: [KnownTrack] = try await db.reader.read { database in
                 try KnownTrack.fetchAll(
                     database,
                     sql: """
-                        SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable
+                        SELECT id, relative_path, title, album_id, file_size, modified_at, unavailable,
+                               content_hash
                         FROM track WHERE unavailable = 1 AND source_id <> ?
+                          AND content_hash IS NOT NULL
                         """,
                     arguments: [source.id])
             }
             var orphanBySignature: [String: Int64] = [:]
             for orphan in orphans {
-                guard let size = orphan.fileSize, let mtime = orphan.modifiedAt else { continue }
-                orphanBySignature[Self.signature(size: size, mtime: mtime)] = orphan.id
+                guard let size = orphan.fileSize, let mtime = orphan.modifiedAt,
+                    let hash = orphan.contentHash
+                else { continue }
+                orphanBySignature[Self.signature(size: size, mtime: mtime, hash: hash)] = orphan.id
             }
-            for arrival in arrivals {
-                guard let id = orphanBySignature.removeValue(forKey: arrival.signature) else {
-                    continue
-                }
-                toRead[arrival.index].existingID = id
+            for index in arrivalIndices where !orphanBySignature.isEmpty {
+                guard let info = onDisk[toRead[index].relative], let hash = fingerprint(index),
+                    let id = orphanBySignature.removeValue(
+                        forKey: Self.signature(size: info.size, mtime: info.mtime, hash: hash))
+                else { continue }
+                toRead[index].existingID = id
                 summary.moved += 1
             }
         }
@@ -471,10 +519,11 @@ public actor LibraryScanner {
         // 5. Параллельное чтение метаданных + батчевая запись
         let total = toRead.count
         var done = 0
-        var batch: [(relative: String, existingID: Int64?, meta: FileMetadata)] = []
+        var batch: [(relative: String, existingID: Int64?, hash: String?, meta: FileMetadata)] =
+            []
 
         try await withThrowingTaskGroup(
-            of: (String, Int64?, Result<FileMetadata, Error>).self
+            of: (String, Int64?, String?, Result<FileMetadata, Error>).self
         ) { group in
             var nextIndex = 0
             let width = ProcessInfo.processInfo.activeProcessorCount
@@ -486,14 +535,17 @@ public actor LibraryScanner {
                 nextIndex += 1
                 inFlight += 1
                 group.addTask {
+                    let hash = item.hash ?? ContentHash.compute(url: item.url)
                     let result = Result { try MetadataReader.read(url: item.url) }
-                    return (item.relative, item.existingID, result)
+                    return (item.relative, item.existingID, hash, result)
                 }
             }
             for _ in 0..<width { addNext() }
 
             while inFlight > 0 {
-                guard let (relative, existingID, result) = try await group.next() else { break }
+                guard let (relative, existingID, hash, result) = try await group.next() else {
+                    break
+                }
                 inFlight -= 1
                 addNext()
                 done += 1
@@ -502,7 +554,10 @@ public actor LibraryScanner {
                 }
                 switch result {
                 case .success(let meta):
-                    batch.append((relative, existingID, meta))
+                    // Без отпечатка строка не переезжает и не сливается (F03);
+                    // нетронутый файл получит его на следующем скане (3b).
+                    if hash == nil { log("no fingerprint: \(relative)") }
+                    batch.append((relative, existingID, hash, meta))
                     if batch.count >= Self.batchSize {
                         try await commit(
                             batch: batch, cues: cues, collapsing: collapsing, source: source,
@@ -527,8 +582,9 @@ public actor LibraryScanner {
         //    два трека на один файл. Совпали подпись, имя файла и разные
         //    источники, причём живой экземпляр найден → недоступный
         //    сворачивается в живой: плейлисты переезжают, строка уходит.
-        //    Имя файла в ключе — чтобы два разных файла одного размера и
-        //    времени не сливались по одной лишь слабой подписи.
+        //    Имя файла и отпечаток содержимого в ключе — чтобы два разных
+        //    файла одного размера и времени не сливались по слабой подписи;
+        //    строка без отпечатка в уборку не попадает вовсе (F03).
         summary.deduplicated = try await db.writer.write { database -> Int in
             let ghosts = try Twin.fetchAll(database, sql: Twin.query(unavailable: true))
             guard !ghosts.isEmpty else { return 0 }
@@ -578,7 +634,7 @@ public actor LibraryScanner {
     // MARK: - Запись батча (одна транзакция, SPEC §5.2)
 
     private func commit(
-        batch: [(relative: String, existingID: Int64?, meta: FileMetadata)],
+        batch: [(relative: String, existingID: Int64?, hash: String?, meta: FileMetadata)],
         cues: [String: CueContext],
         collapsing: Set<String>,
         source: Source,
@@ -590,8 +646,8 @@ public actor LibraryScanner {
         let coverCache = covers
         let batchValues = batch.map { item in
             (
-                item.relative, item.existingID, item.meta,
-                onDiskValues(for: item, source: source),
+                item.relative, item.existingID, item.hash, item.meta,
+                onDiskValues(for: item.relative, source: source),
                 item.meta.embeddedCover == nil
                     ? folderArt(for: item.relative, source: source) : nil
             )
@@ -603,7 +659,7 @@ public actor LibraryScanner {
                 var albums = albumsSnapshot
                 var added = 0
                 var updated = 0
-                for (relative, existingID, meta, diskValues, folderCover) in batchValues {
+                for (relative, existingID, hash, meta, diskValues, folderCover) in batchValues {
                     let item = (relative: relative, existingID: existingID, meta: meta)
                     let values = diskValues
                     // Лист главнее тегов файла: у рипа одним куском теги
@@ -729,7 +785,8 @@ public actor LibraryScanner {
                                 replaygainTrack: meta.replaygainTrack,
                                 replaygainAlbum: meta.replaygainAlbum,
                                 cueStart: entry.start,
-                                cueEnd: end)
+                                cueEnd: end,
+                                contentHash: hash)
                             if segment.id != nil {
                                 try segment.update(database)
                                 updated += 1
@@ -772,7 +829,8 @@ public actor LibraryScanner {
                         channels: meta.channels,
                         bitrate: meta.bitrate,
                         replaygainTrack: meta.replaygainTrack,
-                        replaygainAlbum: meta.replaygainAlbum)
+                        replaygainAlbum: meta.replaygainAlbum,
+                        contentHash: hash)
                     if item.existingID != nil {
                         try track.update(database)
                         updated += 1
@@ -801,12 +859,11 @@ public actor LibraryScanner {
         summary.updated += result.updated
     }
 
-    /// Подпись содержимого файла для распознавания переноса: размер + mtime
-    /// с точностью до секунды (mv сохраняет оба).
-    /// ponytail: без хеша содержимого — коллизия «два файла одного размера и
-    /// времени» даёт неверную привязку id; переходить на хеш, если всплывёт.
-    private static func signature(size: Int64, mtime: Date) -> String {
-        "\(size)-\(Int(mtime.timeIntervalSince1970.rounded()))"
+    /// Подпись файла для распознавания переноса: размер + mtime с точностью
+    /// до секунды (mv сохраняет оба) + отпечаток содержимого (F03) — без него
+    /// два разных файла одного размера и времени получали чужой id.
+    private static func signature(size: Int64, mtime: Date, hash: String) -> String {
+        "\(size)-\(Int(mtime.timeIntervalSince1970.rounded()))-\(hash)"
     }
 
     /// Обложка из папки трека, кэш на директорию (тег важнее, зовётся только
@@ -881,12 +938,12 @@ public actor LibraryScanner {
 
     /// mtime/size для записи в БД — повторный stat дешевле таскания через TaskGroup.
     private func onDiskValues(
-        for item: (relative: String, existingID: Int64?, meta: FileMetadata), source: Source
+        for relative: String, source: Source
     ) -> (size: Int64?, mtime: Date?) {
         guard let bookmark = source.bookmark,
             let root = try? Self.resolveBookmark(bookmark)
         else { return (nil, nil) }
-        let url = root.appendingPathComponent(item.relative)
+        let url = root.appendingPathComponent(relative)
         let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
         return (values?.fileSize.map(Int64.init), values?.contentModificationDate)
     }
