@@ -6,14 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "765bef9"
-tests: "272 registered: 269 passed, 3 skipped (5 packages; skipped = 2 conditional + F03 disabled until the owner decides) + EscapementTests 2/2; F01/F02/F04/R07 closed; app Debug without warnings"
-last_session: 14
-last_reviewed: 2026-09-14
+head: "33e5b75"
+tests: "277 passed in 5 packages (DesignSystem 9, Core 70, Playback 52, Subsonic 44, MusicLibrary 102; F03 test enabled) + EscapementTests 2/2; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
+last_session: 15
+last_reviewed: 2026-09-16
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "F03 (§14.4): решение владельца — миграция track.content_hash (FLAC: MD5 из STREAMINFO; прочие: хеш головы) и слияние только по совпадению, либо явное принятие риска, либо отказ от переезда между источниками. До решения тест выключен, код не менялся"
-  - "F01/F02/F04/R07 закрыты (fadc9f8, 580f113, 08cd5d0, d02b5d1) — ответ аудитору AUDIT_RESPONSE_2026-09-12.md §8; ждём его перепроверки"
+  - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9): track.content_hash (v4), слияние только при совпадении подписи и отпечатка — ждём перепроверки аудитора по §8–§9"
+  - "Codex-ревью F03 не принято осознанно: одинаковое содержимое в двух источниках по-прежнему сливается (фича владельца), точность mtime в ключе уборки (доисторическое) — в бэклог"
   - "Живые проверки из §13.3 по-прежнему открыты: gapless на слух, DoP на ЦАПе с receipt, Space в Settings, Stop→Play/USB, обновление Sparkle с 0.10.2"
   - "Живая проверка после аудита: DoP на своём ЦАПе (D-014 — галка на UID), Space в полях Settings, Play Next во время gapless, Stop→Play→USB"
   - "Релиз 0.11.0 с Sparkle 2.9.6 — ретест обновления 0.10.2 → 0.11.0 (механизм 0.10.0 → 0.10.2 подтверждён в S14, чек-лист §6.3); в заметках релиза: DSD идёт через PCM, пока ЦАП не подтверждён"
@@ -38,9 +38,17 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`765bef9`](https://github.com/Di-kairos/Rubis/commit/765bef9) —
-`Merge phase/10-audit: player audit 2026-09-12 remediation` (2026-09-14, по команде
-владельца; открыт только F03 — отпечаток содержимого, решение владельца).
+Текущий HEAD: [`33e5b75`](https://github.com/Di-kairos/Rubis/commit/33e5b75) —
+`feat(library): content fingerprint gates move, transfer and dedupe (F03)`
+(2026-09-16, сессия 15: владелец принял миграцию `track.content_hash` — D-019;
+FLAC — MD5 из STREAMINFO, прочие — SHA-256 трёх окон по 64 КиБ + размер;
+переезд/перенос/уборка сливают только при совпадении подписи и отпечатка,
+строки без отпечатка не сливаются; тест аудитора включён. Перед ним `d8c5ca8`:
+Xcode 27 требует явный `import Combine`, пост-билд переподпись пропускается при
+`CODE_SIGNING_ALLOWED=NO` — на Mac Mini нет Developer ID). Пакеты 277/277,
+EscapementTests 2/2.
+Прежний HEAD `765bef9` — `Merge phase/10-audit` (2026-09-14, по команде
+владельца; тогда открыт был только F03).
 2026-09-13 (вторая половина): закрыты F01 (отзываемый заряд `ArmedDecoder` —
 доказательство тишины в самом декодере), F02 (сравнение CUE по кадрам +
 PERFORMER), F04 (token транспорта до Task), R07 (тестовый бандл приложения,
