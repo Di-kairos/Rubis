@@ -98,10 +98,13 @@ public actor LibraryScanner {
             """
         }
 
+        /// Подпись — та же, что у переезда (шаг 4): mtime до секунды, иначе копия
+        /// с ФС другой точности не сворачивалась бы в живую строку.
         var key: String {
             let name = relativePath.split(separator: "/").last.map(String.init) ?? relativePath
-            return
-                "\(fileSize)|\(modifiedAt.timeIntervalSince1970)|\(cueStart ?? -1)|\(name)|\(contentHash)"
+            let signature = LibraryScanner.signature(
+                size: fileSize, mtime: modifiedAt, hash: contentHash)
+            return "\(signature)|\(cueStart ?? -1)|\(name)"
         }
     }
 
@@ -862,7 +865,7 @@ public actor LibraryScanner {
     /// Подпись файла для распознавания переноса: размер + mtime с точностью
     /// до секунды (mv сохраняет оба) + отпечаток содержимого (F03) — без него
     /// два разных файла одного размера и времени получали чужой id.
-    private static func signature(size: Int64, mtime: Date, hash: String) -> String {
+    fileprivate static func signature(size: Int64, mtime: Date, hash: String) -> String {
         "\(size)-\(Int(mtime.timeIntervalSince1970.rounded()))-\(hash)"
     }
 

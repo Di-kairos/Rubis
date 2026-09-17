@@ -215,6 +215,47 @@ struct ScannerTests {
         #expect(try trackRepo.unavailableCount() == 0)
     }
 
+    /// Копия на ФС с другой точностью mtime (exFAT, SMB) расходится в долях
+    /// секунды. Переезд (шаг 4) сравнивает до секунды — уборка обязана так же.
+    @Test(.enabled(if: fixturesAvailable)) func ghostCleanupIgnoresSubsecondMtime() async throws {
+        let ambient = try makeLibrary(copies: 2)
+        let electro = try makeEmptyLibrary()
+        defer {
+            try? FileManager.default.removeItem(at: ambient)
+            try? FileManager.default.removeItem(at: electro)
+        }
+
+        let db = try AppDatabase.inMemory()
+        let repo = SourceRepository(db: db)
+        var first = Source(kind: .local, displayName: "AMBIENT")
+        first.bookmark = try LibraryScanner.makeBookmark(for: ambient)
+        try repo.upsert(first)
+        var second = Source(kind: .local, displayName: "ELECTRO")
+        second.bookmark = try LibraryScanner.makeBookmark(for: electro)
+        try repo.upsert(second)
+
+        let original = ambient.appendingPathComponent("Album A/track-0.flac")
+        let second0 = Date(timeIntervalSince1970: 1_700_000_000)
+        try FileManager.default.setAttributes(
+            [.modificationDate: second0.addingTimeInterval(0.1)], ofItemAtPath: original.path)
+
+        let scanner = try makeScanner(db)
+        _ = try await scanner.scan(source: first)
+
+        try FileManager.default.createDirectory(
+            at: electro.appendingPathComponent("Album A"), withIntermediateDirectories: true)
+        let arrived = electro.appendingPathComponent("Album A/track-0.flac")
+        try FileManager.default.moveItem(at: original, to: arrived)
+        try FileManager.default.setAttributes(
+            [.modificationDate: second0.addingTimeInterval(0.3)], ofItemAtPath: arrived.path)
+
+        #expect(try await scanner.scan(source: second).added == 1)
+        let cleanup = try await scanner.scan(source: first)
+        #expect(cleanup.unavailable == 1)
+        #expect(cleanup.deduplicated == 1)
+        #expect(try TrackRepository(db: db).unavailableCount() == 0)
+    }
+
     @Test(.enabled(if: fixturesAvailable)) func returningFileClearsUnavailable() async throws {
         let root = try makeLibrary(copies: 2)
         defer { try? FileManager.default.removeItem(at: root) }
