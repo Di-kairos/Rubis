@@ -252,8 +252,8 @@ final class AppEnvironment {
 
     // MARK: - Intents
 
-    /// Плей всего альбома с выбранной позиции.
-    func play(album: Album, startAt index: Int = 0) {
+    /// Плей всего альбома с выбранной позиции; `nil` — с первого доступного.
+    func play(album: Album, startAt index: Int? = nil) {
         guard let albumId = album.id else { return }
         Task {
             guard let tracks = try? trackRepo.tracks(inAlbum: albumId) else { return }
@@ -278,13 +278,23 @@ final class AppEnvironment {
     }
 
     /// Плей произвольного списка треков с позиции.
-    func play(tracks: [Track], startAt index: Int = 0) {
+    /// `index` — трек, выбранный пользователем; `nil` — «играть всё» с первого
+    /// доступного.
+    func play(tracks: [Track], startAt index: Int? = nil) {
         let items = resolveItems(tracks: tracks)
         // Часть треков могла отвалиться (нет файла) — стартовая позиция ищется
         // по самому треку, а не по индексу исходного списка.
-        let target = tracks.indices.contains(index) ? tracks[index].id : nil
-        let start = items.firstIndex { $0.track.id == target } ?? 0
-        guard items.indices.contains(start) else { return }
+        let start: Int
+        if let index {
+            // Выбранный трек выпал (серый, файла нет) — не играем ничего: чужой
+            // первый доступный вместо выбранного сбивает с толку (#28).
+            let target = tracks.indices.contains(index) ? tracks[index].id : nil
+            guard let found = items.firstIndex(where: { $0.track.id == target }) else { return }
+            start = found
+        } else {
+            guard !items.isEmpty else { return }
+            start = 0
+        }
         // Отметка — здесь, синхронно: пауза или Next, нажатые до старта задачи,
         // должны её обесценить (F04).
         let token = transport.begin()
