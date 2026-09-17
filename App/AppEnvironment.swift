@@ -62,6 +62,9 @@ final class AppEnvironment {
     /// Разделы без живого наблюдения БД (Tracks, Artists, Recently Added,
     /// Playlists) перечитываются по нему, а не остаются с прошлым снимком.
     private(set) var libraryRevision = 0
+    /// Счётчик записей истории: открытый History перечитывается по нему, а не
+    /// только при появлении.
+    private(set) var historyRevision = 0
     /// FSEvents по корням локальных источников (SPEC §5.2): изменение папки
     /// запускает скан её источника само, без ⌘R.
     private var folderWatcher: FolderWatcher?
@@ -479,6 +482,7 @@ final class AppEnvironment {
         Task { [listeningHistory] in
             await listeningHistory.extend(
                 trackId: state.trackId, recordedAt: recordedAt, seconds: state.seconds)
+            historyRevision += 1
         }
     }
 
@@ -493,6 +497,7 @@ final class AppEnvironment {
             await listeningHistory.record(
                 trackId: id, title: title, artist: artist, album: album, seconds: seconds,
                 date: stamp)
+            historyRevision += 1
         }
     }
 

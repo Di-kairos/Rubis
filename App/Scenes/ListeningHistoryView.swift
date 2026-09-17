@@ -68,7 +68,7 @@ struct ListeningHistoryView: View {
         .padding(DS.Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(DS.Color.bgBase)
-        .task { reload() }
+        .task(id: env.historyRevision) { reload() }
     }
 
     private var headline: String {
