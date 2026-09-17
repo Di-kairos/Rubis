@@ -26,6 +26,12 @@
 - Secondary text is easier to read; playlist edits can be undone.
 - A source folder that can no longer be read shows one line in the sidebar
   instead of failing silently.
+- Add to Playlist in every track’s context menu, including a new playlist.
+- Shuffle and repeat are remembered between launches, and the queue comes
+  back in the same order.
+- While a track downloads from your server, Play becomes Cancel; after a
+  failure it becomes Retry.
+- Arrow keys browse the album shelf when it has focus.
 
 - Последняя сессия до неё: **15** (2026-09-16, Mac Mini: **F03 закрыт** —
   `track.content_hash`, миграция v4, D-019, код `33e5b75`; Xcode 27 —
