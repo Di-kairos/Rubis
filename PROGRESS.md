@@ -27,8 +27,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session15.md
-  latest_kickoff: docs/sessions/SESSION_16_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session16.md
+  latest_kickoff: docs/sessions/SESSION_17_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---

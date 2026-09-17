@@ -2,10 +2,13 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Сессия **16** (2026-09-17, Mac Mini): код `687c603` — версия **0.11.0 (31)**
-  поднята, дерево зелёное (пакеты 278, app 5/5, Release без warnings).
-  Опубликовать не удалось: в связке нет Developer ID, ключа Sparkle EdDSA и
-  профиля `notarytool rubis` — релиз только с MacBook.
+- Последняя сессия: **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
+  **0.11.0 (31)** поднята, не опубликована (нет Developer ID/EdDSA/notary);
+  UX-решения делегированы Claude (D-020): Add to Playlist, режимы между
+  запусками, Cancel/Retry, стрелки на полке; пакеты 284, app 5/5. Отчёт
+  `docs/sessions/progress-report-session16.md`
+- Следующая: **17** — kickoff `docs/sessions/SESSION_17_KICKOFF.md`: на MacBook
+  `audio-verify` (TCC микрофона) → релиз 0.11.0 → живая проверка S16
 
 ### Релиз 0.11.0 — шаги на MacBook
 
@@ -33,14 +36,11 @@
   failure it becomes Retry.
 - Arrow keys browse the album shelf when it has focus.
 
-- Последняя сессия до неё: **15** (2026-09-16, Mac Mini: **F03 закрыт** —
+- Сессия **15** (2026-09-16, Mac Mini: **F03 закрыт** —
   `track.content_hash`, миграция v4, D-019, код `33e5b75`; Xcode 27 —
   `import Combine`, сборка без сертификата; живые проверки 9.7 и 9.10 ✅ на
   Debug-стенде `build/run-live-check.sh`) — отчёт
   `docs/sessions/progress-report-session15.md`
-- Следующая: **16** — kickoff `docs/sessions/SESSION_16_KICKOFF.md`: остаток
-  живых проверок §9 руками владельца, релиз 0.11.0 с MacBook (на Mac Mini нет
-  Developer ID)
 - Сессия **14** (2026-09-14, Mac Mini: без кода; живое
   автообновление Sparkle 0.10.0 → 0.10.2 подтверждено, тихий режим
   `SUAutomaticallyUpdate = 1` ставит на Cmd+Q без диалога) — отчёт
