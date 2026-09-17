@@ -159,13 +159,28 @@ public actor Player {
     /// Восстановление очереди при запуске: состав и позиция без старта звука.
     /// `offset` — секунды внутри трека, с которых продолжить: первый Play
     /// стартует трек и сразу перематывает туда.
-    public func restore(items: [PlaybackItem], at position: Int, offset: TimeInterval = 0) {
+    /// `items` — исходный порядок, `order` — позиция очереди → позиция в
+    /// `items` (как `queueOrder()`), `position` — позиция в очереди. Режимы
+    /// возвращаются без перетасовки: очередь звучит в том же порядке, что до
+    /// выхода, а выключенный shuffle вернёт исходный.
+    public func restore(
+        items: [PlaybackItem], order: [Int]? = nil, at position: Int, offset: TimeInterval = 0,
+        shuffleMode: ShuffleMode = .off, repeatMode: RepeatMode = .off
+    ) {
         installBridgeIfNeeded()
+        let valid = order.map { $0.sorted() == Array(items.indices) } ?? false
         sourceQueue = items
-        queue = items
-        sourceIndices = Array(items.indices)
+        sourceIndices = valid ? order ?? [] : Array(items.indices)
+        queue = sourceIndices.map { items[$0] }
         index = min(max(position, 0), max(items.count - 1, 0))
         pendingSeek = offset > 0 ? offset : nil
+        self.shuffleMode = shuffleMode
+        self.repeatMode = repeatMode
+    }
+
+    /// Исходный порядок и перестановка очереди — для снимка между запусками.
+    public func queueOrder() -> (items: [PlaybackItem], order: [Int]) {
+        (sourceQueue, sourceIndices)
     }
 
     /// Старт текущего элемента восстановленной очереди (Play из idle).

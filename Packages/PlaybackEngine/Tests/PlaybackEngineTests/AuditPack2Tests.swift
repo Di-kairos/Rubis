@@ -76,6 +76,27 @@ struct AuditPack2PlayerTests {
         #expect(await player.queuedItems() == [a, b, a])
     }
 
+    /// #16: перезапуск возвращает перемешанную очередь как была, режимы — те же,
+    /// а выключение shuffle — исходный порядок, текущее вхождение то же.
+    @Test func restoreKeepsShuffledOrderAndModes() async {
+        let player = Player(devices: AudioDeviceController())
+        let a = item(1)
+        let b = item(2)
+        let c = item(3)
+        await player.restore(
+            items: [a, b, c], order: [2, 0, 1], at: 1, shuffleMode: .tracks, repeatMode: .all)
+        #expect(await player.queuedItems() == [c, a, b])
+        #expect(await player.currentIndex() == 1)
+        #expect(await player.shuffleMode == .tracks)
+        #expect(await player.repeatMode == .all)
+        let saved = await player.queueOrder()
+        #expect(saved.items == [a, b, c])
+        #expect(saved.order == [2, 0, 1])
+        await player.setShuffleMode(.off)
+        #expect(await player.queuedItems() == [a, b, c])
+        #expect(await player.currentIndex() == 0)
+    }
+
     @Test func playNextKeepsSourceOrderForShuffleOff() async {
         let player = Player(devices: AudioDeviceController())
         let a = item(1)

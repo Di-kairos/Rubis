@@ -52,8 +52,15 @@ final class AppEnvironment {
     private(set) var playbackState: PlaybackState = .idle
     private(set) var outputStatus: OutputStatus?
     private(set) var scanProgress: ScanProgress?
-    private(set) var repeatMode: RepeatMode = .off
-    private(set) var shuffleMode: ShuffleMode = .off
+    /// Режимы порядка переживают перезапуск отдельно от очереди — как в Music.app (D-020).
+    private(set) var repeatMode =
+        UserDefaults.standard.string(forKey: ModeKey.repeatMode).flatMap(RepeatMode.init) ?? .off
+    private(set) var shuffleMode =
+        UserDefaults.standard.string(forKey: ModeKey.shuffleMode).flatMap(ShuffleMode.init) ?? .off
+    private enum ModeKey {
+        static let repeatMode = "playback.repeatMode"
+        static let shuffleMode = "playback.shuffleMode"
+    }
     /// Счётчик изменений очереди. Нужен экранам: очередь меняется и без смены
     /// состояния воспроизведения — тихое восстановление при запуске оставляет
     /// `playbackState` в `idle`, и подписка на трек ничего бы не заметила.
@@ -362,6 +369,7 @@ final class AppEnvironment {
         let modes = ShuffleMode.allCases
         let next = modes[(modes.firstIndex(of: shuffleMode).map { $0 + 1 } ?? 0) % modes.count]
         shuffleMode = next
+        UserDefaults.standard.set(next.rawValue, forKey: ModeKey.shuffleMode)
         Task {
             await player.setShuffleMode(next)
             await queueDidChange()
@@ -372,6 +380,7 @@ final class AppEnvironment {
         let modes = RepeatMode.allCases
         let next = modes[(modes.firstIndex(of: repeatMode).map { $0 + 1 } ?? 0) % modes.count]
         repeatMode = next
+        UserDefaults.standard.set(next.rawValue, forKey: ModeKey.repeatMode)
         Task { await player.setRepeatMode(next) }
     }
 
@@ -410,9 +419,11 @@ final class AppEnvironment {
     /// Снимок очереди: состав, индекс и позиция внутри трека. Пишется на
     /// каждом изменении очереди и на каждом старте; тик дописывает прогресс.
     private func saveQueueSnapshot() async {
-        let items = await player.queuedItems()
+        let (items, order) = await player.queueOrder()
+        let ids = items.compactMap { $0.track.id }
         let snapshot = PlaybackSnapshot(
-            trackIds: items.compactMap { $0.track.id },
+            // Трек без id сбил бы перестановку — тогда порядок не сохраняется.
+            trackIds: ids, order: ids.count == items.count ? order : nil,
             index: await player.currentIndex(),
             offset: await player.playbackTime()?.current ?? 0)
         snapshot.save(to: .standard)
@@ -504,19 +515,18 @@ final class AppEnvironment {
     /// Восстановление очереди при запуске: состав, индекс и позиция — без звука.
     /// Первый Play продолжит трек с той же секунды.
     private func restoreQueue() async {
-        guard let snapshot = PlaybackSnapshot.load(from: .standard),
-            let tracks = try? trackRepo.tracks(ids: snapshot.trackIds)
-        else { return }
+        guard let stored = PlaybackSnapshot.load(from: .standard),
+            let tracks = try? trackRepo.tracks(ids: stored.trackIds)
+        else {
+            await player.setShuffleMode(shuffleMode)
+            await player.setRepeatMode(repeatMode)
+            return
+        }
         var items = resolveItems(tracks: tracks)
-        // Снимок хранит индекс в полной очереди, а часть треков могла выпасть
-        // (файл пропал, источник отключён). Индекс переносится по числу
-        // выживших ДО него; если выпал сам текущий — стартуем со следующего
-        // выжившего с начала, а не применяем его секунду к чужому треку.
+        // Часть треков могла выпасть (файл пропал, источник отключён): порядок и
+        // индекс переносятся на выживших, секунда выпавшего чужому не достаётся.
         let survivors = Set(items.compactMap { $0.track.id })
-        let before = snapshot.trackIds.prefix(snapshot.index).filter(survivors.contains).count
-        let currentSurvived =
-            snapshot.trackIds.indices.contains(snapshot.index)
-            && survivors.contains(snapshot.trackIds[snapshot.index])
+        var snapshot = stored.keeping(survivors.contains)
         #if DEBUG
         // Снимки вёрстки: ad-hoc сборка не резолвит bookmark подписанного
         // релиза, и очередь оказывается пустой. `RUBIS_FAKE_QUEUE=1` наполняет
@@ -526,11 +536,18 @@ final class AppEnvironment {
             items = tracks.map {
                 PlaybackItem(track: $0, url: URL(fileURLWithPath: $0.relativePath ?? "/dev/null"))
             }
+            snapshot = PlaybackSnapshot(
+                trackIds: tracks.compactMap(\.id), index: stored.index, offset: 0)
         }
         #endif
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else {
+            await player.setShuffleMode(shuffleMode)
+            await player.setRepeatMode(repeatMode)
+            return
+        }
         await player.restore(
-            items: items, at: before, offset: currentSurvived ? snapshot.offset : 0)
+            items: items, order: snapshot.order, at: snapshot.index, offset: snapshot.offset,
+            shuffleMode: shuffleMode, repeatMode: repeatMode)
         queueRevision += 1
     }
 

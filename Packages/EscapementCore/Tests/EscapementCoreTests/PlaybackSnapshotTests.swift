@@ -49,4 +49,43 @@ struct PlaybackSnapshotTests {
         PlaybackSnapshot(trackIds: [1], index: 0, offset: -5).save(to: defaults)
         #expect(PlaybackSnapshot.load(from: defaults)?.offset == 0)
     }
+
+    @Test func shuffledOrderSurvivesRoundTrip() {
+        let defaults = makeDefaults("order")
+        let snapshot = PlaybackSnapshot(
+            trackIds: [7, 8, 9], order: [2, 0, 1], index: 1, offset: 3)
+        snapshot.save(to: defaults)
+        #expect(PlaybackSnapshot.load(from: defaults)?.order == [2, 0, 1])
+    }
+
+    @Test func snapshotWithoutOrderPlaysInStoredSequence() {
+        // Снимок прошлых версий: порядка нет — очередь как записана.
+        #expect(PlaybackSnapshot(trackIds: [1, 2, 3], index: 0, offset: 0).order == [0, 1, 2])
+    }
+
+    @Test func brokenOrderFallsBackToIdentity() {
+        let snapshot = PlaybackSnapshot(
+            trackIds: [1, 2, 3], order: [0, 0, 5], index: 0, offset: 0)
+        #expect(snapshot.order == [0, 1, 2])
+    }
+
+    @Test func droppedTracksKeepShuffledOrderAndCurrentOffset() {
+        // Очередь играла C, A, D, B (source: A B C D), сейчас D на 30-й секунде; B пропал.
+        let snapshot = PlaybackSnapshot(
+            trackIds: [10, 11, 12, 13], order: [2, 0, 3, 1], index: 2, offset: 30)
+        let kept = snapshot.keeping { $0 != 11 }
+        #expect(kept.trackIds == [10, 12, 13])
+        #expect(kept.order == [1, 0, 2])
+        #expect(kept.index == 2)
+        #expect(kept.offset == 30)
+    }
+
+    @Test func droppedCurrentStartsNextSurvivorFromTheTop() {
+        let snapshot = PlaybackSnapshot(
+            trackIds: [10, 11, 12], order: [1, 2, 0], index: 1, offset: 45)
+        let kept = snapshot.keeping { $0 != 12 }
+        #expect(kept.order == [1, 0])
+        #expect(kept.index == 1)
+        #expect(kept.offset == 0)
+    }
 }
