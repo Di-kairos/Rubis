@@ -63,6 +63,18 @@ struct Sidebar: View {
                 .padding(.horizontal, DS.Space.md)
             }
 
+            if let status = env.sourceStatus {
+                // Папка не читается — та же одна строка, что у молчащего сервера.
+                HStack(spacing: DS.Space.sm) {
+                    Image(systemName: "folder.badge.questionmark")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.warning)
+                        .accessibilityHidden(true)
+                    DSText(status, style: .caption, color: DS.Color.textMuted)
+                }
+                .padding(.horizontal, DS.Space.md)
+            }
+
             if case .reading(let done, let total) = env.scanProgress {
                 // Ненавязчивая полоска прогресса скана (SPEC §5.2)
                 VStack(alignment: .leading, spacing: DS.Space.xs) {

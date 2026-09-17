@@ -15,6 +15,7 @@
 		1EEEE302BAF74F9F661248DB /* SettingsScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5775751BCC167A604DDAF2 /* SettingsScene.swift */; };
 		210D7164BBDEA8C2E4F02F1A /* ServerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15BAA1887C15A6BCCB348934 /* ServerSettings.swift */; };
 		221B1134384D9A57EA89B8AA /* TrackRowSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE704F41BCB30B348F86BE9A /* TrackRowSupport.swift */; };
+		245C4537E8947653F9ECDE73 /* SourceStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A570121BC84097D6E9BE90DC /* SourceStatusTests.swift */; };
 		26F8012BA682F9C8A5AB2E4C /* EscapementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71AC18E03B0F7794196742 /* EscapementApp.swift */; };
 		2747516D49E1E2E1929A397F /* ArtistsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470192454F34299CE626000F /* ArtistsList.swift */; };
 		293956FFEEC73872915508B0 /* SubsonicKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E13DE461FC27A85BEE0D0A7 /* SubsonicKit */; };
@@ -93,6 +94,7 @@
 		9D6D8A68C52F220E59782953 /* RemotePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePlayback.swift; sourceTree = "<group>"; };
 		A0F4C769CDF187F104033B37 /* DebugHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugHarness.swift; sourceTree = "<group>"; };
 		A3FE134B1C0BAD8D8FB3588F /* UpdateLedgerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLedgerDelegate.swift; sourceTree = "<group>"; };
+		A570121BC84097D6E9BE90DC /* SourceStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceStatusTests.swift; sourceTree = "<group>"; };
 		AFEF2E2FA61D534C4855976B /* EscapementTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EscapementTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB27EE93F7BB4DE77FF7059C /* Escapement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Escapement.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9BFC065A8974E0BBC3E1D5F /* NetworkSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettings.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 			isa = PBXGroup;
 			children = (
 				71FE7E34B6ABA05BCD09057A /* AlbumInfoServiceTests.swift */,
+				A570121BC84097D6E9BE90DC /* SourceStatusTests.swift */,
 			);
 			path = AppTests;
 			sourceTree = "<group>";
@@ -405,6 +408,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				89DE623BC5C4B1E95224A5D6 /* AlbumInfoServiceTests.swift in Sources */,
+				245C4537E8947653F9ECDE73 /* SourceStatusTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

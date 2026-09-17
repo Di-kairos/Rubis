@@ -76,6 +76,19 @@ final class AppEnvironment {
     private(set) var offlineServers: Set<String> = []
     /// Строка о молчащем сервере для сайдбара — одна строка, не алерт.
     private(set) var serverStatus: String?
+    /// Папки, чей последний скан упал (закладка не резолвится, папку убрали):
+    /// id → имя. Без этого ошибка оставалась только в логе.
+    private var unreadableSources: [String: String] = [:]
+    /// Строка о нечитаемой папке для сайдбара — как `serverStatus`, не алерт.
+    var sourceStatus: String? { Self.sourceStatus(unreadable: unreadableSources) }
+
+    nonisolated static func sourceStatus(unreadable: [String: String]) -> String? {
+        switch unreadable.count {
+        case 0: nil
+        case 1: "\(unreadable.values.first ?? "") can't be read — add the folder again"
+        default: "\(unreadable.count) folders can't be read — add them again"
+        }
+    }
 
     // MARK: - Search (SPEC §7.2)
 
@@ -732,11 +745,17 @@ final class AppEnvironment {
             scanProgress = nil
             libraryRevision += 1
         }
-        repeat {
-            rescanPending.remove(source.id)
-            for try await progress in scanner.scanStream(source: source) {
-                scanProgress = progress
-            }
-        } while rescanPending.contains(source.id)
+        do {
+            repeat {
+                rescanPending.remove(source.id)
+                for try await progress in scanner.scanStream(source: source) {
+                    scanProgress = progress
+                }
+            } while rescanPending.contains(source.id)
+            unreadableSources[source.id] = nil
+        } catch {
+            unreadableSources[source.id] = source.displayName
+            throw error
+        }
     }
 }
