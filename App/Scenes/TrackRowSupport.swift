@@ -60,5 +60,16 @@ struct QueueMenuItems: View {
     var body: some View {
         Button("Play Next") { env.playNext(tracks: tracks) }
         Button("Add to Queue") { env.addToQueue(tracks: tracks) }
+        Divider()
+        Menu("Add to Playlist") {
+            Button("New Playlist") { env.addToNewPlaylist(tracks: tracks) }
+            // ponytail: список читается при построении меню — запрос по
+            // крошечной таблице; кэш в окружении, если меню начнёт тормозить.
+            let playlists = (try? env.playlistRepo.all()) ?? []
+            if !playlists.isEmpty { Divider() }
+            ForEach(playlists) { playlist in
+                Button(playlist.name) { env.add(tracks: tracks, to: playlist) }
+            }
+        }
     }
 }

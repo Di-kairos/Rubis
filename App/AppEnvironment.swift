@@ -675,6 +675,29 @@ final class AppEnvironment {
         }
     }
 
+    /// «Add to Playlist» из контекстного меню трека: дубликаты пропускает
+    /// репозиторий, открытый плейлист перечитывается по `libraryRevision`.
+    func add(tracks: [Track], to playlist: Playlist) {
+        guard let playlistId = playlist.id else { return }
+        do {
+            try playlistRepo.append(tracks.compactMap(\.id), to: playlistId)
+            libraryRevision += 1
+        } catch {
+            Log.library.error("add to playlist failed: \(error, privacy: .public)")
+        }
+    }
+
+    /// Новый плейлист сразу с треками — открывается на переименование, как ⌘⇧N.
+    func addToNewPlaylist(tracks: [Track]) {
+        do {
+            let playlist = try playlistRepo.create(name: "New Playlist")
+            add(tracks: tracks, to: playlist)
+            pendingPlaylistId = playlist.id
+        } catch {
+            Log.library.error("create playlist failed: \(error, privacy: .public)")
+        }
+    }
+
     // MARK: - Library
 
     func addFolderSource(url: URL) {
