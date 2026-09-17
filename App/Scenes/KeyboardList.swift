@@ -16,6 +16,7 @@ struct KeyboardListNavigation: ViewModifier {
     let activate: (Int) -> Void
 
     @FocusState private var isFocused: Bool
+    @Environment(AppEnvironment.self) private var env
 
     private var keys: Set<KeyEquivalent> {
         horizontal
@@ -46,6 +47,14 @@ struct KeyboardListNavigation: ViewModifier {
                     return .ignored
                 }
                 return .handled
+            }
+            // Пункты меню Seek перехватывают стрелки раньше onKeyPress: пока
+            // фокус на горизонтальной полке, они гаснут, и ←→ листают её (D-020).
+            .onChange(of: isFocused) {
+                if horizontal { env.shelfFocused = isFocused }
+            }
+            .onDisappear {
+                if horizontal { env.shelfFocused = false }
             }
             // Коллекция живая (скан, удаление) — фокус не должен указывать в пустоту.
             .onChange(of: count) {

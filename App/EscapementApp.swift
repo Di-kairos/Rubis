@@ -127,10 +127,10 @@ struct EscapementApp: App {
                     .keyboardShortcut("r", modifiers: [.command])
                 Button("Seek Forward") { env.seek(by: 5) }
                     .keyboardShortcut(.rightArrow, modifiers: [])
-                    .disabled(env.isEditingText)
+                    .disabled(env.isEditingText || env.shelfFocused)
                 Button("Seek Backward") { env.seek(by: -5) }
                     .keyboardShortcut(.leftArrow, modifiers: [])
-                    .disabled(env.isEditingText)
+                    .disabled(env.isEditingText || env.shelfFocused)
                 Button("Search") { env.searchFocusTrigger += 1 }
                     .keyboardShortcut("f", modifiers: [.command])
                 Button("Show Current Track") { env.revealCurrentTrack() }
