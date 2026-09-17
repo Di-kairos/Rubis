@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "687c603"
+head: "b8f4ab7"
 tests: "278 passed in 5 packages (DesignSystem 9, Core 70, Playback 52, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
 last_session: 16
 last_reviewed: 2026-09-17
@@ -16,7 +16,7 @@ next_actions:
   - "Релиз 0.11.0 (31) — версия уже поднята 861e1c3, дерево зелёное. Только с MacBook (на Mac Mini нет Developer ID, ключа Sparkle EdDSA и профиля notarytool rubis): RUBIS_RELEASE=1 ./Tools/make-dmg.sh → GitHub release v0.11.0 + appcast в rubis-releases (заметки — HANDOFF.md «Релиз 0.11.0»), ретест 0.10.2 → 0.11.0 (§9.11)"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
   - "Бэклог: «Add to Playlist» в контекстном меню трека (UX, владелец). Закрыто в S16: нечитаемая папка — строка в сайдбаре (0c7053c), mtime уборки до секунды (687c603)"
-  - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
+  - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки (живой History закрыт в S16)"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
@@ -37,9 +37,10 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`687c603`](https://github.com/Di-kairos/Rubis/commit/687c603) —
-`fix(library): ghost cleanup compares mtime to the second, like the move step`
-(2026-09-17, сессия 16, Mac Mini: перед ним `861e1c3` версия 0.11.0 (31),
+Текущий HEAD: [`b8f4ab7`](https://github.com/Di-kairos/Rubis/commit/b8f4ab7) —
+`fix(app): History refreshes live when a play is recorded or extended (#30)`
+(2026-09-17, сессия 16, Mac Mini: перед ним `687c603` — уборка двойников
+сравнивает mtime до секунды, как переезд; `861e1c3` версия 0.11.0 (31),
 `ec9cacd` — `Tools/test.sh` берёт Testing из CLT только при активном CLT (на
 Xcode 27 ронял релизный путь), `0c7053c` — нечитаемая папка источника видна
 строкой в сайдбаре. Пакеты 278/278, EscapementTests 5/5, Release без warnings.
