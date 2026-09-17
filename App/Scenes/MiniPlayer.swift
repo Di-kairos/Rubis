@@ -23,8 +23,8 @@ struct MiniPlayer: View {
                             "backward.fill", size: 12, accessibilityLabel: "Previous"
                         ) { env.previous() }
                         DSIconButton(
-                            env.isPlaying ? "pause.fill" : "play.fill", size: 16,
-                            accessibilityLabel: env.isPlaying ? "Pause" : "Play"
+                            env.playButton.icon, size: 16,
+                            accessibilityLabel: env.playButton.label
                         ) { env.togglePlayPause() }
                         DSIconButton(
                             "forward.fill", size: 12, accessibilityLabel: "Next"

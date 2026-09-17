@@ -41,8 +41,8 @@ struct TransportBar: View {
                     accessibilityLabel: "Previous"
                 ) { env.previous() }
                 DSIconButton(
-                    isPlayingNow ? "pause.fill" : "play.fill", size: DS.Metrics.iconPlay,
-                    accessibilityLabel: isPlayingNow ? "Pause" : "Play"
+                    env.playButton.icon, size: DS.Metrics.iconPlay,
+                    accessibilityLabel: env.playButton.label
                 ) { env.togglePlayPause() }
                 DSIconButton(
                     "forward.fill", size: DS.Metrics.iconTransport,
@@ -349,11 +349,6 @@ struct TransportBar: View {
     }
 
     // MARK: -
-
-    private var isPlayingNow: Bool {
-        if case .playing = env.playbackState { return true }
-        return false
-    }
 
     private var titleLine: String {
         switch env.playbackState {

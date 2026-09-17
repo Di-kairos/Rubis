@@ -385,9 +385,47 @@ final class AppEnvironment {
     }
 
     func togglePlayPause() {
-        // Пауза и Stop — тоже команды транспорта: начатая загрузка больше не актуальна.
+        switch playbackState {
+        case .loading:
+            cancelLoading()
+        case .failed:
+            retryCurrent()
+        default:
+            // Пауза и Stop — тоже команды транспорта: начатая загрузка больше не актуальна.
+            transport.invalidate()
+            Task { await player.togglePlayPause() }
+        }
+    }
+
+    /// Главная кнопка следует состоянию: загрузку отменяет, ошибку повторяет (#28).
+    var playButton: (icon: String, label: String) {
+        switch playbackState {
+        case .playing: ("pause.fill", "Pause")
+        case .loading: ("xmark", "Cancel")
+        case .failed: ("arrow.clockwise", "Retry")
+        default: ("play.fill", "Play")
+        }
+    }
+
+    /// Play во время загрузки — «Cancel», как в Music.app: загрузка обесценена,
+    /// плеер остановлен, экран не висит на «Loading…» (#28).
+    func cancelLoading() {
         transport.invalidate()
-        Task { await player.togglePlayPause() }
+        Task {
+            await player.stop()
+            playbackState = .idle
+        }
+    }
+
+    /// Play после ошибки — «Retry»: тот же трек заново; битый файл сервера
+    /// выбрасывается из кэша, чтобы повтор не открыл его снова (#28).
+    func retryCurrent() {
+        guard case .failed(let track, _) = playbackState else { return }
+        lastRemoteRetry = nil
+        Task {
+            await remote.invalidate(track)
+            playQueueItem(at: await player.currentIndex())
+        }
     }
 
     /// Перемотка относительно текущей позиции (SPEC §7.6: →/← ±5 с).
