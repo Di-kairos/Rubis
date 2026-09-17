@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "b8f4ab7"
-tests: "278 passed in 5 packages (DesignSystem 9, Core 70, Playback 52, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
+head: "ef7bc62"
+tests: "284 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
 last_session: 16
 last_reviewed: 2026-09-17
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -15,8 +15,8 @@ next_actions:
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
   - "Релиз 0.11.0 (31) — версия уже поднята 861e1c3, дерево зелёное. Только с MacBook (на Mac Mini нет Developer ID, ключа Sparkle EdDSA и профиля notarytool rubis): RUBIS_RELEASE=1 ./Tools/make-dmg.sh → GitHub release v0.11.0 + appcast в rubis-releases (заметки — HANDOFF.md «Релиз 0.11.0»), ретест 0.10.2 → 0.11.0 (§9.11)"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
-  - "Бэклог: «Add to Playlist» в контекстном меню трека (UX, владелец). Закрыто в S16: нечитаемая папка — строка в сайдбаре (0c7053c), mtime уборки до секунды (687c603)"
-  - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки (живой History закрыт в S16)"
+  - "Бэклог закрыт в S16 (UX-решения делегированы владельцем, D-020): Add to Playlist, #16 режимы между запусками, #28 Cancel/Retry и выбор недоступного трека, ←/→ на полке, нечитаемая папка, mtime уборки. Живьём не проверено — пройти на стенде вместе с §9"
+  - "Открытое из ответа аудитору §4: только железо/живое — #04 DoP, #26 VoiceOver, #32 измерения; #19 отложен (D-020); audio-verify 0/24 из-за TCC микрофона у терминала — выдать доступ и перепрогнать"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
@@ -37,9 +37,12 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`b8f4ab7`](https://github.com/Di-kairos/Rubis/commit/b8f4ab7) —
-`fix(app): History refreshes live when a play is recorded or extended (#30)`
-(2026-09-17, сессия 16, Mac Mini: перед ним `687c603` — уборка двойников
+Текущий HEAD: [`ef7bc62`](https://github.com/Di-kairos/Rubis/commit/ef7bc62) —
+`fix(app): arrows browse the album shelf while it has keyboard focus`
+(2026-09-17, сессия 16, Mac Mini: владелец делегировал UX-решения — D-020;
+`a0fea30` недоступный трек не подменяется, `0c3262c` Cancel/Retry на главной
+кнопке, `fbe22e4` shuffle/repeat и порядок очереди между запусками, `69b9db7`
+Add to Playlist, `b8f4ab7` живой History. Пакеты 284/284, app 5/5. Перед ними `687c603` — уборка двойников
 сравнивает mtime до секунды, как переезд; `861e1c3` версия 0.11.0 (31),
 `ec9cacd` — `Tools/test.sh` берёт Testing из CLT только при активном CLT (на
 Xcode 27 ронял релизный путь), `0c7053c` — нечитаемая папка источника видна
