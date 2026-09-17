@@ -6,16 +6,16 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
-head: "33e5b75"
-tests: "277 passed in 5 packages (DesignSystem 9, Core 70, Playback 52, Subsonic 44, MusicLibrary 102; F03 test enabled) + EscapementTests 2/2; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
-last_session: 15
-last_reviewed: 2026-09-16
+head: "687c603"
+tests: "278 passed in 5 packages (DesignSystem 9, Core 70, Playback 52, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
+last_session: 16
+last_reviewed: 2026-09-17
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
-  - "Релиз 0.11.0 — только с MacBook (на Mac Mini нет Developer ID): RUBIS_RELEASE=1 ./Tools/make-dmg.sh, ретест 0.10.2 → 0.11.0 (§9.11); в заметках F03/отпечаток, DSD через PCM до галки (D-014), text.muted, Undo плейлистов"
+  - "Релиз 0.11.0 (31) — версия уже поднята 861e1c3, дерево зелёное. Только с MacBook (на Mac Mini нет Developer ID, ключа Sparkle EdDSA и профиля notarytool rubis): RUBIS_RELEASE=1 ./Tools/make-dmg.sh → GitHub release v0.11.0 + appcast в rubis-releases (заметки — HANDOFF.md «Релиз 0.11.0»), ретест 0.10.2 → 0.11.0 (§9.11)"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
-  - "Бэклог S15: тихая ошибка резолва закладки при рескане (NSCocoaErrorDomain 259 только в логе); «Add to Playlist» в контекстном меню трека (UX, владелец); Codex — точность mtime в ключе уборки"
+  - "Бэклог: «Add to Playlist» в контекстном меню трека (UX, владелец). Закрыто в S16: нечитаемая папка — строка в сайдбаре (0c7053c), mtime уборки до секунды (687c603)"
   - "Открытое из ответа аудитору §4: режимы порядка между запусками, порт в идентичности пароля, полный VoiceOver-маршрут, Retry/Cancel загрузки, живой History"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
@@ -37,7 +37,14 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`33e5b75`](https://github.com/Di-kairos/Rubis/commit/33e5b75) —
+Текущий HEAD: [`687c603`](https://github.com/Di-kairos/Rubis/commit/687c603) —
+`fix(library): ghost cleanup compares mtime to the second, like the move step`
+(2026-09-17, сессия 16, Mac Mini: перед ним `861e1c3` версия 0.11.0 (31),
+`ec9cacd` — `Tools/test.sh` берёт Testing из CLT только при активном CLT (на
+Xcode 27 ронял релизный путь), `0c7053c` — нечитаемая папка источника видна
+строкой в сайдбаре. Пакеты 278/278, EscapementTests 5/5, Release без warnings.
+Релиз не опубликован: на Mac Mini нет Developer ID/EdDSA/notary.)
+Прежний HEAD `33e5b75` —
 `feat(library): content fingerprint gates move, transfer and dedupe (F03)`
 (2026-09-16, сессия 15: владелец принял миграцию `track.content_hash` — D-019;
 FLAC — MD5 из STREAMINFO, прочие — SHA-256 трёх окон по 64 КиБ + размер;

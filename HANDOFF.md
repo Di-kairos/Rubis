@@ -2,7 +2,32 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **15** (2026-09-16, Mac Mini: **F03 закрыт** —
+- Сессия **16** (2026-09-17, Mac Mini): код `687c603` — версия **0.11.0 (31)**
+  поднята, дерево зелёное (пакеты 278, app 5/5, Release без warnings).
+  Опубликовать не удалось: в связке нет Developer ID, ключа Sparkle EdDSA и
+  профиля `notarytool rubis` — релиз только с MacBook.
+
+### Релиз 0.11.0 — шаги на MacBook
+
+1. `git pull`, `RUBIS_RELEASE=1 ./Tools/make-dmg.sh` → `RELEASE OK`, из вывода
+   взять `sparkle:edSignature`, `length`.
+2. `gh release create v0.11.0 -R Di-kairos/rubis-releases ~/Desktop/RubisMusic-0.11.0.dmg`
+3. `appcast.xml` — новый `<item>` сверху (version 31, shortVersion 0.11.0),
+   push; сверить URL и SHA256 по живой ссылке; ретест 0.10.2 → 0.11.0 (§9.11).
+
+Заметки (черновик, тон — владелец):
+- A file that moved is recognised by its content, not by size and date alone:
+  two different files can no longer swap identities. The first scan after the
+  update reads a few small pieces of every file once.
+- DSD goes out as PCM until you tick “This DAC decodes DoP” for your DAC in
+  Settings → Audio.
+- Playback transport, gapless and CUE seeking were hardened after an external
+  audit; playlists survive deduplication, CUE rebuilds and server syncs.
+- Secondary text is easier to read; playlist edits can be undone.
+- A source folder that can no longer be read shows one line in the sidebar
+  instead of failing silently.
+
+- Последняя сессия до неё: **15** (2026-09-16, Mac Mini: **F03 закрыт** —
   `track.content_hash`, миграция v4, D-019, код `33e5b75`; Xcode 27 —
   `import Combine`, сборка без сертификата; живые проверки 9.7 и 9.10 ✅ на
   Debug-стенде `build/run-live-check.sh`) — отчёт
