@@ -6,8 +6,10 @@
   `ef7bc62`; **опубликована 0.11.0 (31)** — нотаризация `Accepted`, staple,
   Gatekeeper на скачанном образе `accepted / Notarized Developer ID`,
   sha256 `de6a6a16e12b647902590e1b4b539e2c7aa3d7a4a79d3e31fd1219764fcfe0ae`,
-  appcast `0432d34` сверен по живой ссылке. Осталось живьём: ретест
-  0.10.2 → 0.11.0 (§9.11), проверка фич S16, остаток §9 и железо.
+  appcast `0432d34` сверен по живой ссылке; **§9.11 ретест 0.10.2 → 0.11.0
+  пройден** — тихая установка на выходе, обновлённый бандл `accepted /
+  Notarized Developer ID`. Осталось живьём: проверка фич S16, остаток §9
+  и железо (ЦАП, VoiceOver, 8 часов).
   Лицензия Xcode 27 на MacBook принималась через
   `sudo DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license accept`.
 - Сессия **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
