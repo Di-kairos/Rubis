@@ -5,17 +5,17 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.0 (31)"
 head: "ef7bc62"
 tests: "284 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
-last_session: 16
-last_reviewed: 2026-09-17
+last_session: 17
+last_reviewed: 2026-09-21
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
   - "Релиз 0.11.0 закрыт: опубликована 2026-09-21 (release v0.11.0 + appcast 0432d34, sha256 de6a6a16…), §9.11 ретест 0.10.2 → 0.11.0 пройден на MacBook — тихая установка на Cmd+Q, подпись Notarized Developer ID"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
-  - "Бэклог закрыт в S16 (UX-решения делегированы владельцем, D-020): Add to Playlist, #16 режимы между запусками, #28 Cancel/Retry и выбор недоступного трека, ←/→ на полке, нечитаемая папка, mtime уборки. Живьём не проверено — пройти на стенде вместе с §9"
+  - "Живая проверка фич S16 на опубликованной 0.11.0 — первый пункт S18. Бэклог закрыт в S16 (UX-решения делегированы владельцем, D-020): Add to Playlist, #16 режимы между запусками, #28 Cancel/Retry и выбор недоступного трека, ←/→ на полке, нечитаемая папка, mtime уборки. Живьём не проверено — пройти на стенде вместе с §9"
   - "Открытое из ответа аудитору §4: только железо/живое — #04 DoP, #26 VoiceOver, #32 измерения; #19 отложен (D-020). audio-verify на MacBook — 24/24 bit-perfect на ef7bc62 (S17)"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
@@ -27,8 +27,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session16.md
-  latest_kickoff: docs/sessions/SESSION_17_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session17.md
+  latest_kickoff: docs/sessions/SESSION_18_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
@@ -626,6 +626,10 @@ Session 14 (2026-09-14, Mac Mini): без правок кода. Подтвер�
   Apple и пристеплен — на чужой машине открывается двойным кликом.
 - Нотаризация: профиль связки `rubis` (ключ App Store Connect API, копия .p8 в
   `.claude/codesign/`); `Tools/make-dmg.sh` делает всё сам, X10 не нужен.
+- Релизы выпускаются **только с MacBook Pro M5 Max** (на Mac Mini нет
+  Developer ID, ключа EdDSA и профиля notarytool). `gh release create`
+  блокируется классификатором auto-mode — строку выполняет владелец.
+- Последняя выпущенная: **0.11.0 (31)**, 2026-09-21.
 
 ## Env Vars
 

@@ -10,8 +10,11 @@
   пройден** — тихая установка на выходе, обновлённый бандл `accepted /
   Notarized Developer ID`. Осталось живьём: проверка фич S16, остаток §9
   и железо (ЦАП, VoiceOver, 8 часов).
-  Лицензия Xcode 27 на MacBook принималась через
+  Лицензия Xcode 27 на MacBook принята:
   `sudo DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license accept`.
+  Отчёт `docs/sessions/progress-report-session17.md`
+- Следующая: **18** — kickoff `docs/sessions/SESSION_18_KICKOFF.md`: живая
+  проверка фич S16 на 0.11.0, остаток §9, железо (ЦАП, VoiceOver, 8 часов)
 - Сессия **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
   **0.11.0 (31)** поднята, не опубликована (нет Developer ID/EdDSA/notary);
   UX-решения делегированы Claude (D-020): Add to Playlist, режимы между
