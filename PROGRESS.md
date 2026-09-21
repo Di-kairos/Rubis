@@ -13,10 +13,10 @@ last_reviewed: 2026-09-17
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
-  - "Релиз 0.11.0 (31) — версия уже поднята 861e1c3, дерево зелёное. Только с MacBook (на Mac Mini нет Developer ID, ключа Sparkle EdDSA и профиля notarytool rubis): RUBIS_RELEASE=1 ./Tools/make-dmg.sh → GitHub release v0.11.0 + appcast в rubis-releases (заметки — HANDOFF.md «Релиз 0.11.0»), ретест 0.10.2 → 0.11.0 (§9.11)"
+  - "Ретест автообновления 0.10.2 → 0.11.0 (§9.11) руками: 0.11.0 опубликована 2026-09-21 (release v0.11.0 + appcast 0432d34, sha256 de6a6a16…, Gatekeeper accepted)"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
   - "Бэклог закрыт в S16 (UX-решения делегированы владельцем, D-020): Add to Playlist, #16 режимы между запусками, #28 Cancel/Retry и выбор недоступного трека, ←/→ на полке, нечитаемая папка, mtime уборки. Живьём не проверено — пройти на стенде вместе с §9"
-  - "Открытое из ответа аудитору §4: только железо/живое — #04 DoP, #26 VoiceOver, #32 измерения; #19 отложен (D-020); audio-verify 0/24 из-за TCC микрофона у терминала — выдать доступ и перепрогнать"
+  - "Открытое из ответа аудитору §4: только железо/живое — #04 DoP, #26 VoiceOver, #32 измерения; #19 отложен (D-020). audio-verify на MacBook — 24/24 bit-perfect на ef7bc62 (S17)"
   - "docs/manual-checklist.md — ЦАП, gapless, 8 часов без dropout, VoiceOver"
 links_extra:
   design_proposal: https://claude.ai/code/artifact/a7800c64-1366-4892-978e-8fa89f15216a
@@ -47,7 +47,10 @@ Add to Playlist, `b8f4ab7` живой History. Пакеты 284/284, app 5/5. П
 `ec9cacd` — `Tools/test.sh` берёт Testing из CLT только при активном CLT (на
 Xcode 27 ронял релизный путь), `0c7053c` — нечитаемая папка источника видна
 строкой в сайдбаре. Пакеты 278/278, EscapementTests 5/5, Release без warnings.
-Релиз не опубликован: на Mac Mini нет Developer ID/EdDSA/notary.)
+Выпущена **0.11.0** (build 31) 2026-09-21 с MacBook: нотаризация `Accepted`,
+staple и Gatekeeper на скачанном образе — `accepted / Notarized Developer ID`,
+sha256 `de6a6a16e12b647902590e1b4b539e2c7aa3d7a4a79d3e31fd1219764fcfe0ae`,
+appcast `0432d34` сверен по живой ссылке. `audio-verify` — 24/24 bit-perfect.)
 Прежний HEAD `33e5b75` —
 `feat(library): content fingerprint gates move, transfer and dedupe (F03)`
 (2026-09-16, сессия 15: владелец принял миграцию `track.content_hash` — D-019;

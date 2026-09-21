@@ -2,23 +2,25 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
+- Последняя сессия: **17** (2026-09-21, MacBook): `audio-verify` **24/24 bit-perfect** на
+  `ef7bc62`; **опубликована 0.11.0 (31)** — нотаризация `Accepted`, staple,
+  Gatekeeper на скачанном образе `accepted / Notarized Developer ID`,
+  sha256 `de6a6a16e12b647902590e1b4b539e2c7aa3d7a4a79d3e31fd1219764fcfe0ae`,
+  appcast `0432d34` сверен по живой ссылке. Осталось живьём: ретест
+  0.10.2 → 0.11.0 (§9.11), проверка фич S16, остаток §9 и железо.
+  Лицензия Xcode 27 на MacBook принималась через
+  `sudo DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license accept`.
+- Сессия **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
   **0.11.0 (31)** поднята, не опубликована (нет Developer ID/EdDSA/notary);
   UX-решения делегированы Claude (D-020): Add to Playlist, режимы между
   запусками, Cancel/Retry, стрелки на полке; пакеты 284, app 5/5. Отчёт
   `docs/sessions/progress-report-session16.md`
-- Следующая: **17** — kickoff `docs/sessions/SESSION_17_KICKOFF.md`: на MacBook
-  `audio-verify` (TCC микрофона) → релиз 0.11.0 → живая проверка S16
 
-### Релиз 0.11.0 — шаги на MacBook
+### Релиз 0.11.0 — опубликован 2026-09-21
 
-1. `git pull`, `RUBIS_RELEASE=1 ./Tools/make-dmg.sh` → `RELEASE OK`, из вывода
-   взять `sparkle:edSignature`, `length`.
-2. `gh release create v0.11.0 -R Di-kairos/rubis-releases ~/Desktop/RubisMusic-0.11.0.dmg`
-3. `appcast.xml` — новый `<item>` сверху (version 31, shortVersion 0.11.0),
-   push; сверить URL и SHA256 по живой ссылке; ретест 0.10.2 → 0.11.0 (§9.11).
+https://github.com/Di-kairos/rubis-releases/releases/tag/v0.11.0
 
-Заметки (черновик, тон — владелец):
+Заметки релиза (тон — владелец):
 - A file that moved is recognised by its content, not by size and date alone:
   two different files can no longer swap identities. The first scan after the
   update reads a few small pieces of every file once.
