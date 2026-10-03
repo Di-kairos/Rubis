@@ -54,6 +54,41 @@ struct AuditFollowupTests {
         #expect(abs(actual - expected) < 1e-9)
     }
 
+    /// The cover cache lives in ~/Library/Caches and can be wiped under the
+    /// app; the album keeps its cover_hash. A rescan must bring the picture
+    /// back, and an album whose picture is gone everywhere must lose the
+    /// dangling hash so another source (server sync) can supply one.
+    @Test func wipedCoverCacheIsRestoredOnRescan() async throws {
+        let (root, db, scanner, source) = try rig()
+        defer { try? FileManager.default.removeItem(at: root) }
+        // The sheet gives the fixture an album to hang the cover on.
+        try sheet().write(
+            to: root.appendingPathComponent("disc.cue"), atomically: true, encoding: .utf8)
+        let art = root.appendingPathComponent("cover.jpg")
+        try Data(repeating: 0x41, count: 300).write(to: art)
+        let covers = try CoverCache(root: root.appendingPathComponent("covers"))
+        func coverHash() async throws -> String? {
+            try await db.reader.read { try Album.fetchOne($0)?.coverHash }
+        }
+        func wipeCache() throws {
+            try FileManager.default.removeItem(at: root.appendingPathComponent("covers"))
+            try FileManager.default.createDirectory(
+                at: root.appendingPathComponent("covers"), withIntermediateDirectories: true)
+        }
+
+        _ = try await scanner.scan(source: source)
+        let hash = try #require(try await coverHash())
+        try wipeCache()
+        _ = try await scanner.scan(source: source)
+        #expect(try await coverHash() == hash)
+        #expect(covers.url(hash: hash) != nil)
+
+        try FileManager.default.removeItem(at: art)
+        try wipeCache()
+        _ = try await scanner.scan(source: source)
+        #expect(try await coverHash() == nil)
+    }
+
     /// Смена исполнителя дорожки при тех же названиях и границах тоже
     /// перечитывается (остаток приёмки R06).
     @Test func performerEditIsPickedUp() async throws {

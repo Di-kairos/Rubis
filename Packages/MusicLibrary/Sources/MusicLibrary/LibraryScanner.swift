@@ -323,6 +323,14 @@ public actor LibraryScanner {
         // нетронутыми, если картинка в папке всё-таки есть — она могла приехать
         // после скана или начать находиться (папка сканов). Нет картинки рядом
         // — нет и перечитывания.
+        // Кэш обложек живёт в ~/Library/Caches — его чистит система или
+        // «чистильщик», а cover_hash в базе остаётся висячим и альбом навсегда
+        // считается с обложкой. Такие альбомы этого источника обнуляем и
+        // перечитываем даже без картинки рядом: она может быть в теге. Не
+        // нашлась нигде — пустой хеш даёт синку сервера досыпать свою.
+        // ponytail: прерванный скан оставит альбом без обложки до появления
+        // картинки в папке; хранить «потерянные» отдельно, если это всплывёт.
+        let lostCovers = try await dropLostCovers(source: source)
         let coverlessAlbums: Set<Int64> = try await db.reader.read { database in
             Set(try Int64.fetchAll(database, sql: "SELECT id FROM album WHERE cover_hash IS NULL"))
         }
@@ -358,7 +366,8 @@ public actor LibraryScanner {
                 let directory = info.url.deletingLastPathComponent().path
                 let needsCover =
                     (rows[0].albumId.map(coverlessAlbums.contains) ?? false)
-                    && artDirectories.contains(directory)
+                    && (artDirectories.contains(directory)
+                        || rows[0].albumId.map(lostCovers.contains) == true)
                 // Лист разошёлся с базой — перечитываем, даже если аудиофайл и
                 // число строк те же: иначе новое название или сдвинутый INDEX
                 // никогда не доедут до базы.
@@ -632,6 +641,30 @@ public actor LibraryScanner {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// Обнуляет cover_hash альбомов источника, чьего файла нет в кэше;
+    /// возвращает их id.
+    private func dropLostCovers(source: Source) async throws -> Set<Int64> {
+        let withCover: [(id: Int64, hash: String)] = try await db.reader.read { database in
+            try Row.fetchAll(
+                database,
+                sql: """
+                    SELECT DISTINCT album.id, album.cover_hash FROM album
+                    JOIN track ON track.album_id = album.id
+                    WHERE track.source_id = ? AND album.cover_hash IS NOT NULL
+                    """,
+                arguments: [source.id]
+            ).map { ($0[0], $0[1]) }
+        }
+        let lost = Set(withCover.filter { covers.url(hash: $0.hash) == nil }.map(\.id))
+        guard !lost.isEmpty else { return lost }
+        let ids = lost.map(String.init).joined(separator: ",")
+        try await db.writer.write { database in
+            try database.execute(sql: "UPDATE album SET cover_hash = NULL WHERE id IN (\(ids))")
+        }
+        log("covers lost from cache: \(lost.count) albums, rereading")
+        return lost
     }
 
     // MARK: - Запись батча (одна транзакция, SPEC §5.2)
