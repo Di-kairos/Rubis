@@ -643,6 +643,17 @@ public actor LibraryScanner {
         }
     }
 
+    /// Whether any album's cover is missing from the cache (purged under the
+    /// app). The app rescans on launch when it is: a scan restores them.
+    public func hasLostCovers() async throws -> Bool {
+        let hashes = try await db.reader.read { database in
+            try String.fetchAll(
+                database,
+                sql: "SELECT DISTINCT cover_hash FROM album WHERE cover_hash IS NOT NULL")
+        }
+        return hashes.contains { covers.url(hash: $0) == nil }
+    }
+
     /// Обнуляет cover_hash альбомов источника, чьего файла нет в кэше;
     /// возвращает их id.
     private func dropLostCovers(source: Source) async throws -> Set<Int64> {

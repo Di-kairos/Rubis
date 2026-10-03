@@ -205,6 +205,11 @@ final class AppEnvironment {
             }
         }
         rebuildFolderWatcher()
+        // Кэш обложек вычищен под приложением — без скана полка так и
+        // останется пустой до первого изменения в папках.
+        Task { [scanner] in
+            if (try? await scanner.hasLostCovers()) == true { self.rescanAll() }
+        }
         // Последние секунды прослушивания — в историю до выхода.
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main

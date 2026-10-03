@@ -79,9 +79,11 @@ struct AuditFollowupTests {
         _ = try await scanner.scan(source: source)
         let hash = try #require(try await coverHash())
         try wipeCache()
+        #expect(try await scanner.hasLostCovers())
         _ = try await scanner.scan(source: source)
         #expect(try await coverHash() == hash)
         #expect(covers.url(hash: hash) != nil)
+        #expect(try await !scanner.hasLostCovers())
 
         try FileManager.default.removeItem(at: art)
         try wipeCache()
