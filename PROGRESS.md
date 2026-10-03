@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.0 (31)"
-head: "ef7bc62"
+head: "26676b7"
 tests: "284 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
 last_session: 17
 last_reviewed: 2026-09-21
@@ -37,7 +37,11 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`ef7bc62`](https://github.com/Di-kairos/Rubis/commit/ef7bc62) —
+Текущий HEAD: [`26676b7`](https://github.com/Di-kairos/Rubis/commit/26676b7) —
+`fix(library): rescan restores covers wiped from the cache`
+(2026-10-03, сессия 18, MacBook: кэш обложек в ~/Library/Caches вычищен,
+висячий cover_hash не перечитывался. MusicLibrary 104/104.)
+До него [`ef7bc62`](https://github.com/Di-kairos/Rubis/commit/ef7bc62) —
 `fix(app): arrows browse the album shelf while it has keyboard focus`
 (2026-09-17, сессия 16, Mac Mini: владелец делегировал UX-решения — D-020;
 `a0fea30` недоступный трек не подменяется, `0c3262c` Cancel/Retry на главной
