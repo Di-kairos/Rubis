@@ -102,15 +102,23 @@ struct TracksList: View {
                     isSelected: selection.contains(row.id),
                     columns: columns
                 )
-                .onTapGesture(count: 2) { play(from: positions[row.id]) }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { play(from: positions[row.id]) }
                 .draggable(row.track.dragPayload)
-                .contextMenu { QueueMenuItems(tracks: menuTargets(row), env: env) }
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(DS.Color.bgBase)
             }
+        }
+        // Двойной клик и меню — на уровне списка: `onTapGesture(count: 2)` на
+        // строке съедал одиночные клики, и выделение мышью не работало. Меню
+        // по строке вне выделения получает только её (поведение Finder).
+        .contextMenu(forSelectionType: Int64.self) { ids in
+            if !ids.isEmpty {
+                QueueMenuItems(tracks: rows.filter { ids.contains($0.id) }.map(\.track), env: env)
+            }
+        } primaryAction: { ids in
+            play(from: ids.compactMap { positions[$0] }.min())
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -143,13 +151,6 @@ struct TracksList: View {
         guard token == generation else { return }
         rows = result.0
         positions = result.1
-    }
-
-    /// Контекстное меню по строке внутри выделения работает на всё выделение,
-    /// по строке вне его — только на неё (поведение Finder).
-    private func menuTargets(_ row: SearchHit) -> [Track] {
-        guard selection.count > 1, selection.contains(row.id) else { return [row.track] }
-        return rows.filter { selection.contains($0.id) }.map(\.track)
     }
 
     private func isCurrent(_ track: Track) -> Bool {
