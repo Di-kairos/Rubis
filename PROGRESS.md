@@ -6,12 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.0 (31)"
-head: "26676b7"
-tests: "284 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 103) + EscapementTests 5/5; F01–F04/R07 closed; app Debug without warnings (Xcode 27)"
-last_session: 17
-last_reviewed: 2026-09-21
+head: "f4174ca"
+tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 5/5; app Debug without warnings (Xcode 27)"
+last_session: 18
+last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Релиз 0.11.1 (32) собран, не опубликован: нотаризация 403 — владелец принимает соглашение Apple Developer Program, затем make-dmg строгим путём + release + appcast (kickoff 19)"
+  - "Баг-лист S18: имя New Playlist до создания; мультивыделение в альбоме и плейлисте"
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
   - "Релиз 0.11.0 закрыт: опубликована 2026-09-21 (release v0.11.0 + appcast 0432d34, sha256 de6a6a16…), §9.11 ретест 0.10.2 → 0.11.0 пройден на MacBook — тихая установка на Cmd+Q, подпись Notarized Developer ID"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
@@ -27,8 +29,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session17.md
-  latest_kickoff: docs/sessions/SESSION_18_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session18.md
+  latest_kickoff: docs/sessions/SESSION_19_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
@@ -37,11 +39,14 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`26676b7`](https://github.com/Di-kairos/Rubis/commit/26676b7) —
-`fix(library): rescan restores covers wiped from the cache`
-(2026-10-03, сессия 18, MacBook: кэш обложек в ~/Library/Caches вычищен,
-висячий cover_hash не перечитывался. MusicLibrary 104/104.)
-До него [`ef7bc62`](https://github.com/Di-kairos/Rubis/commit/ef7bc62) —
+Текущий HEAD: [`f4174ca`](https://github.com/Di-kairos/Rubis/commit/f4174ca) —
+`chore(release): version 0.11.1 (32)` (2026-10-03, сессия 18, MacBook;
+не опубликована — нотаризация 403, соглашение Apple). В ней `18a5cac`
+выделение мышью в Tracks, `74bbfba` скан при запуске при пропавших
+обложках, [`26676b7`](https://github.com/Di-kairos/Rubis/commit/26676b7) —
+`fix(library): rescan restores covers wiped from the cache` (кэш обложек в
+~/Library/Caches вычищен, висячий cover_hash не перечитывался). Пакеты 285/285.
+До них [`ef7bc62`](https://github.com/Di-kairos/Rubis/commit/ef7bc62) —
 `fix(app): arrows browse the album shelf while it has keyboard focus`
 (2026-09-17, сессия 16, Mac Mini: владелец делегировал UX-решения — D-020;
 `a0fea30` недоступный трек не подменяется, `0c3262c` Cancel/Retry на главной

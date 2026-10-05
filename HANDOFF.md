@@ -2,7 +2,15 @@
 
 Актуальный указатель для «Продолжаем работу».
 
-- Последняя сессия: **17** (2026-09-21, MacBook): `audio-verify` **24/24 bit-perfect** на
+- Последняя сессия: **18** (2026-10-03…05, MacBook): код `f4174ca` — **0.11.1 (32)**
+  собрана, **не опубликована**: `notarytool` → HTTP 403, истекло соглашение Apple
+  Developer Program (принимает владелец). В ней: обложки из вычищенного кэша
+  (`26676b7`, `74bbfba`), выделение мышью в Tracks (`18a5cac`). Debug-стенд на
+  MacBook не сканирует — bookmarks привязаны к подписи. Отчёт
+  `docs/sessions/progress-report-session18.md`
+- Следующая: **19** — kickoff `docs/sessions/SESSION_19_KICKOFF.md`: релиз 0.11.1,
+  живая проверка фиксов, баг-лист (имя New Playlist, мультивыделение в альбоме)
+- Сессия **17** (2026-09-21, MacBook): `audio-verify` **24/24 bit-perfect** на
   `ef7bc62`; **опубликована 0.11.0 (31)** — нотаризация `Accepted`, staple,
   Gatekeeper на скачанном образе `accepted / Notarized Developer ID`,
   sha256 `de6a6a16e12b647902590e1b4b539e2c7aa3d7a4a79d3e31fd1219764fcfe0ae`,
@@ -13,8 +21,6 @@
   Лицензия Xcode 27 на MacBook принята:
   `sudo DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -license accept`.
   Отчёт `docs/sessions/progress-report-session17.md`
-- Следующая: **18** — kickoff `docs/sessions/SESSION_18_KICKOFF.md`: живая
-  проверка фич S16 на 0.11.0, остаток §9, железо (ЦАП, VoiceOver, 8 часов)
 - Сессия **16** (2026-09-17, Mac Mini): код `ef7bc62` — версия
   **0.11.0 (31)** поднята, не опубликована (нет Developer ID/EdDSA/notary);
   UX-решения делегированы Claude (D-020): Add to Playlist, режимы между
