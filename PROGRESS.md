@@ -6,12 +6,13 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.2 (33)"
-head: "314e759"
+head: "44938dd"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
 last_session: 18
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Публичная готовность репо (сессия 19): rubis-releases README исправлен (0b67882) — источники публичные, сборка нотаризована, ссылка на third-party. Лицензии в бандле починены в 44938dd, но опубликованная 0.11.2 ещё без них: закрыть релизом 0.11.3 (34) или первым следующим"
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
   - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
@@ -39,7 +40,12 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`314e759`](https://github.com/Di-kairos/Rubis/commit/314e759) —
+Текущий HEAD: [`44938dd`](https://github.com/Di-kairos/Rubis/commit/44938dd) —
+`fix(release): ship the third-party licence texts inside the app`
+(`Contents/Resources/Licenses/<package>/`, 24 пакета / 33 файла; релиз падает,
+если не нашёл ни одного). **В опубликованную 0.11.2 это не попало** — поедет
+следующим релизом. Перед ним
+[`314e759`](https://github.com/Di-kairos/Rubis/commit/314e759) —
 `chore(release): version 0.11.2 (33)`. Выпущена **0.11.2** (build 33)
 2026-11-01 с MacBook, сессия 19: нотаризация `Accepted`, staple, Gatekeeper на
 скачанном образе — `accepted / Notarized Developer ID`, sha256
