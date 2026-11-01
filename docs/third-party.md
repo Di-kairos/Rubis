@@ -29,6 +29,17 @@ that calls them is published in this repository, so a user who wants to replace
 either framework with their own build can do so: drop the rebuilt framework in
 place, re-sign the bundle, and the app loads it.
 
-Full licence texts travel with each package in the Swift Package Manager
-checkout (`SourcePackages/checkouts/<package>/LICENSE.txt` in the build
-directory) and in each upstream repository.
+Full licence texts ship inside the application, one folder per package:
+
+```
+Rubis Music.app/Contents/Resources/Licenses/<package>/
+```
+
+Open them with **Finder → right-click the app → Show Package Contents**, or:
+
+```bash
+open "/Applications/Rubis Music.app/Contents/Resources/Licenses"
+```
+
+The same texts travel with each package in the Swift Package Manager checkout
+(`SourcePackages/checkouts/<package>/`) and in each upstream repository.

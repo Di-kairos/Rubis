@@ -72,6 +72,29 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "$app/Contents/Mac
 codesign --force --sign "$identity" --options runtime "${stamp[@]}" \
     --entitlements "$repo/Tools/audio-verify/audio-verify.entitlements" \
     "$app/Contents/MacOS/audio-verify"
+# Тексты лицензий едут внутри бандла: LGPL требует копию лицензии рядом с
+# распространяемой работой, а в скачанном DMG нет ни SPM-чекаута, ни апстрима —
+# ссылка на них лицензию не заменяет. Собираем из чекаутов, пока они под рукой.
+echo "==> Licenses"
+licenses="$app/Contents/Resources/Licenses"
+rm -rf "$licenses"
+mkdir -p "$licenses"
+while IFS= read -r file; do
+    pkg="$(basename "$(dirname "$file")")"
+    mkdir -p "$licenses/$pkg"
+    cp -R "$file" "$licenses/$pkg/"
+done < <(find "$derived/SourcePackages/checkouts" -maxdepth 2 \
+    \( -iname "licen[cs]e*" -o -iname "copying*" \) 2>/dev/null)
+count=$(find "$licenses" -type f | wc -l | tr -d ' ')
+echo "licenses bundled: $count files"
+# Пустая папка значит, что чекауты переехали и бандл снова уходит без лицензий.
+if [[ "$count" -eq 0 ]]; then
+    if [[ -n "$release" ]]; then
+        fail_release "no third-party licence texts found in $derived/SourcePackages/checkouts"
+    fi
+    echo "warning: no licence texts bundled (local image)" >&2
+fi
+
 # Вложенный бинарь ломает печать бандла — запечатываем заново поверх него.
 # Без --deep: вложенные подписи (Sparkle, фреймворки) уже поставлены Xcode
 # изнутри наружу, и --deep раскатал бы по ним чужие entitlements.

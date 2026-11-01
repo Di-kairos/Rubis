@@ -176,8 +176,13 @@ product has been Rubis Music since 0.2.0.*
 ```bash
 ./Tools/test.sh          # swift test across the packages
 ./Tools/format.sh        # swift-format in place (run before committing)
-./Tools/audio-verify     # the bit-perfect proof — required for engine changes
 ./Tools/make-dmg.sh      # Release build → signed, notarized, stapled DMG
+
+# The bit-perfect proof — required before any change to the engine is
+# committed. The same tool ships inside the app, so no build is needed to
+# re-run it against your own files.
+swift build -c release --package-path Tools/audio-verify
+Tools/audio-verify/.build/release/audio-verify Fixtures
 
 # The app target needs full Xcode, not Command Line Tools:
 xcodebuild -scheme Escapement -configuration Release
