@@ -5,8 +5,8 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.1 (32)"
-head: "778d1c7"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.2 (33)"
+head: "314e759"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
 last_session: 18
 last_reviewed: 2026-10-05
@@ -39,7 +39,13 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`778d1c7`](https://github.com/Di-kairos/Rubis/commit/778d1c7) —
+Текущий HEAD: [`314e759`](https://github.com/Di-kairos/Rubis/commit/314e759) —
+`chore(release): version 0.11.2 (33)`. Выпущена **0.11.2** (build 33)
+2026-11-01 с MacBook, сессия 19: нотаризация `Accepted`, staple, Gatekeeper на
+скачанном образе — `accepted / Notarized Developer ID`, sha256
+`a163ca784601ef828d82f8cc73e3041535a21d0f2f585337d7b0f6b7b6eaff49`,
+appcast `4e0266f` (item 33) сверен по живой ссылке. В ней
+[`778d1c7`](https://github.com/Di-kairos/Rubis/commit/778d1c7) —
 `feat(ui): multi-selection in the album and the playlist` (2026-11-01, сессия
 19, MacBook: ⌘/⇧-клик и стрелки в альбоме и плейлисте, меню и Return работают
 по выделению; трек-лист альбома переехал на `List`). Перед ним
