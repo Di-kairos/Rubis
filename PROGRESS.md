@@ -6,14 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.1 (32)"
-head: "f0d0f73"
-tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 9/9; app Debug without warnings (Xcode 27)"
+head: "778d1c7"
+tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
 last_session: 18
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
-  - "Баг-лист S18: имя New Playlist до создания — сделано (f0d0f73, D-021), живьём не проверено; мультивыделение в альбоме и плейлисте — следующее"
+  - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
   - "Релиз 0.11.0 закрыт: опубликована 2026-09-21 (release v0.11.0 + appcast 0432d34, sha256 de6a6a16…), §9.11 ретест 0.10.2 → 0.11.0 пройден на MacBook — тихая установка на Cmd+Q, подпись Notarized Developer ID"
   - "F03 закрыт 33e5b75 (D-019, ответ аудитору §9) — ждём перепроверки аудитора по §8–§9"
@@ -39,11 +39,14 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`f0d0f73`](https://github.com/Di-kairos/Rubis/commit/f0d0f73) —
-`fix(playlists): ask for the name before the playlist exists` (2026-11-01,
-сессия 19, MacBook: имя нового плейлиста спрашивается строкой-черновиком под
-курсором, в базу он попадает только на Return с непустым именем — D-021;
-EscapementTests 9/9). До него
+Текущий HEAD: [`778d1c7`](https://github.com/Di-kairos/Rubis/commit/778d1c7) —
+`feat(ui): multi-selection in the album and the playlist` (2026-11-01, сессия
+19, MacBook: ⌘/⇧-клик и стрелки в альбоме и плейлисте, меню и Return работают
+по выделению; трек-лист альбома переехал на `List`). Перед ним
+[`f0d0f73`](https://github.com/Di-kairos/Rubis/commit/f0d0f73) —
+`fix(playlists): ask for the name before the playlist exists` (имя нового
+плейлиста спрашивается строкой-черновиком под курсором, в базу он попадает
+только на Return с непустым именем — D-021). EscapementTests 13/13. До них
 [`f4174ca`](https://github.com/Di-kairos/Rubis/commit/f4174ca) —
 `chore(release): version 0.11.1 (32)` (2026-10-03, сессия 18, MacBook).
 Выпущена **0.11.1** (build 32) 2026-11-01 с MacBook, сессия 19: нотаризация
