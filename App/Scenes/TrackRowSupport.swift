@@ -43,7 +43,29 @@ extension Track {
     }
 }
 
+extension Array where Element == Track {
+    /// Выделенные треки в порядке списка, а не в порядке набора выделения.
+    func selected(by ids: Set<Int64>) -> [Track] {
+        // Строки приходят из БД, где id есть; -1 — недостижимая заглушка.
+        filter { ids.contains($0.id ?? -1) }
+    }
+
+    /// Верхняя выделенная строка: с неё играют Return и двойной клик —
+    /// порядок, в котором набрали выделение, значения не имеет.
+    func firstSelectedIndex(_ ids: Set<Int64>) -> Int? {
+        indices.first { ids.contains(self[$0].id ?? -1) }
+    }
+}
+
 extension View {
+    /// Строка трека внутри `List`: своя подложка и никаких системных вставок
+    /// и разделителей — выделение рисует `DSListRow` токенами (DESIGN §5.2).
+    func plainTrackRow() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(DS.Color.bgBase)
+    }
+
     /// Контекстное меню очереди — одинаковое во всех списках треков.
     func trackQueueMenu(_ track: Track, env: AppEnvironment) -> some View {
         contextMenu {

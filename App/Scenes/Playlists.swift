@@ -14,6 +14,8 @@ struct PlaylistsView: View {
     @State private var playlists: [Playlist] = []
     @State private var selected: Playlist?
     @State private var tracks: [Track] = []
+    /// Выделение треков плейлиста (⌘/⇧-клик, стрелки — от List), как в Tracks.
+    @State private var trackSelection: Set<Int64> = []
     @State private var renamingId: Int64?
     @State private var draftName = ""
     /// Поле ввода имени (новый плейлист или переименование) должно получать
@@ -158,9 +160,9 @@ struct PlaylistsView: View {
     @ViewBuilder
     private var trackColumn: some View {
         if let playlist = selected {
-            List {
+            List(selection: $trackSelection) {
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                    DSListRow(isSelected: isCurrent(track)) {
+                    DSListRow(isSelected: trackSelection.contains(track.id ?? -1)) {
                         HStack(spacing: DS.Space.md) {
                             DSText(
                                 "\(index + 1)", style: .numeric, color: DS.Color.textMuted
@@ -178,17 +180,10 @@ struct PlaylistsView: View {
                                 color: DS.Color.textMuted)
                         }
                     }
-                    .onTapGesture(count: 2) { env.play(tracks: tracks, startAt: index) }
                     .accessibilityAddTraits(.isButton)
                     .accessibilityAction { env.play(tracks: tracks, startAt: index) }
-                    .contextMenu {
-                        QueueMenuItems(tracks: [track], env: env)
-                        Divider()
-                        Button("Remove from Playlist") { remove(at: index, in: playlist) }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(DS.Color.bgBase)
+                    .tag(track.id ?? -1)
+                    .plainTrackRow()
                 }
                 .onMove { source, destination in
                     tracks.move(fromOffsets: source, toOffset: destination)
@@ -198,6 +193,24 @@ struct PlaylistsView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(DS.Color.bgBase)
+            // Двойной клик и меню — на уровне списка, как в Tracks: жест на
+            // строке съедал одиночные клики. Меню по строке вне выделения
+            // получает только её (поведение Finder).
+            .contextMenu(forSelectionType: Int64.self) { ids in
+                if !ids.isEmpty {
+                    QueueMenuItems(tracks: tracks.selected(by: ids), env: env)
+                    Divider()
+                    Button("Remove from Playlist") { remove(ids: ids, in: playlist) }
+                }
+            } primaryAction: { ids in
+                play(from: ids)
+            }
+            // Return играет с верхней выделенной строки.
+            .onKeyPress(.return) {
+                guard !trackSelection.isEmpty else { return .ignored }
+                play(from: trackSelection)
+                return .handled
+            }
             .overlay {
                 if tracks.isEmpty {
                     DSText(
@@ -241,7 +254,14 @@ struct PlaylistsView: View {
 
     private func select(_ playlist: Playlist) {
         selected = playlist
+        trackSelection = []
         loadTracks()
+    }
+
+    /// Плейлист с верхней выделенной строки — очередь остаётся плейлистом.
+    private func play(from ids: Set<Int64>) {
+        guard let index = tracks.firstSelectedIndex(ids) else { return }
+        env.play(tracks: tracks, startAt: index)
     }
 
     private func loadTracks() {
@@ -259,8 +279,9 @@ struct PlaylistsView: View {
         try? env.playlistRepo.setTracks(tracks.compactMap(\.id), in: id)
     }
 
-    private func remove(at index: Int, in playlist: Playlist) {
-        tracks.remove(at: index)
+    private func remove(ids: Set<Int64>, in playlist: Playlist) {
+        tracks = tracks.filter { !ids.contains($0.id ?? -1) }
+        trackSelection = []
         save(in: playlist)
     }
 

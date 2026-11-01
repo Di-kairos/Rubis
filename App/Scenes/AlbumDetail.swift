@@ -14,6 +14,8 @@ struct AlbumDetail: View {
     var showcaseCover: CGFloat = 240
     @Environment(AppEnvironment.self) private var env
     @State private var tracks: [Track] = []
+    /// Выделение строк (⌘/⇧-клик, стрелки — от List), как в разделе Tracks.
+    @State private var selection: Set<Int64> = []
 
     var body: some View {
         // Разворот конверта: в широком окне метаданные слева, трек-лист справа.
@@ -77,28 +79,54 @@ struct AlbumDetail: View {
     }
 
     private var trackList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                // Liner notes (Jewel Box II): многодисковый альбом делится
-                // на секции, трек-лист — с точечными лидерами.
-                ForEach(discs, id: \.no) { disc in
-                    if let no = disc.no {
-                        DSText(
-                            "Disc \(no)", style: .label, color: DS.Color.accent
-                        )
-                        .padding(.top, DS.Space.lg)
-                        .padding(.bottom, DS.Space.xs)
-                    }
-                    ForEach(disc.rows, id: \.offset) { index, track in
-                        trackRow(track, at: index)
-                    }
+        List(selection: $selection) {
+            // Liner notes (Jewel Box II): многодисковый альбом делится
+            // на секции, трек-лист — с точечными лидерами.
+            ForEach(discs, id: \.no) { disc in
+                if let no = disc.no {
+                    DSText(
+                        "Disc \(no)", style: .label, color: DS.Color.accent
+                    )
+                    .padding(.top, DS.Space.lg)
+                    .padding(.bottom, DS.Space.xs)
+                    // Заголовок диска — не строка трека: выделению не подлежит.
+                    .selectionDisabled()
+                    .plainTrackRow()
+                }
+                ForEach(disc.rows, id: \.offset) { index, track in
+                    trackRow(track, at: index)
+                        .tag(track.id ?? -1)
+                        .plainTrackRow()
                 }
             }
-            // Мера строки: лидер на всю ширину окна тянется через полтора
-            // метра пустоты и строка перестаёт читаться.
-            .frame(maxWidth: DS.Metrics.contentMeasure, alignment: .leading)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        // Двойной клик и меню — на уровне списка, как в Tracks: жест на строке
+        // съедал одиночные клики, и выделение мышью не работало. Меню по строке
+        // вне выделения получает только её (поведение Finder).
+        .contextMenu(forSelectionType: Int64.self) { ids in
+            if !ids.isEmpty { QueueMenuItems(tracks: tracks.selected(by: ids), env: env) }
+        } primaryAction: { ids in
+            play(from: ids)
+        }
+        // Return играет с верхней выделенной строки.
+        .onKeyPress(.return) {
+            guard !selection.isEmpty else { return .ignored }
+            play(from: selection)
+            return .handled
+        }
+        // Мера строки: лидер на всю ширину окна тянется через полтора
+        // метра пустоты и строка перестаёт читаться.
+        .frame(maxWidth: DS.Metrics.contentMeasure, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// Альбом с верхней выделенной строки: очередь — весь альбом, как и по
+    /// двойному клику до мультивыделения.
+    private func play(from ids: Set<Int64>) {
+        guard let index = tracks.firstSelectedIndex(ids) else { return }
+        env.play(album: album, startAt: index)
     }
 
     /// Строка секции: диск (nil у однодискового альбома) и его треки
@@ -113,7 +141,7 @@ struct AlbumDetail: View {
     }
 
     private func trackRow(_ track: Track, at index: Int) -> some View {
-        DSListRow(isSelected: isPlaying(track)) {
+        DSListRow(isSelected: selection.contains(track.id ?? -1)) {
             HStack(spacing: DS.Space.md) {
                 DSText(
                     "\(track.trackNo ?? index + 1)", style: .numeric,
@@ -134,13 +162,9 @@ struct AlbumDetail: View {
                     color: DS.Color.textMuted)
             }
         }
-        .onTapGesture(count: 2) {
-            env.play(album: album, startAt: index)
-        }
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { env.play(album: album, startAt: index) }
         .draggable(track.dragPayload)
-        .trackQueueMenu(track, env: env)
     }
 
     /// Название, артист, техстрока и кнопки. Заголовки переносятся на вторую
