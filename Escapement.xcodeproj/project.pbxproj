@@ -32,6 +32,7 @@
 		4DCC62ED5116B58CA23D8CF7 /* SubsonicAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E957F0EE2C02A343E538E4 /* SubsonicAccount.swift */; };
 		5656BA90898277FA56D71F60 /* ScrollTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 817449642A07EC521CC919DE /* ScrollTrack.swift */; };
 		60D9998637AFEEC2552FBD9E /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8177D9DC25EE08D0F57F71 /* Sidebar.swift */; };
+		6366ED427D4B9ACD8150E99D /* PlaylistNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D708268708F2854F77288749 /* PlaylistNameTests.swift */; };
 		65F64FDA7A9CADD32BBA59C4 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E4F68722A7AE60FF86B58686 /* Sparkle */; };
 		6B9BA5049C46764B85B8B447 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA26BB8201227BDEB25BF5 /* AppEnvironment.swift */; };
 		706656A8E80F88CB0D38ABEF /* UpdateLedgerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FE134B1C0BAD8D8FB3588F /* UpdateLedgerDelegate.swift */; };
@@ -102,6 +103,7 @@
 		CBC9CBD457E6ED539778D85F /* EscapementCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EscapementCore; path = Packages/EscapementCore; sourceTree = SOURCE_ROOT; };
 		CE785E780F28894DDA0A59F7 /* ListeningHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningHistoryView.swift; sourceTree = "<group>"; };
 		CFC51BD6E4268712D87AB4C5 /* TextFieldKeyGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldKeyGuard.swift; sourceTree = "<group>"; };
+		D708268708F2854F77288749 /* PlaylistNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistNameTests.swift; sourceTree = "<group>"; };
 		DBE28CB9ECE0702F478817C5 /* NowPlayingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingQueue.swift; sourceTree = "<group>"; };
 		DE71AC18E03B0F7794196742 /* EscapementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapementApp.swift; sourceTree = "<group>"; };
 		E016ECA8D1654F5728362CF8 /* AlbumDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetail.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				71FE7E34B6ABA05BCD09057A /* AlbumInfoServiceTests.swift */,
+				D708268708F2854F77288749 /* PlaylistNameTests.swift */,
 				A570121BC84097D6E9BE90DC /* SourceStatusTests.swift */,
 			);
 			path = AppTests;
@@ -408,6 +411,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				89DE623BC5C4B1E95224A5D6 /* AlbumInfoServiceTests.swift in Sources */,
+				6366ED427D4B9ACD8150E99D /* PlaylistNameTests.swift in Sources */,
 				245C4537E8947653F9ECDE73 /* SourceStatusTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

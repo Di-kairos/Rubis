@@ -123,9 +123,12 @@ final class AppEnvironment {
     /// а не перематывают (⌘←/⌘→ и медиа-клавиши работают как всегда).
     var shelfFocused = false
 
-    /// Свежесозданный по ⌘⇧N плейлист: MainWindow переключает раздел,
-    /// PlaylistsView открывает его и сразу даёт переименовать.
-    var pendingPlaylistId: Int64?
+    /// Плейлист, который заказали, но ещё не создали: имя спрашивается до
+    /// записи в базу. `nil` — ничего не создаётся; непустое значение —
+    /// MainWindow переключает раздел, PlaylistsView держит строку с полем
+    /// ввода. Треки внутри уедут в плейлист сразу после создания (пустой
+    /// массив — ⌘⇧N без треков).
+    var pendingNewPlaylistTracks: [Track]?
 
     /// Инкремент по ⌘L — MainWindow открывает альбом играющего трека.
     var revealCurrentTrigger = 0
@@ -741,10 +744,30 @@ final class AppEnvironment {
     // MARK: - Playlists
 
     func createPlaylist() {
+        pendingNewPlaylistTracks = []
+    }
+
+    /// Имя из черновика: пробелы по краям не считаются, пустое имя — отказ
+    /// от создания. Плейлист с именем-заглушкой не остаётся.
+    nonisolated static func playlistName(from draft: String) -> String? {
+        let name = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
+    }
+
+    /// Создаёт заказанный плейлист под введённым именем вместе с его треками.
+    /// `nil` — имя пустое: заказ снимается, в базе ничего не появляется.
+    @discardableResult
+    func commitNewPlaylist(named draft: String) -> Playlist? {
+        let tracks = pendingNewPlaylistTracks ?? []
+        pendingNewPlaylistTracks = nil
+        guard let name = Self.playlistName(from: draft) else { return nil }
         do {
-            pendingPlaylistId = try playlistRepo.create(name: "New Playlist").id
+            let playlist = try playlistRepo.create(name: name)
+            if !tracks.isEmpty { add(tracks: tracks, to: playlist) }
+            return playlist
         } catch {
             Log.library.error("create playlist failed: \(error, privacy: .public)")
+            return nil
         }
     }
 
@@ -760,15 +783,9 @@ final class AppEnvironment {
         }
     }
 
-    /// Новый плейлист сразу с треками — открывается на переименование, как ⌘⇧N.
+    /// Новый плейлист сразу с треками — имя спрашивается до создания, как ⌘⇧N.
     func addToNewPlaylist(tracks: [Track]) {
-        do {
-            let playlist = try playlistRepo.create(name: "New Playlist")
-            add(tracks: tracks, to: playlist)
-            pendingPlaylistId = playlist.id
-        } catch {
-            Log.library.error("create playlist failed: \(error, privacy: .public)")
-        }
+        pendingNewPlaylistTracks = tracks
     }
 
     // MARK: - Library

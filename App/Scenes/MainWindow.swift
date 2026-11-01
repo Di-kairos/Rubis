@@ -118,9 +118,10 @@ struct MainWindow: View {
             minWidth: DS.Metrics.windowMinWidth,
             minHeight: DS.Metrics.windowMinHeight
         )
-        // ⌘⇧N создаёт плейлист из любого раздела — переключаемся к нему.
-        .onChange(of: env.pendingPlaylistId) {
-            if env.pendingPlaylistId != nil { section.wrappedValue = .playlists }
+        // ⌘⇧N заказывает плейлист из любого раздела — переключаемся туда,
+        // где спрашивают имя.
+        .onChange(of: env.pendingNewPlaylistTracks) {
+            if env.pendingNewPlaylistTracks != nil { section.wrappedValue = .playlists }
         }
         // ⌘L: показать альбом играющего трека (SPEC §7.6).
         .onChange(of: env.revealCurrentTrigger) {

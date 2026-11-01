@@ -16,6 +16,9 @@ struct PlaylistsView: View {
     @State private var tracks: [Track] = []
     @State private var renamingId: Int64?
     @State private var draftName = ""
+    /// Поле ввода имени (новый плейлист или переименование) должно получать
+    /// курсор само: иначе имя спрашивается, а печатать некуда.
+    @FocusState private var nameFieldFocused: Bool
     @State private var focused: Int?
     /// Только что удалённый плейлист и его состав: удаление мгновенное, без
     /// диалога, но восемь секунд его можно вернуть.
@@ -34,10 +37,20 @@ struct PlaylistsView: View {
             reload()
             loadTracks()
         }
-        .onChange(of: renamingId) { env.renamingPlaylist = renamingId != nil }
-        // Уходя с раздела в середине переименования, не оставляем флаг взведённым —
+        .onChange(of: isEditingName) { env.renamingPlaylist = isEditingName }
+        // Заказ нового плейлиста пришёл (⌘⇧N или «Add to Playlist») — пустое
+        // имя под курсором.
+        .onChange(of: env.pendingNewPlaylistTracks) {
+            guard env.pendingNewPlaylistTracks != nil else { return }
+            draftName = ""
+            nameFieldFocused = true
+        }
+        // Уходя с раздела в середине ввода имени, не оставляем флаг взведённым —
         // иначе Space и стрелки останутся глобально выключены.
-        .onDisappear { env.renamingPlaylist = false }
+        .onDisappear {
+            env.renamingPlaylist = false
+            env.pendingNewPlaylistTracks = nil
+        }
     }
 
     // MARK: - Плейлисты
@@ -48,12 +61,13 @@ struct PlaylistsView: View {
                 DSSectionHeader("Playlists")
                 DSIconButton("plus", accessibilityLabel: "New Playlist") { create() }
             }
-            if playlists.isEmpty {
+            if playlists.isEmpty, env.pendingNewPlaylistTracks == nil {
                 DSText("No playlists yet — ⌘⇧N", style: .body, color: DS.Color.textMuted)
                     .padding(DS.Space.md)
             }
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    if env.pendingNewPlaylistTracks != nil { newPlaylistRow }
                     ForEach(Array(playlists.enumerated()), id: \.element.id) { index, playlist in
                         playlistRow(playlist)
                             .id(playlist.id)
@@ -75,7 +89,7 @@ struct PlaylistsView: View {
         .background(DS.Color.bgRaised)
         // Return на плейлисте играет его целиком; во время переименования
         // навигация выключена — клавиши принадлежат текстовому полю.
-        .keyboardNavigable(count: renamingId == nil ? playlists.count : 0, index: $focused) {
+        .keyboardNavigable(count: isEditingName ? 0 : playlists.count, index: $focused) {
             index in
             guard let id = playlists[index].id,
                 let ids = try? env.playlistRepo.trackIds(in: id)
@@ -96,6 +110,7 @@ struct PlaylistsView: View {
                     .textFieldStyle(.plain)
                     .font(DS.Font.body)
                     .foregroundStyle(DS.Color.textPrimary)
+                    .focused($nameFieldFocused)
                     .onSubmit { commitRename(playlist) }
             } else {
                 DSText(playlist.name, style: .body)
@@ -116,6 +131,26 @@ struct PlaylistsView: View {
             if selected?.id == id { loadTracks() }
             return true
         }
+    }
+
+    /// Строка нового плейлиста: в базе его ещё нет, есть только имя под
+    /// курсором. Return создаёт, Esc и пустое имя отменяют — плейлиста с
+    /// именем-заглушкой не остаётся.
+    private var newPlaylistRow: some View {
+        DSListRow(isSelected: false, height: DS.Metrics.sidebarRow) {
+            TextField("New Playlist", text: $draftName)
+                .textFieldStyle(.plain)
+                .font(DS.Font.body)
+                .foregroundStyle(DS.Color.textPrimary)
+                .focused($nameFieldFocused)
+                .onSubmit { commitNew() }
+        }
+        .onExitCommand { env.pendingNewPlaylistTracks = nil }
+    }
+
+    /// Ввод имени открыт — клавиши принадлежат текстовому полю.
+    private var isEditingName: Bool {
+        renamingId != nil || env.pendingNewPlaylistTracks != nil
     }
 
     // MARK: - Треки плейлиста
@@ -189,21 +224,19 @@ struct PlaylistsView: View {
 
     private func reload() {
         playlists = (try? env.playlistRepo.all()) ?? []
-        // ⌘⇧N мог создать плейлист до появления этого экрана — открываем его.
-        if let pending = env.pendingPlaylistId {
-            env.pendingPlaylistId = nil
-            if let created = playlists.first(where: { $0.id == pending }) {
-                select(created)
-                startRename(created)
-                return
-            }
-        }
         if selected == nil, let first = playlists.first { select(first) }
     }
 
     private func create() {
         env.createPlaylist()
+    }
+
+    /// Имя введено — только теперь плейлист появляется в базе и открывается.
+    private func commitNew() {
+        guard let created = env.commitNewPlaylist(named: draftName) else { return }
         reload()
+        if let row = playlists.first(where: { $0.id == created.id }) { select(row) }
+        focused = playlists.firstIndex { $0.id == created.id }
     }
 
     private func select(_ playlist: Playlist) {
@@ -266,6 +299,7 @@ struct PlaylistsView: View {
     private func startRename(_ playlist: Playlist) {
         draftName = playlist.name
         renamingId = playlist.id
+        nameFieldFocused = true
     }
 
     private func commitRename(_ playlist: Playlist) {
