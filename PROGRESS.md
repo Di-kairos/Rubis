@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.2 (33)"
-head: "44938dd"
+head: "be72cdf"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
 last_session: 18
 last_reviewed: 2026-10-05
@@ -40,7 +40,10 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`44938dd`](https://github.com/Di-kairos/Rubis/commit/44938dd) —
+Текущий HEAD: [`be72cdf`](https://github.com/Di-kairos/Rubis/commit/be72cdf) —
+`chore(release): version 0.11.3 (34)` (сборка, нотаризация и публикация — на
+MacBook: на Mac Mini нет Developer ID). Перед ним
+[`44938dd`](https://github.com/Di-kairos/Rubis/commit/44938dd) —
 `fix(release): ship the third-party licence texts inside the app`
 (`Contents/Resources/Licenses/<package>/`, 24 пакета / 33 файла; релиз падает,
 если не нашёл ни одного). **В опубликованную 0.11.2 это не попало** — поедет
