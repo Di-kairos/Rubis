@@ -8,11 +8,12 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.2 (33)"
 head: "be72cdf"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
-last_session: 18
+last_session: 19
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Публичная готовность репо (сессия 19): rubis-releases README исправлен (0b67882) — источники публичные, сборка нотаризована, ссылка на third-party. Лицензии в бандле починены в 44938dd, но опубликованная 0.11.2 ещё без них: закрыть релизом 0.11.3 (34) или первым следующим"
+  - "Сессия 20, MacBook: релиз 0.11.3 (34) — код be72cdf, в нём лицензии third-party (44938dd), в опубликованной 0.11.2 их нет"
+  - "Сессия 20, MacBook: перенести секреты релиза на Mac Mini — .p12 Developer ID, ключ Sparkle EdDSA (generate_keys -x/-f, новый ключ НЕЛЬЗЯ — сломает автообновление), notarytool store-credentials rubis. Порядок — progress-report-session19.md"
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
   - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
@@ -30,8 +31,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session18.md
-  latest_kickoff: docs/sessions/SESSION_19_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session19.md
+  latest_kickoff: docs/sessions/SESSION_20_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
