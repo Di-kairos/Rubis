@@ -81,6 +81,10 @@ final class LoopbackRecorder {
     }
 
     func start() throws {
+        // Room for 10 s of 192 kHz stereo up front: growing the array inside
+        // the IOProc copies megabytes on the device's IO thread, the cycle
+        // (2.7 ms at 192 kHz) is missed and 512 frames record as silence.
+        samples.reserveCapacity(192_000 * 2 * 10)
         var procID: AudioDeviceIOProcID?
         let status = AudioDeviceCreateIOProcIDWithBlock(&procID, deviceID, nil) {
             [weak self] _, inInputData, inInputTime, _, _ in
