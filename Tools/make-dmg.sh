@@ -66,7 +66,9 @@ echo "==> audio-verify"
 # Архитектура — как у приложения (ARCHS = arm64): на Intel-хосте SwiftPM собрал
 # бы x86_64, и бинарь не подхватил бы arm64-фреймворки из бандла.
 swift build -c release --arch arm64 --package-path "$repo/Tools/audio-verify" | tail -1
-helper="$repo/Tools/audio-verify/.build/arm64-apple-macosx/release/audio-verify"
+# Путь спрашиваем у SwiftPM: Xcode 27 перенёс продукты в .build/out/Products,
+# а по старому пути лежал устаревший бинарь — cp молча брал его.
+helper="$(swift build -c release --arch arm64 --package-path "$repo/Tools/audio-verify" --show-bin-path)/audio-verify"
 cp "$helper" "$app/Contents/MacOS/audio-verify"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$app/Contents/MacOS/audio-verify"
 codesign --force --sign "$identity" --options runtime "${stamp[@]}" \
