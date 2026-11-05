@@ -5,16 +5,16 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.2 (33)"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
 head: "fa49a30"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
 last_session: 20
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "e87a38f: make-dmg.sh с Xcode 27 клал в бандл устаревший audio-verify из .build/arm64-apple-macosx/release — путь теперь от SwiftPM. 0.11.0–0.11.2 собраны на Xcode 27: в бандле может быть старый бинарь, сверить на MacBook при релизе 0.11.3"
+  - "e87a38f закрыт и сверен в 0.11.3: по старому пути на MacBook лежал audio-verify от 2026-09-20 — в 0.11.0–0.11.2 уехал он; в бандле 0.11.3 бинарь свежий (хеши разные)"
   - "SPEC §12 на Mac Mini (MEASURE=1 audio-verify): CPU FLAC 24/96 = 0.99%, Play → первый сэмпл медиана 61 мс (37–70). audio-verify на Mac Mini 24/24 после fa49a30: захват перевыделял массив в IO-потоке → редкая тишина на 192 кГц; движок ни при чём. Не измерено: 8 часов без dropout"
-  - "Сессия 21, MacBook: релиз 0.11.3 (34) — код fa49a30, в нём лицензии third-party (44938dd), в опубликованной 0.11.2 их нет"
+  - "Релиз 0.11.3 (34) опубликован 2026-11-05 (сессия 21, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 316e3cb9…, appcast be2558a (item 34) сверен по живой ссылке. В бандле лицензии (24 пакета / 33 файла) и свежий audio-verify. Живьём 0.11.3 не проверена"
   - "Сессия 21, MacBook: перенести секреты релиза на Mac Mini — .p12 Developer ID, ключ Sparkle EdDSA (generate_keys -x/-f, новый ключ НЕЛЬЗЯ — сломает автообновление), notarytool store-credentials rubis. Порядок — progress-report-session19.md, «Решения»"
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
   - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
@@ -49,13 +49,17 @@ links:
 `feat(tools): MEASURE=1 audio-verify times Play latency and CPU (SPEC §12)`
 (2026-11-05, Mac Mini; перед ним `e87a38f` — путь audio-verify в make-dmg.sh
 под Xcode 27). Перед ними [`be72cdf`](https://github.com/Di-kairos/Rubis/commit/be72cdf) —
-`chore(release): version 0.11.3 (34)` (сборка, нотаризация и публикация — на
-MacBook: на Mac Mini нет Developer ID). Перед ним
+`chore(release): version 0.11.3 (34)`. Выпущена **0.11.3** (build 34)
+2026-11-05 с MacBook, сессия 21: тесты 285/285, нотаризация `Accepted`, staple,
+Gatekeeper на скачанном образе — `accepted / Notarized Developer ID`, sha256
+`316e3cb93096521bfeb1ae591fff81060c69bcf443e035339df80524f13af53a`,
+appcast [`be2558a`](https://github.com/Di-kairos/rubis-releases/commit/be2558a)
+(item 34) сверен по живой ссылке; в бандле лицензии и свежий `audio-verify`.
+Перед ним
 [`44938dd`](https://github.com/Di-kairos/Rubis/commit/44938dd) —
 `fix(release): ship the third-party licence texts inside the app`
 (`Contents/Resources/Licenses/<package>/`, 24 пакета / 33 файла; релиз падает,
-если не нашёл ни одного). **В опубликованную 0.11.2 это не попало** — поедет
-следующим релизом. Перед ним
+если не нашёл ни одного; уехало в 0.11.3). Перед ним
 [`314e759`](https://github.com/Di-kairos/Rubis/commit/314e759) —
 `chore(release): version 0.11.2 (33)`. Выпущена **0.11.2** (build 33)
 2026-11-01 с MacBook, сессия 19: нотаризация `Accepted`, staple, Gatekeeper на
