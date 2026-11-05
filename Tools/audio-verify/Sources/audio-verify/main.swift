@@ -64,6 +64,17 @@ final class LoopbackRecorder {
     private var procID: AudioDeviceIOProcID?
     private let lock = NSLock()
     private var samples: [Float] = []
+    private var signalHostTime: UInt64?
+
+    /// Host time of the first non-zero captured sample (for `MEASURE=1`).
+    var firstSignalHostTime: UInt64? {
+        lock.lock()
+        defer { lock.unlock() }
+        return signalHostTime
+    }
+
+    /// Device rate, used only to place the first signal inside a chunk.
+    var sampleRate: Double = 48000
 
     init(deviceID: AudioDeviceID) {
         self.deviceID = deviceID
@@ -72,7 +83,7 @@ final class LoopbackRecorder {
     func start() throws {
         var procID: AudioDeviceIOProcID?
         let status = AudioDeviceCreateIOProcIDWithBlock(&procID, deviceID, nil) {
-            [weak self] _, inInputData, _, _, _ in
+            [weak self] _, inInputData, inInputTime, _, _ in
             guard let self else { return }
             let abl = UnsafeMutableAudioBufferListPointer(
                 UnsafeMutablePointer(mutating: inInputData))
@@ -101,6 +112,16 @@ final class LoopbackRecorder {
                 interleaved = mixed
             }
             self.lock.lock()
+            if self.signalHostTime == nil,
+                let index = interleaved.firstIndex(where: { $0 != 0 }),
+                inInputTime.pointee.mFlags.contains(.hostTimeValid)
+            {
+                // Chunk start + offset of the first non-zero frame.
+                let frames = Double(index / max(abl.count == 1 ? 2 : abl.count, 1))
+                let rate = self.sampleRate
+                self.signalHostTime =
+                    inInputTime.pointee.mHostTime + nanosToHost(frames / rate * 1e9)
+            }
             self.samples.append(contentsOf: interleaved)
             self.lock.unlock()
         }
@@ -303,6 +324,110 @@ func verifyFixture(
     }
 }
 
+// MARK: - Budgets (SPEC §12)
+
+func nanosToHost(_ nanos: Double) -> UInt64 {
+    var info = mach_timebase_info_data_t()
+    mach_timebase_info(&info)
+    return UInt64(nanos * Double(info.denom) / Double(info.numer))
+}
+
+func hostToMillis(_ ticks: UInt64) -> Double {
+    var info = mach_timebase_info_data_t()
+    mach_timebase_info(&info)
+    return Double(ticks) * Double(info.numer) / Double(info.denom) / 1e6
+}
+
+/// Core-seconds this process has burned (user + system), like Activity Monitor.
+func cpuSeconds() -> Double {
+    var usage = rusage()
+    getrusage(RUSAGE_SELF, &usage)
+    func seconds(_ t: timeval) -> Double { Double(t.tv_sec) + Double(t.tv_usec) / 1e6 }
+    return seconds(usage.ru_utime) + seconds(usage.ru_stime)
+}
+
+func waitIdle(_ player: Player, limitMillis: Int) async throws {
+    var waited = 0
+    while waited < limitMillis {
+        if case .idle = await player.state { return }
+        try await Task.sleep(for: .milliseconds(50))
+        waited += 50
+    }
+}
+
+/// `MEASURE=1 audio-verify` — the two SPEC §12 budgets that need no DAC:
+/// Play → first sample (rate already matched, so no rate-change pause) and
+/// CPU while playing FLAC 24/96. Latency is seen at the loopback input, so it
+/// includes the device's own output buffering — an upper bound.
+@MainActor
+func measureBudgets(
+    fixtures: [URL], loopback: AudioDeviceController.DeviceInfo,
+    controller: AudioDeviceController
+) async {
+    guard let url = fixtures.first(where: { $0.lastPathComponent == "noise-96000-24.flac" })
+    else {
+        report("noise-96000-24.flac missing — run Tools/make-fixtures.sh")
+        return
+    }
+    do {
+        try await controller.setNominalSampleRate(deviceID: loopback.id, rate: 96000)
+        try await Task.sleep(for: .milliseconds(800))
+        let player = Player(
+            devices: controller,
+            configuration: AudioConfiguration(
+                exclusiveAccess: false, sampleRateChangeDelay: .milliseconds(150),
+                rateFallback: .refuse, preferredDeviceUID: loopback.uid))
+        let track = Track(
+            sourceId: "audio-verify", title: url.lastPathComponent, duration: 5,
+            codec: "flac", sampleRate: 96000, bitDepth: 24)
+        let item = PlaybackItem(track: track, url: url)
+
+        // Warm-up: first run opens the device and the graph.
+        await player.play(items: [item])
+        try await waitIdle(player, limitMillis: 8000)
+
+        var latencies: [Double] = []
+        for _ in 0..<7 {
+            let recorder = LoopbackRecorder(deviceID: loopback.id)
+            recorder.sampleRate = 96000
+            try recorder.start()
+            try await Task.sleep(for: .milliseconds(300))
+            let pressed = mach_absolute_time()
+            await player.play(items: [item])
+            try await Task.sleep(for: .milliseconds(600))
+            await player.stop()
+            _ = recorder.stop()
+            if let first = recorder.firstSignalHostTime, first > pressed {
+                latencies.append(hostToMillis(first - pressed))
+            }
+            try await Task.sleep(for: .milliseconds(300))
+        }
+        latencies.sort()
+        let median = latencies.isEmpty ? 0 : latencies[latencies.count / 2]
+        report(
+            String(
+                format:
+                    "Play → first sample: median %.1f ms, min %.1f, max %.1f (%d/7 runs) — budget < 150 ms",
+                median, latencies.first ?? 0, latencies.last ?? 0, latencies.count))
+
+        // CPU: six copies back to back, ~30 s of FLAC 24/96, no capture running.
+        let queue = Array(repeating: item, count: 6)
+        let cpuStart = cpuSeconds()
+        let wallStart = mach_absolute_time()
+        await player.play(items: queue)
+        try await waitIdle(player, limitMillis: 45000)
+        let wall = hostToMillis(mach_absolute_time() - wallStart) / 1000
+        let percent = (cpuSeconds() - cpuStart) / wall * 100
+        report(
+            String(
+                format:
+                    "CPU while playing FLAC 24/96: %.2f%% of one core over %.1f s — budget < 3%%",
+                percent, wall))
+    } catch {
+        report("measure failed: \(error)")
+    }
+}
+
 // MARK: - Entry point
 
 // Проверка чужого отчёта о тракте (D-012): `audio-verify --verify-receipt
@@ -385,6 +510,11 @@ do {
 
 report("Loopback: \(loopback.name) [\(loopback.uid)]")
 report("Fixtures: \(fixtureURLs.count)\n")
+
+if ProcessInfo.processInfo.environment["MEASURE"] != nil {
+    await measureBudgets(fixtures: fixtureURLs, loopback: loopback, controller: controller)
+    exit(0)
+}
 
 var results: [FixtureResult] = []
 for url in fixtureURLs {
