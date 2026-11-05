@@ -2,6 +2,12 @@
 
 Актуальный указатель для «Продолжаем работу».
 
+- Сессия **20** (2026-11-05, Mac Mini): код `fa49a30`. `make-dmg.sh` брал
+  устаревший `audio-verify` под Xcode 27 (`e87a38f`); бюджеты §12 — CPU 0.99%,
+  Play → сэмпл 61 мс (`bba82ee`); флейк захвата на 192 кГц починен (`fa49a30`),
+  `audio-verify` 24/24 на Mac Mini. Отчёт `docs/sessions/progress-report-session20.md`
+- Следующая: **21** — kickoff `docs/sessions/SESSION_21_KICKOFF.md`: MacBook —
+  релиз 0.11.3, перенос секретов на Mac Mini, затем живая проверка
 - Сессия **19** закрыта 2026-11-05 на Mac Mini: код `be72cdf` — **0.11.3 (34)**
   не опубликована (лицензии в бандле, `44938dd`). Релиз с Mac Mini невозможен:
   нет Developer ID, профиля `rubis` и ключа Sparkle EdDSA — переносить с MacBook.
