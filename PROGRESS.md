@@ -8,7 +8,7 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
 head: "fa49a30"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
-last_session: 20
+last_session: 21
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
@@ -16,6 +16,9 @@ next_actions:
   - "SPEC §12 на Mac Mini (MEASURE=1 audio-verify): CPU FLAC 24/96 = 0.99%, Play → первый сэмпл медиана 61 мс (37–70). audio-verify на Mac Mini 24/24 после fa49a30: захват перевыделял массив в IO-потоке → редкая тишина на 192 кГц; движок ни при чём. Не измерено: 8 часов без dropout"
   - "Релиз 0.11.3 (34) опубликован 2026-11-05 (сессия 21, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 316e3cb9…, appcast be2558a (item 34) сверен по живой ссылке. В бандле лицензии (24 пакета / 33 файла) и свежий audio-verify. Живьём 0.11.3 не проверена"
   - "Перенос секретов релиза на Mac Mini отменён владельцем (D-022): релизы только с MacBook. Версия, собранная на Mac Mini, публикуется следующей сессией на MacBook"
+  - "Живьём на 0.11.3 (сессия 21): альбом 3-D: The Catalogue показывал каждый трек дважды — вторая строка с сервера Subsonic localhost, offline → unavailable. Сервер раздавал те же папки, источник удалён владельцем через Settings; 116 треков ушли, плейлисты и история их не держали. Сворачивание копий из разных источников кодом не делалось"
+  - "Баг: строка «… is offline» висит до перезапуска после удаления источника — sourcesDidChange() не чистит offlineServers (App/AppEnvironment.swift:226 и :679). Чинить выкидыванием исчезнувших id"
+  - "Локальные потерянные файлы: BLUES 60 unavailable, Nu Jazz:Funk 15. Не сервер — проверить глазами, переехали или удалены"
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
   - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
   - "Живые проверки §9 чек-листа руками владельца: 9.8, 9.5, 9.1, 9.2, 9.12; с ЦАПом 9.3/9.4/9.6. Стенд на Mac Mini — build/run-live-check.sh (9.7 и 9.10 ✅ в S15)"
@@ -33,8 +36,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session20.md
-  latest_kickoff: docs/sessions/SESSION_21_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session21.md
+  latest_kickoff: docs/sessions/SESSION_22_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
