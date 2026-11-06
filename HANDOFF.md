@@ -2,6 +2,14 @@
 
 Актуальный указатель для «Продолжаем работу».
 
+- Следующая: **23** — kickoff `docs/sessions/SESSION_23_KICKOFF.md` (MacBook):
+  итог ночного `SOAK=8 audio-verify`, релиз 0.11.4, первый запуск на чистом
+  аккаунте — путь к ответу «можно ли запускать в мир»
+- Сессия **22** (2026-11-06, Mac Mini): код `23ee944`. Фикс «… is offline»
+  после удаления источника (`76860bb`, EscapementTests 16/16); `SOAK=<часы>
+  audio-verify` — побитовый счётчик dropout (`23ee944`, 3 мин / 0 dropouts).
+  Оценка готовности: скачать можно, объявлять — нет (ЦАП, 8 ч, 6.4, 0.11.4).
+  Найдено: repeat-track не gapless. Отчёт `docs/sessions/progress-report-session22.md`
 - Следующая: **22** — kickoff `docs/sessions/SESSION_22_KICKOFF.md`: живая
   проверка 0.11.3, баг «… is offline» после удаления источника, потерянные
   файлы в BLUES и Nu Jazz:Funk
