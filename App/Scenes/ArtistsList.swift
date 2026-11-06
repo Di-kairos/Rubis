@@ -13,7 +13,10 @@ struct ArtistsList: View {
     @State private var focused: Int?
 
     var body: some View {
-        HSplitView {
+        // Не HSplitView: вложенный в NavigationSplitView NSSplitView на macOS 27
+        // зацикливает Update Constraints (safe area хост-вью) — AppKit роняет
+        // приложение при открытии раздела (S23).
+        HStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -38,12 +41,14 @@ struct ArtistsList: View {
                     proxy.scrollTo(artists[focused].id, anchor: .center)
                 }
             }
-            .frame(minWidth: 180, maxWidth: 280)
+            .frame(width: DS.Metrics.sidebarWidth)
             // Return на артисте играет его целиком.
             .keyboardNavigable(count: artists.count, index: $focused) { index in
                 guard let id = artists[index].id else { return }
                 env.play(tracks: (try? env.trackRepo.tracks(byArtist: id)) ?? [])
             }
+
+            Divider()
 
             ScrollView {
                 LazyVGrid(

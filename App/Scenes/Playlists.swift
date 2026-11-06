@@ -28,9 +28,11 @@ struct PlaylistsView: View {
     @State private var undoExpiry: Task<Void, Never>?
 
     var body: some View {
-        HSplitView {
+        // Не HSplitView — см. ArtistsList: вложенный split роняет macOS 27.
+        HStack(spacing: 0) {
             playlistColumn
-                .frame(minWidth: 180, maxWidth: 280)
+                .frame(width: DS.Metrics.sidebarWidth)
+            Divider()
             trackColumn
                 .frame(maxWidth: .infinity)
         }
