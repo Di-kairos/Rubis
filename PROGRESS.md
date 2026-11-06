@@ -6,12 +6,15 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "76860bb"
+head: "23ee944"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 21
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Готовность к публичному запуску (S22): блокеры — ЦАП-пункты чек-листа (1.2–1.6, 9.3/9.4/9.6, 6a.5), 8 ч без dropout, первый запуск на чистом аккаунте (6.4), релиз 0.11.4 с 76860bb. Продвижение закрыто (§3.3) до фразы владельца"
+  - "8 ч без dropout: SOAK=8 audio-verify (23ee944) — ночью на MacBook, команда в docs/manual-checklist.md 1.7. Mac Mini: 3 мин, 0 dropouts; audio-verify 24/24"
+  - "Найдено S22: repeat-track стыкует трек сам с собой не gapless — armGapless() пропускает next == index, трек перезапускается с паузой. Решить, нужен ли gapless-повтор одного трека"
   - "e87a38f закрыт и сверен в 0.11.3: по старому пути на MacBook лежал audio-verify от 2026-09-20 — в 0.11.0–0.11.2 уехал он; в бандле 0.11.3 бинарь свежий (хеши разные)"
   - "SPEC §12 на Mac Mini (MEASURE=1 audio-verify): CPU FLAC 24/96 = 0.99%, Play → первый сэмпл медиана 61 мс (37–70). audio-verify на Mac Mini 24/24 после fa49a30: захват перевыделял массив в IO-потоке → редкая тишина на 192 кГц; движок ни при чём. Не измерено: 8 часов без dropout"
   - "Релиз 0.11.3 (34) опубликован 2026-11-05 (сессия 21, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 316e3cb9…, appcast be2558a (item 34) сверен по живой ссылке. В бандле лицензии (24 пакета / 33 файла) и свежий audio-verify. Живьём 0.11.3 не проверена"
@@ -46,9 +49,11 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`76860bb`](https://github.com/Di-kairos/Rubis/commit/76860bb) —
+Текущий HEAD: [`23ee944`](https://github.com/Di-kairos/Rubis/commit/23ee944) —
+`feat(tools): SOAK=<hours> audio-verify checks every sample for dropouts`
+(2026-11-06, Mac Mini). Перед ним [`76860bb`](https://github.com/Di-kairos/Rubis/commit/76860bb) —
 `fix(app): removing a source clears its offline and unreadable lines`
-(2026-11-06, Mac Mini, EscapementTests 16/16). Перед ним [`fa49a30`](https://github.com/Di-kairos/Rubis/commit/fa49a30) —
+(EscapementTests 16/16). Перед ним [`fa49a30`](https://github.com/Di-kairos/Rubis/commit/fa49a30) —
 `fix(tools): audio-verify reserves the capture buffer before recording`
 (Mac Mini 24/24 bit-perfect). Перед ним [`bba82ee`](https://github.com/Di-kairos/Rubis/commit/bba82ee) —
 `feat(tools): MEASURE=1 audio-verify times Play latency and CPU (SPEC §12)`
