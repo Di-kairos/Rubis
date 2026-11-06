@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
-  <sub>A player built for one listener, published because the audio path, the layout
+  <sub>A player built for one listener and <a href="https://github.com/Di-kairos/hi-res-shelf">the library it plays</a>, published because the audio path, the layout
   math and the release pipeline may be worth reading. Not a product: no support,
   no roadmap for feature requests. Issues and pull requests are welcome and
   answered when time allows.</sub>
