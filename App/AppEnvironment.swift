@@ -82,15 +82,31 @@ final class AppEnvironment {
     private var rescanPending: Set<String> = []
     /// Трек, который уже перезапускали после сорванной загрузки.
     private var lastRemoteRetry: Int64?
-    /// Серверы, которые не отвечают (SPEC §6.3).
-    private(set) var offlineServers: Set<String> = []
+    /// Серверы, которые не отвечают (SPEC §6.3): id → имя.
+    private var offlineServers: [String: String] = [:]
     /// Строка о молчащем сервере для сайдбара — одна строка, не алерт.
-    private(set) var serverStatus: String?
+    var serverStatus: String? { Self.serverStatus(offline: offlineServers) }
     /// Папки, чей последний скан упал (закладка не резолвится, папку убрали):
     /// id → имя. Без этого ошибка оставалась только в логе.
     private var unreadableSources: [String: String] = [:]
     /// Строка о нечитаемой папке для сайдбара — как `serverStatus`, не алерт.
     var sourceStatus: String? { Self.sourceStatus(unreadable: unreadableSources) }
+
+    nonisolated static func serverStatus(offline: [String: String]) -> String? {
+        switch offline.count {
+        case 0: nil
+        case 1: "\(offline.values.first ?? "") is offline"
+        default: "\(offline.count) servers are offline"
+        }
+    }
+
+    /// Статусы только живых источников: удалённый источник не должен
+    /// держать строку в сайдбаре до перезапуска.
+    nonisolated static func pruned(_ statuses: [String: String], to ids: Set<String>)
+        -> [String: String]
+    {
+        statuses.filter { ids.contains($0.key) }
+    }
 
     nonisolated static func sourceStatus(unreadable: [String: String]) -> String? {
         switch unreadable.count {
@@ -224,6 +240,11 @@ final class AppEnvironment {
     /// Источники добавили или убрали: наблюдатели папок — заново, разделы —
     /// перечитать.
     func sourcesDidChange() {
+        if let sources = try? sourceRepo.all() {
+            let ids = Set(sources.map(\.id))
+            offlineServers = Self.pruned(offlineServers, to: ids)
+            unreadableSources = Self.pruned(unreadableSources, to: ids)
+        }
         rebuildFolderWatcher()
         libraryRevision += 1
     }
@@ -672,11 +693,7 @@ final class AppEnvironment {
     func checkServer(_ source: Source) async {
         let reachable = await remote.isReachable(sourceId: source.id)
         let changed = (try? trackRepo.setUnavailable(!reachable, inSource: source.id)) ?? 0
-        offlineServers =
-            reachable
-            ? offlineServers.subtracting([source.id])
-            : offlineServers.union([source.id])
-        serverStatus = offlineServers.isEmpty ? nil : "\(source.displayName) is offline"
+        offlineServers[source.id] = reachable ? nil : source.displayName
         // Списки читают библиотеку наблюдением, а очередь — нет: она собрана
         // из старых строк и всё ещё считает молчащие треки играбельными.
         if changed > 0 {

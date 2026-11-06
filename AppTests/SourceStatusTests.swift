@@ -18,3 +18,23 @@ struct SourceStatusTests {
         #expect(line == "2 folders can't be read — add them again")
     }
 }
+
+/// Строка о молчащем сервере и её судьба после удаления источника.
+struct ServerStatusTests {
+    @Test func oneServerIsNamed() {
+        #expect(AppEnvironment.serverStatus(offline: ["s": "localhost"]) == "localhost is offline")
+    }
+
+    @Test func severalServersAreCounted() {
+        let line = AppEnvironment.serverStatus(offline: ["a": "A", "b": "B"])
+        #expect(line == "2 servers are offline")
+    }
+
+    @Test func removedSourceDropsItsLine() {
+        let kept = AppEnvironment.pruned(["gone": "localhost", "here": "Navidrome"], to: ["here"])
+        #expect(kept == ["here": "Navidrome"])
+        #expect(
+            AppEnvironment.serverStatus(
+                offline: AppEnvironment.pruned(["gone": "localhost"], to: [])) == nil)
+    }
+}
