@@ -343,10 +343,15 @@ public struct AlbumRepository: Sendable {
         }
     }
 
+    /// Альбомы артиста: свои и те, где у него есть треки — сборники,
+    /// DJ-миксы, совместные. Без вторых гость сборника стоял в списке
+    /// Artists с пустой сеткой справа (S23, 163 артиста владельца).
     public func albums(byArtist artistId: Int64) throws -> [Album] {
         try db.reader.read {
             try Album
-                .filter(Column("artist_id") == artistId)
+                .filter(
+                    sql: "artist_id = ? OR id IN (SELECT album_id FROM track WHERE artist_id = ?)",
+                    arguments: [artistId, artistId])
                 .order(Column("year").ascNullsLast)
                 .fetchAll($0)
         }

@@ -9,7 +9,6 @@ public struct FileMetadata: Sendable {
     public let artist: String?
     public let albumTitle: String?
     public let albumArtistTag: String?
-    public let artistSortTag: String?
     public let albumSortTag: String?
     public let isCompilationTagged: Bool
     public let trackNo: Int?
@@ -46,7 +45,6 @@ public enum MetadataReader {
             artist: metadata.artist,
             albumTitle: metadata.albumTitle,
             albumArtistTag: metadata.albumArtist,
-            artistSortTag: metadata.artistSortOrder,
             albumSortTag: metadata.albumTitleSortOrder,
             isCompilationTagged: metadata.isCompilation ?? false,
             trackNo: metadata.trackNumber,

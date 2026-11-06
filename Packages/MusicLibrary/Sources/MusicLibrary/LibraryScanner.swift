@@ -618,6 +618,7 @@ public actor LibraryScanner {
             try database.execute(
                 sql: "UPDATE source SET last_scan_at = ? WHERE id = ?",
                 arguments: [Date(), source.id])
+            try ArtistTidy.run(database)
         }
         log(
             "scan \(source.displayName): +\(summary.added) ~\(summary.updated) →\(summary.moved) ?\(summary.unavailable) ↩\(summary.restored) ×\(summary.deduplicated) =\(summary.unchanged) !\(summary.failed.count)"
@@ -724,7 +725,7 @@ public actor LibraryScanner {
 
                     // Артист трека
                     let trackArtistID = try Self.resolveArtist(
-                        name: artistTag, sortTag: meta.artistSortTag,
+                        name: artistTag,
                         cache: &artists, database: database)
 
                     // Album artist по правилам §5.3
@@ -732,7 +733,7 @@ public actor LibraryScanner {
                         cue?.sheet.performer ?? meta.albumArtistTag
                         ?? (meta.isCompilationTagged ? "Various Artists" : artistTag)
                     let albumArtistID = try Self.resolveArtist(
-                        name: albumArtistName, sortTag: meta.albumSortTag == nil ? nil : nil,
+                        name: albumArtistName,
                         cache: &artists, database: database)
 
                     // Альбом
@@ -802,7 +803,7 @@ public actor LibraryScanner {
                             let end = entry.end
                             let performer = entry.performer ?? artistTag
                             let artistID = try Self.resolveArtist(
-                                name: performer, sortTag: nil, cache: &artists,
+                                name: performer, cache: &artists,
                                 database: database)
                             // Строка «весь файл» становится первой дорожкой:
                             // её id, а с ним плейлисты и история, переживают
@@ -996,11 +997,12 @@ public actor LibraryScanner {
     }
 
     private static func resolveArtist(
-        name: String?, sortTag: String?,
-        cache: inout [String: Int64], database: Database
+        name: String?, cache: inout [String: Int64], database: Database
     ) throws -> Int64? {
         guard let name, !name.isEmpty else { return nil }
-        let sortName = sortTag ?? Normalize.sortName(for: name)
+        // Ключ — только имя: сырой ARTISTSORT давал второй ключ тому же
+        // артисту, и у дорожки и альбома выходили разные строки (S23).
+        let sortName = Normalize.sortName(for: name)
         if let cached = cache[sortName] { return cached }
         if let existing = try Artist.filter(Column("sort_name") == sortName).fetchOne(database) {
             cache[sortName] = existing.id
