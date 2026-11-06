@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "23ee944"
+head: "e9ff59c"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
@@ -49,7 +49,13 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`23ee944`](https://github.com/Di-kairos/Rubis/commit/23ee944) —
+Текущий HEAD: [`e9ff59c`](https://github.com/Di-kairos/Rubis/commit/e9ff59c) —
+`fix(library): show albums for every artist in the Artists section`
+(2026-11-06, MacBook; MusicLibrary 106/106). Перед ним [`d4ad21a`](https://github.com/Di-kairos/Rubis/commit/d4ad21a) —
+`fix(app): replace nested HSplitView so Artists and Playlists stop crashing on macOS 27`
+и [`b639e97`](https://github.com/Di-kairos/Rubis/commit/b639e97) —
+`fix(playback): keep the engine on the hogged DAC when macOS moves the default output`
+(PlaybackEngine 55/55, audio-verify 24/24). Перед ними [`23ee944`](https://github.com/Di-kairos/Rubis/commit/23ee944) —
 `feat(tools): SOAK=<hours> audio-verify checks every sample for dropouts`
 (2026-11-06, Mac Mini). Перед ним [`76860bb`](https://github.com/Di-kairos/Rubis/commit/76860bb) —
 `fix(app): removing a source clears its offline and unreadable lines`
