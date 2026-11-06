@@ -6,8 +6,8 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "fa49a30"
-tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 13/13; app Debug without warnings (Xcode 27)"
+head: "76860bb"
+tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 21
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
@@ -17,7 +17,7 @@ next_actions:
   - "Релиз 0.11.3 (34) опубликован 2026-11-05 (сессия 21, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 316e3cb9…, appcast be2558a (item 34) сверен по живой ссылке. В бандле лицензии (24 пакета / 33 файла) и свежий audio-verify. Живьём 0.11.3 не проверена"
   - "Перенос секретов релиза на Mac Mini отменён владельцем (D-022): релизы только с MacBook. Версия, собранная на Mac Mini, публикуется следующей сессией на MacBook"
   - "Живьём на 0.11.3 (сессия 21): альбом 3-D: The Catalogue показывал каждый трек дважды — вторая строка с сервера Subsonic localhost, offline → unavailable. Сервер раздавал те же папки, источник удалён владельцем через Settings; 116 треков ушли, плейлисты и история их не держали. Сворачивание копий из разных источников кодом не делалось"
-  - "Баг: строка «… is offline» висит до перезапуска после удаления источника — sourcesDidChange() не чистит offlineServers (App/AppEnvironment.swift:226 и :679). Чинить выкидыванием исчезнувших id"
+  - "Баг «… is offline» после удаления источника закрыт 76860bb (S22, Mac Mini): offlineServers и unreadableSources чистятся в sourcesDidChange(). Живьём не проверено; в релиз — следующей сессией на MacBook (D-022)"
   - "Локальные потерянные файлы: BLUES 60 unavailable, Nu Jazz:Funk 15. Не сервер — проверить глазами, переехали или удалены"
   - "Релиз 0.11.1 (32) опубликован 2026-11-01 (сессия 19, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 ff935b7e…, appcast aa1243b сверен по живой ссылке. Осталось живьём: обложки после запуска и выделение в Tracks на 0.11.1"
   - "Баг-лист S18 закрыт по коду, живьём не проверен: имя New Playlist до создания (f0d0f73, D-021), мультивыделение в альбоме и плейлисте (778d1c7). У альбома трек-лист стал List — подсветка строки теперь значит «выделено», играющий помечен гранатом; нужен глаз владельца"
@@ -46,7 +46,9 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`fa49a30`](https://github.com/Di-kairos/Rubis/commit/fa49a30) —
+Текущий HEAD: [`76860bb`](https://github.com/Di-kairos/Rubis/commit/76860bb) —
+`fix(app): removing a source clears its offline and unreadable lines`
+(2026-11-06, Mac Mini, EscapementTests 16/16). Перед ним [`fa49a30`](https://github.com/Di-kairos/Rubis/commit/fa49a30) —
 `fix(tools): audio-verify reserves the capture buffer before recording`
 (Mac Mini 24/24 bit-perfect). Перед ним [`bba82ee`](https://github.com/Di-kairos/Rubis/commit/bba82ee) —
 `feat(tools): MEASURE=1 audio-verify times Play latency and CPU (SPEC §12)`
