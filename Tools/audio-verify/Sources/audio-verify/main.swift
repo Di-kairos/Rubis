@@ -139,6 +139,15 @@ final class LoopbackRecorder {
         }
     }
 
+    /// Hands over what was captured so far. `spare` must be reserved like
+    /// `samples`: the swap keeps the IO thread on a buffer that never grows.
+    func drain(swappingWith spare: inout [Float]) {
+        spare.removeAll(keepingCapacity: true)
+        lock.lock()
+        swap(&samples, &spare)
+        lock.unlock()
+    }
+
     func stop() -> [Float] {
         if let procID {
             AudioDeviceStop(deviceID, procID)
@@ -432,6 +441,175 @@ func measureBudgets(
     }
 }
 
+// MARK: - Soak (SPEC §12: no dropouts over 8 hours)
+
+/// Checks a capture of one file played back to back against its decode, sample
+/// by sample, without keeping the capture. Gapless joins make the output exactly
+/// periodic, so any dropped or inserted sample breaks the period.
+struct PeriodicChecker {
+    let reference: [Float]
+    /// Index into `reference` of the next expected sample; nil until locked on.
+    private var phase: Int?
+    private var pending: [Float] = []
+    private(set) var checkedSamples = 0
+    private(set) var dropouts = 0
+
+    init(reference: [Float]) {
+        self.reference = reference
+    }
+
+    mutating func feed(_ chunk: [Float]) {
+        var start = 0
+        while start < chunk.count {
+            guard var index = phase else {
+                pending.append(contentsOf: chunk[start...])
+                lockOn()
+                return
+            }
+            var i = start
+            while i < chunk.count, chunk[i] == reference[index] {
+                index += 1
+                if index == reference.count { index = 0 }
+                i += 1
+            }
+            checkedSamples += i - start
+            if i == chunk.count {
+                phase = index
+                return
+            }
+            // ponytail: re-lock waits for the next period start, so up to one
+            // period (5 s) after each dropout goes unchecked; fine while 0 is the goal.
+            dropouts += 1
+            if ProcessInfo.processInfo.environment["VERIFY_DEBUG"] != nil {
+                let ctx = chunk[max(i - 4, 0)..<min(i + 6, chunk.count)]
+                print(
+                    "DBG mismatch: checked=\(checkedSamples) refIndex=\(index)/\(reference.count) got=\(Array(ctx)) want=\(Array(reference[max(index - 4, 0)..<min(index + 6, reference.count)]))"
+                )
+            }
+            phase = nil
+            start = i
+        }
+    }
+
+    /// Finds the start of a period in `pending` and checks everything after it.
+    private mutating func lockOn() {
+        let window = min(2048, reference.count)
+        guard pending.count >= window else { return }
+        var candidate = 0
+        while candidate + window <= pending.count {
+            if pending[candidate] == reference[0],
+                pending[candidate..<candidate + window].elementsEqual(reference[0..<window])
+            {
+                let rest = Array(pending[candidate...])
+                pending = []
+                phase = 0
+                feed(rest)
+                return
+            }
+            candidate += 1
+        }
+        // Keep only the tail that may still hold the start of a window.
+        pending.removeFirst(pending.count - window + 1)
+    }
+}
+
+/// `SOAK=<hours> audio-verify` — FLAC 24/96 queued back to back into the
+/// loopback for that long, every captured sample checked. Queue copies, not
+/// repeat-track: the player does not arm a gapless join from a track to itself.
+/// Exit 0 only with zero dropouts.
+@MainActor
+func soak(
+    hours: Double, fixtures: [URL], loopback: AudioDeviceController.DeviceInfo,
+    controller: AudioDeviceController
+) async -> Bool {
+    guard let url = fixtures.first(where: { $0.lastPathComponent == "noise-96000-24.flac" })
+    else {
+        report("noise-96000-24.flac missing — run Tools/make-fixtures.sh")
+        return false
+    }
+    do {
+        let (reference, _) = try decodeReference(url: url)
+        try await controller.setNominalSampleRate(deviceID: loopback.id, rate: 96000)
+        try await Task.sleep(for: .milliseconds(800))
+        let player = Player(
+            devices: controller,
+            configuration: AudioConfiguration(
+                exclusiveAccess: false, sampleRateChangeDelay: .milliseconds(150),
+                rateFallback: .refuse, preferredDeviceUID: loopback.uid))
+        let track = Track(
+            sourceId: "audio-verify", title: url.lastPathComponent, duration: 5,
+            codec: "flac", sampleRate: 96000, bitDepth: 24)
+
+        let recorder = LoopbackRecorder(deviceID: loopback.id)
+        try recorder.start()
+        try await Task.sleep(for: .milliseconds(300))
+        // 5 s per copy, plus slack so the queue outlasts the run.
+        let copies = Int(hours * 3600 / 5) + 10
+        await player.play(
+            items: Array(repeating: PlaybackItem(track: track, url: url), count: copies))
+
+        var checker = PeriodicChecker(reference: reference)
+        var spare: [Float] = []
+        spare.reserveCapacity(192_000 * 2 * 10)
+        let started = Date()
+        var nextReport = 600.0
+        var stoppedEarly: String?
+        while Date().timeIntervalSince(started) < hours * 3600 {
+            try await Task.sleep(for: .seconds(1))
+            if case .failed(_, let error) = await player.state {
+                stoppedEarly = "player failed: \(error)"
+                break
+            }
+            recorder.drain(swappingWith: &spare)
+            checker.feed(spare)
+            let elapsed = Date().timeIntervalSince(started)
+            if elapsed >= nextReport {
+                nextReport += 600
+                report(soakLine(elapsed: elapsed, checker: checker))
+            }
+        }
+        // Anything captured after the last drain is dropped: stopping the
+        // player puts silence into it.
+        await player.stop()
+        _ = recorder.stop()
+        let elapsed = Date().timeIntervalSince(started)
+        if let stoppedEarly { report("STOPPED: \(stoppedEarly)") }
+        report("\nSOAK " + soakLine(elapsed: elapsed, checker: checker))
+        // A run that never locked on checked nothing — that is not a pass.
+        let checkedSeconds = Double(checker.checkedSamples) / 2 / 96000
+        return stoppedEarly == nil && checker.dropouts == 0 && checkedSeconds > elapsed * 0.9
+    } catch {
+        report("soak failed: \(error)")
+        return false
+    }
+}
+
+/// The detector must see a clean stream as clean and one lost sample as a
+/// dropout — otherwise a night of "0 dropouts" proves nothing.
+func checkerSelfTest() -> Bool {
+    let reference = (0..<10_000).map { Float(($0 * 7919) % 10_007) / 10_007 + 0.001 }
+    let silence = [Float](repeating: 0, count: 3000)
+    let clean = silence + Array(repeating: reference, count: 5).flatMap { $0 }
+    var lost = clean
+    lost.remove(at: 25_000)
+    var a = PeriodicChecker(reference: reference)
+    var b = PeriodicChecker(reference: reference)
+    // Uneven chunks, like IO cycles.
+    for chunk in stride(from: 0, to: clean.count, by: 777) {
+        a.feed(Array(clean[chunk..<min(chunk + 777, clean.count)]))
+    }
+    for chunk in stride(from: 0, to: lost.count, by: 777) {
+        b.feed(Array(lost[chunk..<min(chunk + 777, lost.count)]))
+    }
+    return a.dropouts == 0 && a.checkedSamples == 50_000 && b.dropouts == 1
+}
+
+func soakLine(elapsed: Double, checker: PeriodicChecker) -> String {
+    String(
+        format: "%.2f h: %d dropouts, %.2f h of audio checked bit for bit",
+        elapsed / 3600, checker.dropouts, Double(checker.checkedSamples) / 2 / 96000 / 3600)
+}
+
 // MARK: - Entry point
 
 // Проверка чужого отчёта о тракте (D-012): `audio-verify --verify-receipt
@@ -518,6 +696,20 @@ report("Fixtures: \(fixtureURLs.count)\n")
 if ProcessInfo.processInfo.environment["MEASURE"] != nil {
     await measureBudgets(fixtures: fixtureURLs, loopback: loopback, controller: controller)
     exit(0)
+}
+
+if let value = ProcessInfo.processInfo.environment["SOAK"] {
+    guard let hours = Double(value), hours > 0 else {
+        print("SOAK takes hours, e.g. SOAK=8")
+        exit(2)
+    }
+    guard checkerSelfTest() else {
+        report("dropout detector self-test FAILED — soak would not catch a dropout")
+        exit(2)
+    }
+    let passed = await soak(
+        hours: hours, fixtures: fixtureURLs, loopback: loopback, controller: controller)
+    exit(passed ? 0 : 1)
 }
 
 var results: [FixtureResult] = []
