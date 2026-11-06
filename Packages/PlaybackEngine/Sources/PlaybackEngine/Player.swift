@@ -52,7 +52,11 @@ public actor Player {
     public private(set) var repeatMode: RepeatMode = .off
     public private(set) var shuffleMode: ShuffleMode = .off
     private var random = SystemRandomNumberGenerator()
-    private var currentDeviceID: UInt32?
+    private var currentDeviceID: UInt32? {
+        didSet { pin.set(currentDeviceID) }
+    }
+    /// Держит движок на `currentDeviceID`, когда AVAudioEngine уходит за default.
+    private let pin = OutputPin()
     /// Устройство, у которого держим hog, — чтобы отпустить ровно его, в том
     /// числе когда exclusive выключили, не меняя выход.
     private var hoggedDeviceID: UInt32?
@@ -434,7 +438,9 @@ public actor Player {
             if hoggedDeviceID == device.id {
                 exclusive = true
             } else {
+                let wasDefault = (try? await devices.defaultOutputDevice())?.id == device.id
                 exclusive = await devices.startHogging(deviceID: device.id)
+                if exclusive, wasDefault { await settleAfterHog(device.id, generation: mine) }
             }
             hoggedDeviceID = exclusive ? device.id : nil
             if exclusive {
@@ -482,7 +488,27 @@ public actor Player {
             mixingDisabled: mixingDisabled,
             dsdPath: plan.isDSD ? (plan.usesDoP ? .dop : .pcmConversion) : nil,
             ratePolicy: config.rateFallback.rawValue,
-            isBitPerfect: exclusive && plan.exact && rateApplied)
+            // Бейдж про выход верен, только если движок на нём и стоит.
+            isBitPerfect: exclusive && plan.exact && rateApplied
+                && engine.outputDeviceID == device.id)
+    }
+
+    /// Hog системного default-выхода: CoreAudio через ~50 мс уводит default
+    /// на другое устройство, AVAudioEngine уходит следом (см. `OutputPin`).
+    /// Ждём этого сдвига до первого сэмпла и возвращаем движок — иначе он
+    /// случился бы посреди трека выпадением звука.
+    /// Не бросает: hog уже взят и должен попасть в `hoggedDeviceID`, а
+    /// обогнавшую команду поймает следующая же сверка поколения. Движок не
+    /// вернулся — бейдж это покажет, bit-perfect не заявится.
+    /// ponytail: опрос 5 мс с потолком 250 мс; не сдвинулся — колбэк смены
+    /// конфигурации всё равно вернёт движок, но уже с выпадением.
+    private func settleAfterHog(_ id: UInt32, generation mine: UInt64) async {
+        for _ in 0..<50 {
+            if (try? await devices.defaultOutputDevice())?.id != id { break }
+            try? await Task.sleep(for: .milliseconds(5))
+            guard mine == generation else { return }
+        }
+        if engine.outputDeviceID != id { try? engine.setOutputDeviceID(id) }
     }
 
     private func checkCurrent(_ mine: UInt64) throws {
@@ -755,7 +781,7 @@ public actor Player {
     private func installBridgeIfNeeded() {
         guard bridge == nil else { return }
         let (stream, continuation) = AsyncStream.makeStream(of: EngineEvent.self)
-        let bridge = DelegateBridge { event in continuation.yield(event) }
+        let bridge = DelegateBridge(pin: pin) { event in continuation.yield(event) }
         engine.install(delegate: bridge)
         self.bridge = bridge
         eventPump = Task { [weak self] in
@@ -807,9 +833,21 @@ public actor Player {
 
     private final class DelegateBridge: NSObject, AudioPlayer.Delegate {
         private let onEvent: @Sendable (EngineEvent) -> Void
+        private let pin: OutputPin
 
-        init(onEvent: @escaping @Sendable (EngineEvent) -> Void) {
+        init(pin: OutputPin, onEvent: @escaping @Sendable (EngineEvent) -> Void) {
+            self.pin = pin
             self.onEvent = onEvent
+        }
+
+        /// Синхронно, на очереди AVAudioEngine: через актор движок успел бы
+        /// отыграть кусок трека в динамики.
+        func audioPlayer(
+            _ audioPlayer: AudioPlayer, audioEngineConfigurationChange userInfo: [AnyHashable: Any]?
+        ) {
+            if let pinned = pin.drift(from: audioPlayer.outputDeviceID) {
+                try? audioPlayer.setOutputDeviceID(pinned)
+            }
         }
 
         func audioPlayer(

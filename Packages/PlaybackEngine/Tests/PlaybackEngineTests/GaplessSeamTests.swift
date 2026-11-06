@@ -77,6 +77,7 @@ private final class FakeEngine: PlaybackEngineDriving, @unchecked Sendable {
         queued.removeAll()
     }
     @discardableResult func seek(time: TimeInterval) -> Bool { true }
+    var outputDeviceID: AudioObjectID { FakeDevices.info.id }
     func setOutputDeviceID(_ id: AudioObjectID) throws {}
     func install(delegate: AnyObject?) {}
 

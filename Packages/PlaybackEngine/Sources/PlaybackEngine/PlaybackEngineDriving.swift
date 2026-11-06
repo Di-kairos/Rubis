@@ -25,6 +25,8 @@ protocol PlaybackEngineDriving: AnyObject {
     @discardableResult func resume() -> Bool
     func stop()
     @discardableResult func seek(time: TimeInterval) -> Bool
+    /// Устройство, на котором движок стоит на самом деле, — не то, что ему задали.
+    var outputDeviceID: AudioObjectID { get }
     func setOutputDeviceID(_ id: AudioObjectID) throws
     /// Делегат событий движка. У фальшивого адаптера событий нет — он их шлёт сам.
     func install(delegate: AnyObject?)
@@ -48,6 +50,7 @@ final class SFBEngineAdapter: PlaybackEngineDriving {
     @discardableResult func resume() -> Bool { player.resume() }
     func stop() { player.stop() }
     @discardableResult func seek(time: TimeInterval) -> Bool { player.seek(time: time) }
+    var outputDeviceID: AudioObjectID { player.outputDeviceID }
     func setOutputDeviceID(_ id: AudioObjectID) throws { try player.setOutputDeviceID(id) }
     func install(delegate: AnyObject?) { player.delegate = delegate as? AudioPlayer.Delegate }
 }
