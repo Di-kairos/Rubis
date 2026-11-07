@@ -1,5 +1,5 @@
 {
-  "originHash" : "92a7c7e8ab5ccab2a2e77cb00ce7df95af2d2173592a9d5688fad6c4795883d4",
+  "originHash" : "88d17d32d9cc26c395b13eb27b79b85343c31bc6c9dfc1709305be2fbe7881c2",
   "pins" : [
     {
       "identity" : "avfaudioextensions",
@@ -148,10 +148,10 @@
     {
       "identity" : "sfbaudioengine",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sbooth/SFBAudioEngine.git",
+      "location" : "https://github.com/Di-kairos/SFBAudioEngine.git",
       "state" : {
-        "revision" : "5a74dde3089060bac35f0a16970d91fc8402e751",
-        "version" : "0.13.0"
+        "revision" : "e1f9d026d98380cd52a6a677483e244a595ae2fd",
+        "version" : "0.13.0-rubis.1"
       }
     },
     {
