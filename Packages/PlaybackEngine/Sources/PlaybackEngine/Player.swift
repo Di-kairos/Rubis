@@ -538,10 +538,12 @@ public actor Player {
         if source.isDSD {
             // DoP carries DSD in PCM frames at dsdRate/16 (DSD64 → 176.4k).
             let dopRate = source.sampleRate / 16.0
+            // Частоту проверяет физический формат, а не `available`: тот
+            // собран из семейств PCM и кончается на 384 кГц, так что DSD256
+            // (705.6 кГц) до DoP не доходил никогда (S23, FiiO QX13).
             let dopAllowed =
                 config.dsdMode == .dopIfAvailable
                 && config.dopConfirmedDeviceUIDs.contains(device.uid)
-                && available.contains(dopRate)
                 && formats.contains { $0.carriesDoP(at: dopRate) }
             if dopAllowed {
                 return RatePlan(target: dopRate, exact: true, isDSD: true, usesDoP: true)
