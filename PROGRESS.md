@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "e9ff59c"
+head: "d33af65"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
@@ -49,7 +49,10 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`e9ff59c`](https://github.com/Di-kairos/Rubis/commit/e9ff59c) —
+Текущий HEAD: [`d33af65`](https://github.com/Di-kairos/Rubis/commit/d33af65) —
+`fix(playback): play DSD256 DSF by pinning SFBAudioEngine to a patched fork`
+(2026-11-07, MacBook; PlaybackEngine 56/56, audio-verify 24/24; SFBAudioEngine →
+форк `Di-kairos/SFBAudioEngine` `0.13.0-rubis.1`). Перед ним [`e9ff59c`](https://github.com/Di-kairos/Rubis/commit/e9ff59c) —
 `fix(library): show albums for every artist in the Artists section`
 (2026-11-06, MacBook; MusicLibrary 106/106). Перед ним [`d4ad21a`](https://github.com/Di-kairos/Rubis/commit/d4ad21a) —
 `fix(app): replace nested HSplitView so Artists and Playlists stop crashing on macOS 27`
