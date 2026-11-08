@@ -341,10 +341,14 @@ struct TransportBar: View {
     }
 
     private func row(_ label: String, _ value: String) -> some View {
-        HStack {
+        // Значение переносится, а не режется: «44100 Hz / bit depth unknown»
+        // не влезало в 280 pt и теряло ровно то слово, ради которого строка (S23).
+        HStack(alignment: .firstTextBaseline) {
             DSText(label, style: .caption, color: DS.Color.textSecondary)
+                .fixedSize()
             Spacer()
-            DSText(value, style: .numeric)
+            DSText(value, style: .numeric, lines: 2)
+                .multilineTextAlignment(.trailing)
         }
     }
 
