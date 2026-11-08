@@ -25,7 +25,10 @@ struct DeviceDossierCard: View {
                     DSText(dossier.name, style: .headline)
                     DSText(dossier.transport, style: .label, color: DS.Color.textMuted)
                     Spacer()
+                    // Кнопка держит ширину: сжиматься должен текст слева,
+                    // а не подпись действия («Probe exclusive acc…», S23).
                     Button(probing ? "Probing…" : "Probe exclusive access") { probeHog() }
+                        .fixedSize()
                         .disabled(probing || playing || dossier.builtIn)
                         .help(
                             dossier.builtIn

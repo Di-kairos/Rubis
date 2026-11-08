@@ -289,45 +289,53 @@ struct AudioSettings: View {
     }
 
     var body: some View {
-        Form {
-            Picker("Output device", selection: $preferredDeviceUID) {
-                Text("System default").tag("")
-                ForEach(devices) { device in
-                    Text(device.name).tag(device.uid)
+        VStack(alignment: .leading, spacing: DS.Space.lg) {
+            Form {
+                Picker("Output device", selection: $preferredDeviceUID) {
+                    Text("System default").tag("")
+                    ForEach(devices) { device in
+                        Text(device.name).tag(device.uid)
+                    }
                 }
+                .help(
+                    "Takes effect from the next track. If the device is unplugged, pick System default."
+                )
+                Toggle("Exclusive access (hog mode)", isOn: $exclusiveAccess)
+                Stepper(
+                    "Sample-rate change delay: \(rateChangeDelayMs) ms",
+                    value: $rateChangeDelayMs, in: 0...1000, step: 100)
+                Picker("If exact rate unavailable", selection: $rateFallback) {
+                    Text("Nearest family multiple").tag("nearestFamilyMultiple")
+                    Text("Allow cross-family resample").tag("allowCrossFamily")
+                    Text("Bit-perfect or silence — refuse to play").tag("refuse")
+                }
+                .help(
+                    "The last option never resamples: a track the device cannot play exactly "
+                        + "stays silent and says so, instead of playing altered.")
+                Picker("DSD mode", selection: $dsdMode) {
+                    Text("DoP if available").tag("dopIfAvailable")
+                    Text("Always convert to PCM").tag("alwaysConvertToPCM")
+                }
+                if dsdMode == "dopIfAvailable", let uid = dossierDeviceUID, !uid.isEmpty {
+                    Toggle("This DAC decodes DoP", isOn: dopBinding(uid))
+                        .help(
+                            "macOS cannot ask a DAC whether it understands DoP markers — "
+                                + "a PCM-only device fed DoP plays loud noise. Confirm it once per "
+                                + "device; until then DSD is converted to PCM and the badge says so."
+                        )
+                }
+                Picker("ReplayGain", selection: .constant("off")) {
+                    Text("Off").tag("off")
+                }
+                .disabled(true)
+                .help(
+                    "ReplayGain is stored but never applied in v1 — bit-perfect first (SPEC §5.3)")
             }
-            .help(
-                "Takes effect from the next track. If the device is unplugged, pick System default."
-            )
-            Toggle("Exclusive access (hog mode)", isOn: $exclusiveAccess)
-            Stepper(
-                "Sample-rate change delay: \(rateChangeDelayMs) ms",
-                value: $rateChangeDelayMs, in: 0...1000, step: 100)
-            Picker("If exact rate unavailable", selection: $rateFallback) {
-                Text("Nearest family multiple").tag("nearestFamilyMultiple")
-                Text("Allow cross-family resample").tag("allowCrossFamily")
-                Text("Bit-perfect or silence — refuse to play").tag("refuse")
-            }
-            .help(
-                "The last option never resamples: a track the device cannot play exactly "
-                    + "stays silent and says so, instead of playing altered.")
-            Picker("DSD mode", selection: $dsdMode) {
-                Text("DoP if available").tag("dopIfAvailable")
-                Text("Always convert to PCM").tag("alwaysConvertToPCM")
-            }
-            if dsdMode == "dopIfAvailable", let uid = dossierDeviceUID, !uid.isEmpty {
-                Toggle("This DAC decodes DoP", isOn: dopBinding(uid))
-                    .help(
-                        "macOS cannot ask a DAC whether it understands DoP markers — "
-                            + "a PCM-only device fed DoP plays loud noise. Confirm it once per "
-                            + "device; until then DSD is converted to PCM and the badge says so.")
-            }
-            Picker("ReplayGain", selection: .constant("off")) {
-                Text("Off").tag("off")
-            }
-            .disabled(true)
-            .help("ReplayGain is stored but never applied in v1 — bit-perfect first (SPEC §5.3)")
-            Section("What this device can do") {
+            // Досье — под формой на всю ширину: внутри Form на macOS оно попадало
+            // в правую колонку (~280 pt) и резало имя, частоты и строку про DoP (S23).
+            VStack(alignment: .leading, spacing: DS.Space.sm) {
+                Divider()
+                DSText("What this device can do", style: .headline)
                 DeviceDossierCard(deviceID: dossierDeviceID, playing: isPlaying)
             }
         }
