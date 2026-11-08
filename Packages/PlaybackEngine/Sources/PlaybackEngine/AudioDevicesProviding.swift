@@ -18,6 +18,7 @@ protocol AudioDevicesProviding: Sendable {
     func physicalFormats(deviceID: UInt32) async throws -> [AudioDeviceController.PhysicalFormat]
     func nominalSampleRate(deviceID: UInt32) async throws -> Double
     func setNominalSampleRate(deviceID: UInt32, rate: Double) async throws
+    func selectDeepestFormat(deviceID: UInt32, rate: Double) async throws -> Bool
     func hasVolumeControl(deviceID: UInt32) async -> Bool
     func volumeScalar(deviceID: UInt32) async -> Float?
     func setVolumeScalar(deviceID: UInt32, value: Float) async throws

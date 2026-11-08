@@ -59,6 +59,48 @@ public actor AudioDeviceController {
         try requireDevice(deviceID).setNominalSampleRate(rate)
     }
 
+    /// Ставит выходным потокам самый глубокий целочисленный формат на `rate`.
+    /// HAL сам разрядность не поднимает: FiiO QX13 держал 16 бит на любой
+    /// частоте, 24-бит PCM урезался, а DoP-маркеры (старший байт 24-бит слова)
+    /// терялись — ЦАП играл пакеты шумом (S23). Возвращает, менялся ли формат.
+    @discardableResult
+    public func selectDeepestFormat(deviceID: UInt32, rate: Double) throws -> Bool {
+        var changed = false
+        for stream in try requireDevice(deviceID).streams(inScope: .output) {
+            let current = try stream.physicalFormat
+            guard
+                let best = Self.deepestFormat(
+                    in: try stream.availablePhysicalFormats, at: rate,
+                    channels: current.mChannelsPerFrame),
+                best.mBitsPerChannel != current.mBitsPerChannel
+                    || best.mFormatFlags != current.mFormatFlags
+                    || current.mSampleRate != rate
+            else { continue }
+            try stream.setPhysicalFormat(best)
+            changed = true
+        }
+        return changed
+    }
+
+    /// Линейный PCM на `rate` с тем же числом каналов: целое прежде float,
+    /// затем больше бит. Целое — потому что ЦАП ждёт сэмплы как есть.
+    static func deepestFormat(
+        in available: [(AudioStreamBasicDescription, ClosedRange<Double>)],
+        at rate: Double, channels: UInt32
+    ) -> AudioStreamBasicDescription? {
+        func rank(_ f: AudioStreamBasicDescription) -> (UInt32, UInt32) {
+            (f.mFormatFlags & kAudioFormatFlagIsFloat == 0 ? 1 : 0, f.mBitsPerChannel)
+        }
+        let candidates = available.filter { format, range in
+            format.mFormatID == kAudioFormatLinearPCM
+                && format.mChannelsPerFrame == channels
+                && (format.mSampleRate == rate || (format.mSampleRate == 0 && range.contains(rate)))
+        }
+        guard var best = candidates.map(\.0).max(by: { rank($0) < rank($1) }) else { return nil }
+        best.mSampleRate = rate
+        return best
+    }
+
     // MARK: - Hog mode & mixing
 
     /// Attempts exclusive access. Returns true on success; failure is a

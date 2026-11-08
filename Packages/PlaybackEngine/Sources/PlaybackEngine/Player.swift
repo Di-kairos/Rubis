@@ -475,6 +475,12 @@ public actor Player {
             applied = try await devices.nominalSampleRate(deviceID: device.id)
             try checkCurrent(mine)
         }
+        // Разрядность — после частоты и на каждом треке: HAL держит прежнюю
+        // (16 бит у FiiO), а смена формата — та же пауза, что смена частоты.
+        if try await devices.selectDeepestFormat(deviceID: device.id, rate: applied) {
+            try await Task.sleep(for: config.sampleRateChangeDelay)
+        }
+        try checkCurrent(mine)
         let rateApplied = applied == plan.target
 
         outputStatus = OutputStatus(

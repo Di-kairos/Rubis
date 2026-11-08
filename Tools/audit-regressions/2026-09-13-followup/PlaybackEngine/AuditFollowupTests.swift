@@ -25,6 +25,7 @@ private struct FakeDevices: AudioDevicesProviding {
     }
     func nominalSampleRate(deviceID: UInt32) async throws -> Double { 176400 }
     func setNominalSampleRate(deviceID: UInt32, rate: Double) async throws {}
+    func selectDeepestFormat(deviceID: UInt32, rate: Double) async throws -> Bool { false }
     func hasVolumeControl(deviceID: UInt32) async -> Bool { false }
     func volumeScalar(deviceID: UInt32) async -> Float? { nil }
     func setVolumeScalar(deviceID: UInt32, value: Float) async throws {}

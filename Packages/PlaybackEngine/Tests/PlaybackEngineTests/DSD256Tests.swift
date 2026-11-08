@@ -83,6 +83,33 @@ struct DSD256Tests {
         let status = try #require(await player.outputStatus)
         #expect(status.dsdPath == .dop)
         #expect(devices.rate == 705_600)
+        #expect(devices.deepened == [705_600])
+    }
+
+    /// Живой баг S23, третья половина: FiiO стоял на 16 бит, DoP-маркеры
+    /// обрезались, и ЦАП играл шум. Выбор — 32-бит целое, не 16 и не float.
+    @Test func deepestFormatPicksWidestIntegerAtTheRate() throws {
+        func pcm(_ rate: Double, _ bits: UInt32, float: Bool = false, ch: UInt32 = 2)
+            -> (AudioStreamBasicDescription, ClosedRange<Double>)
+        {
+            var f = AudioStreamBasicDescription()
+            f.mFormatID = kAudioFormatLinearPCM
+            f.mFormatFlags = float ? kAudioFormatFlagIsFloat : kAudioFormatFlagIsSignedInteger
+            f.mSampleRate = rate
+            f.mBitsPerChannel = bits
+            f.mChannelsPerFrame = ch
+            return (f, rate...rate)
+        }
+        let fiio = [
+            pcm(705_600, 16), pcm(705_600, 32), pcm(44_100, 32), pcm(705_600, 32, float: true),
+            pcm(705_600, 32, ch: 8),
+        ]
+        let best = try #require(
+            AudioDeviceController.deepestFormat(in: fiio, at: 705_600, channels: 2))
+        #expect(best.mBitsPerChannel == 32)
+        #expect(best.mFormatFlags & kAudioFormatFlagIsFloat == 0)
+        #expect(best.mChannelsPerFrame == 2)
+        #expect(AudioDeviceController.deepestFormat(in: fiio, at: 96_000, channels: 2) == nil)
     }
 }
 
@@ -92,7 +119,9 @@ struct DSD256Tests {
 private final class DoPDevices: AudioDevicesProviding {
     static let dac = AudioDeviceController.DeviceInfo(id: 104, uid: "fiio", name: "FIIO QX13")
     private let current = Mutex<Double>(44_100)
+    private let deepenedRates = Mutex<[Double]>([])
     var rate: Double { current.withLock { $0 } }
+    var deepened: [Double] { deepenedRates.withLock { $0 } }
 
     func defaultOutputDevice() async throws -> AudioDeviceController.DeviceInfo? { Self.dac }
     func device(uid: String) async throws -> AudioDeviceController.DeviceInfo? { Self.dac }
@@ -112,6 +141,10 @@ private final class DoPDevices: AudioDevicesProviding {
     func nominalSampleRate(deviceID: UInt32) async throws -> Double { rate }
     func setNominalSampleRate(deviceID: UInt32, rate: Double) async throws {
         current.withLock { $0 = rate }
+    }
+    func selectDeepestFormat(deviceID: UInt32, rate: Double) async throws -> Bool {
+        deepenedRates.withLock { $0.append(rate) }
+        return true
     }
     func hasVolumeControl(deviceID: UInt32) async -> Bool { false }
     func volumeScalar(deviceID: UInt32) async -> Float? { nil }
