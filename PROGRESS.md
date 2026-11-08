@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "1ca8fad"
+head: "ed142cf"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
@@ -49,7 +49,9 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`1ca8fad`](https://github.com/Di-kairos/Rubis/commit/1ca8fad) —
+Текущий HEAD: [`ed142cf`](https://github.com/Di-kairos/Rubis/commit/ed142cf) —
+`fix(playback): select deepest integer physical format so DoP markers survive`
+(2026-11-08, MacBook; PlaybackEngine 58/58, audio-verify 24/24). Перед ним [`1ca8fad`](https://github.com/Di-kairos/Rubis/commit/1ca8fad) —
 `fix(playback): allow DoP at 705.6 kHz so DSD256 reaches the DAC`
 (2026-11-07, MacBook; PlaybackEngine 57/57, audio-verify 24/24). Перед ним [`d33af65`](https://github.com/Di-kairos/Rubis/commit/d33af65) —
 `fix(playback): play DSD256 DSF by pinning SFBAudioEngine to a patched fork`
