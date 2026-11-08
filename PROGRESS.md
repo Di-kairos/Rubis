@@ -5,13 +5,15 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.3 (34)"
-head: "9d3bc53"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.4 (35)"
+head: "5fa484b"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Релиз 0.11.4 (35) опубликован 2026-11-08 (сессия 23, MacBook) из 5fa484b: пакеты зелёные (DesignSystem 9, Core 75, MusicLibrary 106, Playback 58, Subsonic 44), нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 14fc5ddf…, 12794847 байт, appcast 991de0e (item 35) сверен по живой ссылке. В нём: DSD256 через DoP, разрядность выхода, пин на ЦАП, краш Artists/Playlists, альбомы артистов, 76860bb. Живое автообновление на 0.11.4 не проверено"
+  - "Живьём на FiiO QX13 (S23): DSD256 «03 - Money» через DoP — 705.6 кГц / 32 бит, звук чистый. Остались руками владельца: DSD128, 1.2–1.5, 9.4, 9.6, 6a.5"
   - "Готовность к публичному запуску (S22): блокеры — ЦАП-пункты чек-листа (1.2–1.6, 9.3/9.4/9.6, 6a.5), 8 ч без dropout, первый запуск на чистом аккаунте (6.4), релиз 0.11.4 с 76860bb. Продвижение закрыто (§3.3) до фразы владельца"
   - "8 ч без dropout: SOAK=8 audio-verify (23ee944) — ночью на MacBook, команда в docs/manual-checklist.md 1.7. Mac Mini: 3 мин, 0 dropouts; audio-verify 24/24"
   - "Найдено S22: repeat-track стыкует трек сам с собой не gapless — armGapless() пропускает next == index, трек перезапускается с паузой. Решить, нужен ли gapless-повтор одного трека"
@@ -49,7 +51,12 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`9d3bc53`](https://github.com/Di-kairos/Rubis/commit/9d3bc53) —
+Текущий HEAD: [`5fa484b`](https://github.com/Di-kairos/Rubis/commit/5fa484b) —
+`chore(release): version 0.11.4 (35)`. Выпущена **0.11.4** (build 35)
+2026-11-08 с MacBook: нотаризация Accepted, Gatekeeper на скачанном образе —
+`accepted / Notarized Developer ID`, sha256 `14fc5ddf…`, appcast
+[`991de0e`](https://github.com/Di-kairos/rubis-releases/commit/991de0e) сверен по
+живой ссылке. Перед ним [`9d3bc53`](https://github.com/Di-kairos/Rubis/commit/9d3bc53) —
 `fix(settings): give the device card full width so its text stops truncating`
 (2026-11-08, MacBook; вёрстка, проверено на живом окне). Перед ним [`ed142cf`](https://github.com/Di-kairos/Rubis/commit/ed142cf) —
 `fix(playback): select deepest integer physical format so DoP markers survive`
