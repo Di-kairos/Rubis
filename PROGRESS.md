@@ -6,7 +6,7 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.4 (35)"
-head: "5fa484b"
+head: "cc1478d"
 tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
@@ -51,7 +51,9 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`5fa484b`](https://github.com/Di-kairos/Rubis/commit/5fa484b) —
+Текущий HEAD: [`cc1478d`](https://github.com/Di-kairos/Rubis/commit/cc1478d) —
+`fix(app): wrap signal-path values instead of truncating them` (2026-11-08,
+MacBook; вёрстка, после релиза — войдёт в 0.11.5). Перед ним [`5fa484b`](https://github.com/Di-kairos/Rubis/commit/5fa484b) —
 `chore(release): version 0.11.4 (35)`. Выпущена **0.11.4** (build 35)
 2026-11-08 с MacBook: нотаризация Accepted, Gatekeeper на скачанном образе —
 `accepted / Notarized Developer ID`, sha256 `14fc5ddf…`, appcast
