@@ -5,18 +5,18 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.4 (35)"
-head: "667bf61"
-tests: "285 passed in 5 packages (DesignSystem 9, Core 75, Playback 53, Subsonic 44, MusicLibrary 104) + EscapementTests 16/16; app Debug without warnings (Xcode 27)"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.5 (36)"
+head: "72cd3ea"
+tests: "295 passed in 5 packages (DesignSystem 9, Core 75, MusicLibrary 106, Playback 61, Subsonic 44) + EscapementTests TEST SUCCEEDED; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Релиз 0.11.5 (36) опубликован 2026-11-21 (MacBook) из 72cd3ea: пакеты 295/295, EscapementTests зелёные, нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 db6dafbc…, 12873267 байт, appcast 8f1da42 (item 36) сверен по живой ссылке. В нём: gapless repeat-track (667bf61, D-023), перенос значений signal path (cc1478d). Живьём не проверены: автообновление 0.11.4 → 0.11.5 и повтор трека на слух"
   - "Релиз 0.11.4 (35) опубликован 2026-11-08 (сессия 23, MacBook) из 5fa484b: пакеты зелёные (DesignSystem 9, Core 75, MusicLibrary 106, Playback 58, Subsonic 44), нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 14fc5ddf…, 12794847 байт, appcast 991de0e (item 35) сверен по живой ссылке. В нём: DSD256 через DoP, разрядность выхода, пин на ЦАП, краш Artists/Playlists, альбомы артистов, 76860bb. Живое автообновление 0.11.3 → 0.11.4 пройдено (Check for Updates, стоит 0.11.4 (35), Notarized Developer ID)"
   - "Живьём на FiiO QX13 (S23): DSD256 «03 - Money» через DoP — 705.6 кГц / 32 бит, звук чистый. Остались руками владельца: DSD128, 1.2–1.5, 9.4, 9.6, 6a.5"
   - "Готовность к публичному запуску (S22): блокеры — ЦАП-пункты чек-листа (1.2–1.6, 9.3/9.4/9.6, 6a.5), 8 ч без dropout, первый запуск на чистом аккаунте (6.4), релиз 0.11.4 с 76860bb. Продвижение закрыто (§3.3) до фразы владельца"
   - "8 ч без dropout: SOAK=8 audio-verify (23ee944) — ночью на MacBook, команда в docs/manual-checklist.md 1.7. Mac Mini: 3 мин, 0 dropouts; audio-verify 24/24"
-  - "Repeat-track теперь gapless (667bf61, D-023, 2026-11-21 MacBook): PlaybackEngine 61/61, audio-verify 24/24. Живьём не проверено, в релиз 0.11.5"
   - "e87a38f закрыт и сверен в 0.11.3: по старому пути на MacBook лежал audio-verify от 2026-09-20 — в 0.11.0–0.11.2 уехал он; в бандле 0.11.3 бинарь свежий (хеши разные)"
   - "SPEC §12 на Mac Mini (MEASURE=1 audio-verify): CPU FLAC 24/96 = 0.99%, Play → первый сэмпл медиана 61 мс (37–70). audio-verify на Mac Mini 24/24 после fa49a30: захват перевыделял массив в IO-потоке → редкая тишина на 192 кГц; движок ни при чём. Не измерено: 8 часов без dropout"
   - "Релиз 0.11.3 (34) опубликован 2026-11-05 (сессия 21, MacBook): нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 316e3cb9…, appcast be2558a (item 34) сверен по живой ссылке. В бандле лицензии (24 пакета / 33 файла) и свежий audio-verify. Живьём 0.11.3 не проверена"
@@ -51,9 +51,14 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`667bf61`](https://github.com/Di-kairos/Rubis/commit/667bf61) —
+Текущий HEAD: [`72cd3ea`](https://github.com/Di-kairos/Rubis/commit/72cd3ea) —
+`chore(release): version 0.11.5 (36)`. Выпущена **0.11.5** (build 36)
+2026-11-21 с MacBook: нотаризация Accepted, Gatekeeper на скачанном образе —
+`accepted / Notarized Developer ID`, sha256 `db6dafbc…`, appcast
+[`8f1da42`](https://github.com/Di-kairos/rubis-releases/commit/8f1da42) сверен по
+живой ссылке. Перед ним [`667bf61`](https://github.com/Di-kairos/Rubis/commit/667bf61) —
 `fix(playback): loop repeat-track through the gapless seam` (2026-11-21,
-MacBook; D-023, PlaybackEngine 61/61, audio-verify 24/24; войдёт в 0.11.5).
+MacBook; D-023, PlaybackEngine 61/61, audio-verify 24/24).
 Перед ним [`cc1478d`](https://github.com/Di-kairos/Rubis/commit/cc1478d) —
 `fix(app): wrap signal-path values instead of truncating them` (2026-11-08,
 MacBook; вёрстка, после релиза — войдёт в 0.11.5). Перед ним [`5fa484b`](https://github.com/Di-kairos/Rubis/commit/5fa484b) —
