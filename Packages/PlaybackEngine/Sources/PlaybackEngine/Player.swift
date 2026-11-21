@@ -235,8 +235,12 @@ public actor Player {
     public func setRepeatMode(_ mode: RepeatMode) async {
         repeatMode = mode
         // Repeat меняет, что идёт после текущего трека; заряженный переход
-        // должен это отражать, а не звучать по прежнему плану.
-        if case .playing = state { await armGapless() }
+        // должен это отражать, а не звучать по прежнему плану. На паузе — тоже:
+        // иначе снятый repeat всё равно отдаст движку лишний круг на Play.
+        switch state {
+        case .playing, .paused: await armGapless()
+        default: break
+        }
     }
 
     /// Меняет режим и перестраивает остаток очереди, не трогая текущий трек.
@@ -657,8 +661,11 @@ public actor Player {
     /// закрывать выборочной отменой, если движок её опубликует.
     private func armGapless() async {
         let nextIndex = PlaybackOrder.next(after: index, count: queue.count, repeatMode: repeatMode)
+        // `repeat track` даёт next == index: то же вхождение открывается вторым
+        // декодером и склеивается с самим собой (D-023). Частота совпадает по
+        // определению, поэтому повтор идёт без сброса pipeline.
         let nextSource: Int? = nextIndex.flatMap { next in
-            guard next != index, sourceIndices.indices.contains(next) else { return nil }
+            guard sourceIndices.indices.contains(next) else { return nil }
             return sourceIndices[next]
         }
         if let previous = armed {
@@ -734,7 +741,13 @@ public actor Player {
         currentDecoderID = decoderID
         armed = nil
         outputStatus = status
-        state = .playing(queue[index].track)
+        // Переход публикуется, но транспорт не включается: стык, состоявшийся
+        // на паузе, оставляет паузу.
+        if case .paused = state {
+            state = .paused(queue[index].track)
+        } else {
+            state = .playing(queue[index].track)
+        }
     }
 
     private func handleDeviceLoss() async {
@@ -803,8 +816,17 @@ public actor Player {
     private func handle(_ event: EngineEvent) async {
         switch event {
         case .nowPlayingChanged(let decoderID):
+            // Стык принимается и на паузе: движок переходит на заряженный
+            // декодер в своём потоке, и Pause может опередить callback. Бросить
+            // событие значит разойтись с движком — `currentDecoderID` остался бы
+            // на прежнем декодере, и `endOfAudio` нового уже не двинул бы очередь.
+            let transportIsLive: Bool =
+                switch state {
+                case .playing, .paused: true
+                default: false
+                }
             guard let armed, decoderID == armed.decoder, armed.generation == generation,
-                case .playing = state
+                transportIsLive
             else { return }
             advance(to: decoderID, status: armed.status, source: armed.source)
             await armGapless()

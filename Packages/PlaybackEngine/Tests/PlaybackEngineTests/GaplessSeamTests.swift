@@ -42,6 +42,7 @@ private final class FakeEngine: PlaybackEngineDriving, @unchecked Sendable {
     private(set) var playing: (any PCMDecoding)?
     private(set) var queued: [any PCMDecoding] = []
     private(set) var clears = 0
+    private(set) var playCalls = 0
     private(set) var isPaused = false
     var activateArmedOnClear = false
     var currentTime: TimeInterval? = 12.5
@@ -54,6 +55,7 @@ private final class FakeEngine: PlaybackEngineDriving, @unchecked Sendable {
         playing = decoder
         queued.removeAll()
         isPaused = false
+        playCalls += 1
     }
     func enqueue(_ decoder: any PCMDecoding) throws { queued.append(decoder) }
     func clearQueue() {
@@ -95,9 +97,11 @@ private func fixtures() throws -> [URL] {
         .deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().appendingPathComponent("Fixtures")
-    let flacs = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
-        .filter { $0.pathExtension == "flac" }
-        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    let flacs = try FileManager.default.contentsOfDirectory(
+        at: dir, includingPropertiesForKeys: nil
+    )
+    .filter { $0.pathExtension == "flac" }
+    .sorted { $0.lastPathComponent < $1.lastPathComponent }
     return flacs
 }
 
@@ -176,11 +180,66 @@ struct GaplessSeamTests {
         let (player, engine, items) = try rig()
         await player.play(items: [items[0], items[1]], startAt: 0)
         let clearsBefore = engine.clears
+        let playsBefore = engine.playCalls
 
         await player.setRepeatMode(.track)
         #expect(await player.state.trackTitle == "A")
-        #expect(engine.clears > clearsBefore, "прежний заряд снят")
-        #expect(engine.queueIsEmpty, "repeat track: стык не склеиваем")
+        #expect(engine.clears > clearsBefore, "прежний заряд B снят")
+        #expect(engine.queueIsEmpty == false, "repeat track: заряжен сам текущий трек")
+        #expect(engine.playCalls == playsBefore, "смена режима звук не поднимает заново")
+    }
+
+    /// D-023: повтор одного трека идёт тем же стыком, что и переход между
+    /// треками — без сброса pipeline, то есть без слышимой паузы.
+    @Test func repeatTrackLoopsGaplesslyWithoutRestartingThePipeline() async throws {
+        let (player, engine, items) = try rig()
+        await player.play(items: [items[0]], startAt: 0)
+        await player.setRepeatMode(.track)
+        #expect(engine.queueIsEmpty == false, "заряжен второй декодер того же трека")
+        let playsBefore = engine.playCalls
+
+        // Движок доиграл трек и забрал заряженную копию — стык состоялся.
+        engine.promoteQueuedToPlaying()
+        await player.rearmGapless()
+
+        #expect(await player.state.trackTitle == "A")
+        #expect(await player.currentIndex() == 0, "позиция остаётся на том же вхождении")
+        #expect(engine.playCalls == playsBefore, "повтор не поднимает трек заново")
+        #expect(engine.queueIsEmpty == false, "следующий круг уже заряжен")
+    }
+
+    /// Снятый на паузе repeat не должен оставлять движку лишний круг.
+    @Test func turningRepeatOffWhilePausedDropsTheArmedLoop() async throws {
+        let (player, engine, items) = try rig()
+        await player.play(items: [items[0]], startAt: 0)
+        await player.setRepeatMode(.track)
+        await player.togglePlayPause()
+        #expect(await player.state.isPaused)
+
+        await player.setRepeatMode(.off)
+
+        #expect(engine.queueIsEmpty, "заряженная копия снята вместе с режимом")
+        #expect(await player.state.isPaused, "смена режима на паузе звук не включает")
+    }
+
+    /// Стык, состоявшийся на паузе: движок перешёл на заряженный декодер, а
+    /// Pause опередил callback. Переход публикуется, пауза остаётся.
+    @Test func seamThatHappensWhilePausedKeepsThePause() async throws {
+        let (player, engine, items) = try rig()
+        await player.play(items: [items[0], items[1]], startAt: 0)
+        await player.togglePlayPause()
+        #expect(await player.state.isPaused)
+
+        // Движок доиграл A и забрал заряженный B ещё до паузы.
+        engine.promoteQueuedToPlaying()
+        let playsBefore = engine.playCalls
+        // Любая правка очереди замечает состоявшийся стык.
+        await player.enqueue(items: [items[2]])
+
+        #expect(await player.state.trackTitle == "B", "публикуется заряженный трек")
+        #expect(await player.currentIndex() == 1)
+        #expect(await player.state.isPaused, "переход не снимает паузу")
+        #expect(engine.playCalls == playsBefore, "трек заново не поднимается")
     }
 }
 
