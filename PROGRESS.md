@@ -5,13 +5,14 @@ ecosystem: standalone
 repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
-hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.5 (36)"
-head: "52dc620"
-tests: "295 passed in 5 packages (DesignSystem 9, Core 75, MusicLibrary 106, Playback 61, Subsonic 44) + EscapementTests TEST SUCCEEDED; app Debug without warnings (Xcode 27)"
+hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.6 (37)"
+head: "95124f0"
+tests: "295 passed in 5 packages (DesignSystem 9, Core 75, MusicLibrary 106, Playback 61, Subsonic 44) + EscapementTests 20/20; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
+  - "Релиз 0.11.6 (37) опубликован 2026-11-23 (MacBook) из 95124f0: пакеты 295/295, EscapementTests 20/20, нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 a3c316d7…, 12869311 байт, appcast 4f99cb5 (item 37) сверен по живой ссылке. В нём: двойной клик по системному порогу (52dc620), отключённый ЦАП «not connected» (c68e003). Живьём не проверены: автообновление 0.11.5 → 0.11.6, строка «not connected» в окне Settings, двойной клик на полке альбомов и в поиске"
   - "Двойной клик в очереди Now Playing, на полке альбомов и в поиске срабатывал не с первого раза: onTapGesture(count: 2) ждёт меньше системного порога 0.5 с. 52dc620: счёт кликов по NSEvent.clickCount. Живой A/B на Debug-стенде 2026-11-23 (0.11.5 — нет при ~0.48 с; фикс — да при 0.40 с). В релиз 0.11.6"
   - "«Треки не играют» 2026-11-23: выбран отключённый FiiO QX13 → deviceUnavailable, так задумано (не регрессия). c68e003: Settings › Output device показывает его как «FIIO QX13 — not connected» вместо пустого поля. EscapementTests 20/20; на живом окне не проверено, в релиз 0.11.6"
   - "Релиз 0.11.5 (36) опубликован 2026-11-21 (MacBook) из 72cd3ea: пакеты 295/295, EscapementTests зелёные, нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 db6dafbc…, 12873267 байт, appcast 8f1da42 (item 36) сверен по живой ссылке. В нём: gapless repeat-track (667bf61, D-023), перенос значений signal path (cc1478d). Живое автообновление 0.11.4 → 0.11.5 пройдено 2026-11-22 (лог Sparkle, стоит 36). Повтор трека на слух без задержки — подтверждён владельцем 2026-11-23"
@@ -53,7 +54,12 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`52dc620`](https://github.com/Di-kairos/Rubis/commit/52dc620) —
+Текущий HEAD: [`95124f0`](https://github.com/Di-kairos/Rubis/commit/95124f0) —
+`chore(release): version 0.11.6 (37)`. Выпущена **0.11.6** (build 37)
+2026-11-23 с MacBook: нотаризация Accepted, Gatekeeper на скачанном образе —
+`accepted / Notarized Developer ID`, sha256 `a3c316d7…`, appcast
+[`4f99cb5`](https://github.com/Di-kairos/rubis-releases/commit/4f99cb5) сверен по
+живой ссылке. Перед ним [`52dc620`](https://github.com/Di-kairos/Rubis/commit/52dc620) —
 `fix(app): count double clicks by the system threshold, not SwiftUI's` (2026-11-23,
 MacBook; EscapementTests 20/20, живой A/B на стенде; войдёт в 0.11.6). Перед ним [`c68e003`](https://github.com/Di-kairos/Rubis/commit/c68e003) —
 `fix(settings): show an unplugged output device as not connected` (2026-11-23,
