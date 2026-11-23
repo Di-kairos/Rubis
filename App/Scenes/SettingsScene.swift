@@ -272,6 +272,8 @@ struct AudioSettings: View {
     /// Пустая строка — следовать системному default-выходу.
     @AppStorage("preferredDeviceUID") private var preferredDeviceUID = ""
     @State private var devices: [AudioDeviceController.DeviceInfo] = []
+    /// До первого перечисления список пуст — «not connected» в этот миг был бы ложью.
+    @State private var devicesLoaded = false
     /// Устройство, о котором показываем досье: выбранное или системное.
     @State private var dossierDeviceID: UInt32?
     @State private var dossierDeviceUID: String?
@@ -295,6 +297,14 @@ struct AudioSettings: View {
                     Text("System default").tag("")
                     ForEach(devices) { device in
                         Text(device.name).tag(device.uid)
+                    }
+                    // Выбранный ЦАП отключён: без своей строки Picker пуст, и
+                    // отказ играть («Output device is unavailable») не объяснён.
+                    if devicesLoaded,
+                        let label = Self.missingDeviceLabel(
+                            uid: preferredDeviceUID, connected: devices.map(\.uid))
+                    {
+                        Text(label).tag(preferredDeviceUID)
                     }
                 }
                 .help(
@@ -351,6 +361,7 @@ struct AudioSettings: View {
         }
         .task {
             devices = (try? await enumerator.outputDevices()) ?? []
+            devicesLoaded = true
             dopConfirmed = Set(
                 UserDefaults.standard.stringArray(forKey: SettingsKey.dopConfirmedDeviceUIDs)
                     ?? [])
@@ -370,6 +381,21 @@ struct AudioSettings: View {
                     Array(dopConfirmed).sorted(), forKey: SettingsKey.dopConfirmedDeviceUIDs)
                 pushConfig()
             })
+    }
+
+    /// Подпись для выбранного, но не подключённого устройства; `nil`, если
+    /// выбран системный выход или устройство на месте. Сохранён только UID,
+    /// поэтому имя берётся из него.
+    /// ponytail: имя читается только из UID USB-аудио
+    /// (`AppleUSBAudioEngine:<vendor>:<product>:…`); остальным — общее имя.
+    /// Хранить имя рядом с UID, если понадобятся не-USB выходы.
+    nonisolated static func missingDeviceLabel(uid: String, connected: [String]) -> String? {
+        guard !uid.isEmpty, !connected.contains(uid) else { return nil }
+        let parts = uid.split(separator: ":", omittingEmptySubsequences: false)
+        let name =
+            parts.first == "AppleUSBAudioEngine" && parts.count > 2 && !parts[2].isEmpty
+            ? String(parts[2]) : "Selected device"
+        return "\(name) — not connected"
     }
 
     /// Пустой UID — досье на системный выход: именно в него и будет играть.
