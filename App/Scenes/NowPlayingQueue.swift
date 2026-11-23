@@ -263,10 +263,11 @@ struct NowPlayingQueue: View {
                             }
                         }
                         .id(index)
-                        .onTapGesture(count: 2) { env.playQueueItem(at: index) }
+                        .onClick(select: { focused = index }) {
+                            env.playQueueItem(at: index)
+                        }
                         .accessibilityAddTraits(.isButton)
                         .accessibilityAction { env.playQueueItem(at: index) }
-                        .onTapGesture { focused = index }
                         .trackQueueMenu(track, env: env)
                     }
                 }

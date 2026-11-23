@@ -119,8 +119,9 @@ struct SearchResults: View {
             }
         }
         .id(item.id)
-        .onTapGesture { select(item, at: index) }
-        .onTapGesture(count: 2) { activate(item, in: rows, queue: false) }
+        .onClick(select: { select(item, at: index) }) {
+            activate(item, in: rows, queue: false)
+        }
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { activate(item, in: rows, queue: false) }
         .contextMenu { QueueMenuItems(tracks: tracks(for: item, in: rows), env: env) }

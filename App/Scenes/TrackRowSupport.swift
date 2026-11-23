@@ -1,3 +1,4 @@
+import AppKit
 import DesignSystem
 import EscapementCore
 import SwiftUI
@@ -64,6 +65,18 @@ extension View {
         listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             .listRowBackground(DS.Color.bgBase)
+    }
+
+    /// Клик выделяет, двойной клик — запускает. Счёт кликов берётся у AppKit,
+    /// а не у `onTapGesture(count: 2)`: у жеста SwiftUI своё окно ожидания,
+    /// короче системного порога двойного клика (0.5 с по умолчанию). Обычный
+    /// неспешный двойной клик (~0.45 с) он считал двумя одиночными — строка
+    /// выделялась и не играла. `NSEvent.clickCount` считает система по её
+    /// порогу, как в `List` и Finder. В SwiftUI счёта кликов нет — отсюда AppKit.
+    func onClick(select: @escaping () -> Void, activate: @escaping () -> Void) -> some View {
+        onTapGesture {
+            if (NSApp.currentEvent?.clickCount ?? 1) >= 2 { activate() } else { select() }
+        }
     }
 
     /// Контекстное меню очереди — одинаковое во всех списках треков.

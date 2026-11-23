@@ -126,10 +126,9 @@ struct AlbumsShowcase: View {
                 RoundedRectangle(cornerRadius: DS.Radius.small)
                     .strokeBorder(isFeatured ? DS.Color.accent : .clear, lineWidth: 1.5)
             )
-            .onTapGesture(count: 2) { env.play(album: album) }
+            .onClick(select: { focused = index }) { env.play(album: album) }
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { env.play(album: album) }
-            .onTapGesture { focused = index }
             .help("\(album.title) — \(album.albumArtist ?? "")")
             .accessibilityLabel("\(album.title), \(album.albumArtist ?? "")")
     }
