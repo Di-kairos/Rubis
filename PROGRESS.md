@@ -8,7 +8,7 @@ stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.6 (37)"
 head: "95124f0"
 tests: "295 passed in 5 packages (DesignSystem 9, Core 75, MusicLibrary 106, Playback 61, Subsonic 44) + EscapementTests 20/20; app Debug without warnings (Xcode 27)"
-last_session: 22
+last_session: 24
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
@@ -44,8 +44,8 @@ links:
   tasks: TASKS.md
   handoff: HANDOFF.md
   releases: https://github.com/Di-kairos/rubis-releases
-  latest_report: docs/sessions/progress-report-session22.md
-  latest_kickoff: docs/sessions/SESSION_23_KICKOFF.md
+  latest_report: docs/sessions/progress-report-session24.md
+  latest_kickoff: docs/sessions/SESSION_25_KICKOFF.md
   audit: AUDIT_PLAYER_2026-09-12.md
   audit_response: AUDIT_RESPONSE_2026-09-12.md
 ---
