@@ -6,13 +6,14 @@ repo: https://github.com/Di-kairos/Rubis.git
 status: active
 stack: [Swift 6, SwiftUI, SPM, SFBAudioEngine, CAAudioHardware, GRDB, SQLite/FTS5, Sparkle]
 hosting: "local macOS app (arm64, macOS 15+), autoupdate через Di-kairos/rubis-releases; опубликована 0.11.5 (36)"
-head: "72cd3ea"
+head: "c68e003"
 tests: "295 passed in 5 packages (DesignSystem 9, Core 75, MusicLibrary 106, Playback 61, Subsonic 44) + EscapementTests TEST SUCCEEDED; app Debug without warnings (Xcode 27)"
 last_session: 22
 last_reviewed: 2026-10-05
 keywords: [music-player, macos, bit-perfect, audio, flac, dsd, subsonic, navidrome, swiftui, sparkle]
 next_actions:
-  - "Релиз 0.11.5 (36) опубликован 2026-11-21 (MacBook) из 72cd3ea: пакеты 295/295, EscapementTests зелёные, нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 db6dafbc…, 12873267 байт, appcast 8f1da42 (item 36) сверен по живой ссылке. В нём: gapless repeat-track (667bf61, D-023), перенос значений signal path (cc1478d). Живое автообновление 0.11.4 → 0.11.5 пройдено 2026-11-22 (лог Sparkle, стоит 36). Живьём не проверен повтор трека на слух"
+  - "«Треки не играют» 2026-11-23: выбран отключённый FiiO QX13 → deviceUnavailable, так задумано (не регрессия). c68e003: Settings › Output device показывает его как «FIIO QX13 — not connected» вместо пустого поля. EscapementTests 20/20; на живом окне не проверено, в релиз 0.11.6"
+  - "Релиз 0.11.5 (36) опубликован 2026-11-21 (MacBook) из 72cd3ea: пакеты 295/295, EscapementTests зелёные, нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 db6dafbc…, 12873267 байт, appcast 8f1da42 (item 36) сверен по живой ссылке. В нём: gapless repeat-track (667bf61, D-023), перенос значений signal path (cc1478d). Живое автообновление 0.11.4 → 0.11.5 пройдено 2026-11-22 (лог Sparkle, стоит 36). Повтор трека на слух без задержки — подтверждён владельцем 2026-11-23"
   - "Релиз 0.11.4 (35) опубликован 2026-11-08 (сессия 23, MacBook) из 5fa484b: пакеты зелёные (DesignSystem 9, Core 75, MusicLibrary 106, Playback 58, Subsonic 44), нотаризация Accepted, staple, скачанный образ accepted / Notarized Developer ID, sha256 14fc5ddf…, 12794847 байт, appcast 991de0e (item 35) сверен по живой ссылке. В нём: DSD256 через DoP, разрядность выхода, пин на ЦАП, краш Artists/Playlists, альбомы артистов, 76860bb. Живое автообновление 0.11.3 → 0.11.4 пройдено (Check for Updates, стоит 0.11.4 (35), Notarized Developer ID)"
   - "Живьём на FiiO QX13 (S23): DSD256 «03 - Money» через DoP — 705.6 кГц / 32 бит, звук чистый. Остались руками владельца: DSD128, 1.2–1.5, 9.4, 9.6, 6a.5"
   - "Готовность к публичному запуску (S22): блокеры — ЦАП-пункты чек-листа (1.2–1.6, 9.3/9.4/9.6, 6a.5), 8 ч без dropout, первый запуск на чистом аккаунте (6.4), релиз 0.11.4 с 76860bb. Продвижение закрыто (§3.3) до фразы владельца"
@@ -51,7 +52,9 @@ links:
 
 ## Текущее состояние
 
-Текущий HEAD: [`72cd3ea`](https://github.com/Di-kairos/Rubis/commit/72cd3ea) —
+Текущий HEAD: [`c68e003`](https://github.com/Di-kairos/Rubis/commit/c68e003) —
+`fix(settings): show an unplugged output device as not connected` (2026-11-23,
+MacBook; EscapementTests 20/20; войдёт в 0.11.6). Перед ним [`72cd3ea`](https://github.com/Di-kairos/Rubis/commit/72cd3ea) —
 `chore(release): version 0.11.5 (36)`. Выпущена **0.11.5** (build 36)
 2026-11-21 с MacBook: нотаризация Accepted, Gatekeeper на скачанном образе —
 `accepted / Notarized Developer ID`, sha256 `db6dafbc…`, appcast
